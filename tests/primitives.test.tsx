@@ -7,11 +7,45 @@ import { MotionConfig } from "motion/react";
 import { AnimatedNumber, FadeIn, PageTransition } from "@/lib/motion";
 import { setHydratedForTests } from "@/lib/motion/hydration";
 import { STATUS_LABELS } from "@/lib/labels";
-import { DataTable, dataTableColumnHelper } from "@/components/primitives/data-table";
+import { BulkActionBar, DataTable, dataTableColumnHelper } from "@/components/primitives/data-table";
 import { FilterBar } from "@/components/primitives/filter-bar";
 import { StatCard } from "@/components/primitives/stat-card";
 import { StatusBadge } from "@/components/primitives/status-badge";
 import { toneSoft, type Tone } from "@/components/primitives/tone";
+
+/**
+ * motion captures `requestAnimationFrame` when its frameloop module loads, so
+ * the stub has to be installed before the imports run. While `blocked`, frame
+ * callbacks never run (as in a background tab); they
+ * are released to the real rAF on unblock so later tests' frameloop resumes.
+ */
+const rafGate = vi.hoisted(() => {
+  const g = globalThis as unknown as { requestAnimationFrame?: (cb: FrameRequestCallback) => number };
+  const real = g.requestAnimationFrame?.bind(globalThis);
+  let blocked = false;
+  let held: FrameRequestCallback[] = [];
+  if (real) {
+    // Gate at call time and at fire time, so a frame requested just before blocking is held too.
+    g.requestAnimationFrame = (cb) => {
+      if (blocked) {
+        held.push(cb);
+        return 0;
+      }
+      return real((ts) => (blocked ? held.push(cb) : cb(ts)));
+    };
+  }
+  return {
+    block() {
+      blocked = true;
+    },
+    unblock() {
+      blocked = false;
+      const pending = held;
+      held = [];
+      pending.forEach((cb) => real?.(cb));
+    },
+  };
+});
 
 // jsdom lacks a few browser APIs that Radix touches.
 beforeAll(() => {
@@ -277,6 +311,28 @@ describe("AnimatedNumber", () => {
     await waitFor(() => expect(text(container)).toBe("1,500"), { timeout: 2000 });
   });
 
+  it("settles on the final value from a timer when animation frames never fire", () => {
+    const { container, rerender } = render(<AnimatedNumber value={1234} />);
+    expect(text(container)).toBe("1,234");
+    rafGate.block();
+    vi.useFakeTimers({ toFake: ["setTimeout", "clearTimeout"] });
+    try {
+      rerender(<AnimatedNumber value={1500} />);
+      // Past most of the 320 ms count, but no frame has run: nothing painted yet.
+      act(() => {
+        vi.advanceTimersByTime(300);
+      });
+      expect(text(container)).toBe("1,234");
+      act(() => {
+        vi.advanceTimersByTime(700);
+      });
+      expect(text(container)).toBe("1,500");
+    } finally {
+      vi.useRealTimers();
+      rafGate.unblock();
+    }
+  });
+
   it("applies a new value immediately under reduced motion", () => {
     const { container, rerender } = render(
       <MotionConfig reducedMotion="always">
@@ -433,5 +489,83 @@ describe("reduced motion", () => {
       </MotionConfig>,
     );
     expect(screen.getByTestId("fade").style.opacity).toBe("0");
+  });
+});
+
+describe("BulkActionBar overflow", () => {
+  // The breakpoint is driven by a `matchMedia` stub. `false` = no query
+  // matches, i.e. a phone-width viewport (< 40rem), where one action stays
+  // inline; `true` = md and up, where every action is inline.
+  function stubMatchMedia(matches: boolean) {
+    vi.stubGlobal(
+      "matchMedia",
+      vi.fn((query: string) => ({
+        matches,
+        media: query,
+        onchange: null,
+        addEventListener: () => {},
+        removeEventListener: () => {},
+        addListener: () => {},
+        removeListener: () => {},
+        dispatchEvent: () => false,
+      })),
+    );
+  }
+
+  afterEach(() => {
+    vi.unstubAllGlobals();
+  });
+
+  const LABELS = ["Set status", "Add tag", "Mark do-not-call", "Add to call campaign", "Add to email campaign", "Export"];
+
+  function renderBar(onAction: (label: string) => void = () => {}) {
+    const button = (l: string) => (
+      <button key={l} type="button" onClick={() => onAction(l)}>
+        {l}
+      </button>
+    );
+    return render(
+      <BulkActionBar count={3} onClear={() => {}}>
+        <>
+          {LABELS.slice(0, 3).map(button)}
+          <>{LABELS.slice(3).map(button)}</>
+        </>
+      </BulkActionBar>,
+    );
+  }
+
+  it("keeps the first action inline and lists the other five in the More menu at phone width", async () => {
+    stubMatchMedia(false);
+    const onAction = vi.fn();
+    const user = userEvent.setup();
+    renderBar(onAction);
+    const bar = screen.getByRole("region", { name: "Bulk actions" });
+    expect(bar.textContent).toContain("3 selected");
+    const inline = within(bar)
+      .getAllByRole("button")
+      .map((b) => b.getAttribute("aria-label") ?? b.textContent?.trim());
+    expect(inline).toEqual(["Set status", "More…", "Clear selection"]);
+
+    await user.click(within(bar).getByRole("button", { name: /More/ }));
+    const menu = await screen.findByRole("menu");
+    const items = within(menu)
+      .getAllByRole("menuitem")
+      .map((i) => i.textContent?.trim());
+    expect(items).toEqual(LABELS.slice(1));
+
+    // Keyboard: items are reachable with the arrow keys and Enter runs the action.
+    await user.keyboard("{ArrowDown}");
+    await waitFor(() => expect(document.activeElement?.getAttribute("role")).toBe("menuitem"));
+    const focused = document.activeElement?.textContent?.trim();
+    await user.keyboard("{Enter}");
+    expect(onAction).toHaveBeenCalledWith(focused);
+  });
+
+  it("keeps every action inline at md and up", () => {
+    stubMatchMedia(true);
+    renderBar();
+    const bar = screen.getByRole("region", { name: "Bulk actions" });
+    for (const l of LABELS) expect(within(bar).getByRole("button", { name: l })).toBeTruthy();
+    expect(within(bar).queryByRole("button", { name: /More/ })).toBeNull();
   });
 });
