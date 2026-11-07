@@ -38,7 +38,17 @@ export function createPgliteDb(client: PGlite): Handle {
 /** Connect to a real Postgres (Supabase) via postgres-js. */
 export function createPostgresDb(url: string): Handle {
   // prepare:false is required behind Supabase's transaction pooler.
-  const client = postgres(url, { prepare: false, max: 5 });
+  // Serverless hardening: a frozen function instance can thaw holding a socket the
+  // pooler already closed, and a query on it hangs until the platform timeout.
+  // Closing idle sockets quickly and bounding connect/lifetime avoids reusing dead
+  // connections; a small pool keeps per-instance server connections low.
+  const client = postgres(url, {
+    prepare: false,
+    max: 3,
+    idle_timeout: 20,
+    max_lifetime: 60 * 5,
+    connect_timeout: 10,
+  });
   const db = drizzlePostgres({ client, schema }) as unknown as Db;
   drivers.set(db, "postgres");
   return { db, driver: "postgres", close: () => client.end({ timeout: 5 }) };
