@@ -80,34 +80,24 @@ logout button appears in the top bar while the gate is active.
 
 ## Deploying
 
-### 1. Supabase (Postgres)
+Vercel (app) + Supabase (Postgres, transaction pooler). Full walkthrough,
+env var table, cron notes and smoke checklist: **[docs/deploy.md](docs/deploy.md)**.
 
-1. Create a project at https://supabase.com (or use the existing one).
-2. Project → **Connect** → copy the **Transaction pooler** URI (port 6543)
-   and substitute your database password.
-3. Apply migrations and, optionally, the demo data from your machine:
-   ```bash
-   DATABASE_URL="postgresql://postgres.<ref>:<password>@aws-0-<region>.pooler.supabase.com:6543/postgres" npm run db:migrate
-   DATABASE_URL="…same…" npm run db:seed    # optional: resets all tables
-   ```
-   Only Postgres is used: no Supabase Auth, RLS or Realtime.
+In short:
 
-### 2. Vercel
-
-1. Import the GitHub repo in Vercel (framework preset: Next.js; build
-   command `npm run build`).
-2. Set environment variables for Production (and Preview if wanted):
-   `DATABASE_URL` (required on Vercel: PGlite cannot persist on serverless),
-   `APP_PASSWORD` + `APP_SESSION_SECRET` (recommended), `CRON_SECRET`,
-   and optionally `YELP_API_KEY`, `RESEND_API_KEY`, `EMAIL_FROM`,
-   `APP_TIMEZONE`.
-3. Deploy. `vercel.json` declares two hourly crons, `/api/cron/campaigns` and
-   `/api/cron/email`. When `CRON_SECRET` is set, Vercel sends it as a bearer
-   token automatically. On the Hobby plan crons run at most once a day; the
-   app does not depend on them, since campaigns are also evaluated on access
-   and email has a manual "Process now".
-4. Run `npm run db:migrate` against `DATABASE_URL` whenever a new migration
-   lands. The build does not migrate.
+1. Create a Supabase project and copy the **Transaction pooler** URI (port
+   6543). Run `DATABASE_URL="…" npm run db:migrate` against it. The client
+   already sets `prepare: false`, so no extra flags are needed.
+2. Import the repo in Vercel (Next.js preset, `npm run build`, Node 24) and set
+   `DATABASE_URL` (required: PGlite cannot persist on serverless), plus
+   `APP_PASSWORD`, `APP_SESSION_SECRET` and `CRON_SECRET` (recommended). See
+   the [Environment](#environment) table for the rest.
+3. `vercel.json` declares two hourly crons (`/api/cron/campaigns`,
+   `/api/cron/email`). Hobby allows crons only once a day, so change both
+   schedules to a daily expression there, or use Pro. The app does not depend
+   on them.
+4. The build does not migrate: re-run `npm run db:migrate` whenever a new file
+   lands in `drizzle/`.
 
 ## Project layout
 
@@ -122,5 +112,6 @@ drizzle/            generated SQL migrations (committed)
 fixtures/yelp/      offline Yelp Fusion fixtures used without an API key
 scripts/            migrate / seed / ingest CLIs (run with tsx)
 tests/              Vitest suites
+docs/deploy.md      Vercel + Supabase deployment guide
 docs/team/          spec, architecture and work packages
 ```
