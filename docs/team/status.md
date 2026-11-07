@@ -8,7 +8,7 @@
 | WP-04 | Businesses UI | 3 | senior-wp04 (Opus) | wp-04-businesses-ui / PR #5 | merged | reviews/WP-04.md (ACCEPT, round 1) |
 | WP-05 | Calling | 3 | senior-wp05 (Opus) | wp-05-calling / PR #6 | merged | reviews/WP-05.md (ACCEPT, round 1) |
 | WP-06 | Email | 3 | senior-wp06 (Opus) | wp-06-email / PR #4 | merged | reviews/WP-06.md (ACCEPT, round 1) |
-| WP-07 | Dashboard and integration | 4 | senior-wp07 (Opus) | wp-07-dashboard | spawned | — |
+| WP-07 | Dashboard and integration | 4 | senior-wp07 (Opus) | wp-07-dashboard / PR #7 | merged | reviews/WP-07.md (ACCEPT, round 1) |
 
 Estimated agents: 7 Opus seniors + roughly 1–3 Sonnet juniors each.
 
@@ -26,3 +26,4 @@ Estimated agents: 7 Opus seniors + roughly 1–3 Sonnet juniors each.
 - 2026-11-07 WP-05 delivered (PR #6, 27 files, 384 tests); PM review ACCEPT round 1; merged to main. Wave 3 complete.
 - 2026-11-07 main green after wave 3 (448 tests). Wave 4 spawned: WP-07 (dashboard, search, campaign wiring, deploy readiness, carried-over fixes).
 - 2026-11-07 Supabase project `aszvhaanfiiofmzvzfub`: schema applied via the Supabase MCP (migration `0000_init_local_business_crm`, identical to `drizzle/0000_init.sql`), Drizzle bookkeeping row inserted (hash bfd8bea5…, created_at 1794047797511) so `npm run db:migrate` is a no-op there; RLS enabled with no policies on all tables (the app connects as the postgres role over `DATABASE_URL`, which bypasses RLS; the REST surface is closed). Pooled `DATABASE_URL` still needed from the user for the build check and optional seed.
+- 2026-11-07 WP-07 delivered (PR #7, 26 files, 482 tests); PM review ACCEPT round 1; merged to main. All seven packages merged; integration check running.
