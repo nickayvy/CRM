@@ -34,3 +34,4 @@ Estimated agents: 7 Opus seniors + roughly 1–3 Sonnet juniors each.
 - 2026-11-07 Hosted app hung on query-heavy pages (postgres-js pipelining vs Supabase transaction pooler). Fixed with max_pipeline:1; verified all routes, a 6-way concurrent burst, and both crons live. User keeps Vercel Authentication on. Run complete.
 - 2026-11-07 WP-08 spawned for the two cosmetic open issues. Yelp live mode and real email delivery remain gated on user-supplied YELP_API_KEY / RESEND_API_KEY.
 - 2026-11-07 WP-08 delivered (PR #8, 3 files, 485 tests); PM review ACCEPT round 1; merged to main; deploying.
+- 2026-11-07 WP-08 deployed (production on 9ed47a2): all routes 200, crons OK. Run closed. Remaining inputs are optional and user-held: YELP_API_KEY (live ingestion instead of fixtures) and RESEND_API_KEY (real delivery instead of dry run).
