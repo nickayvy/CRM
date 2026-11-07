@@ -310,7 +310,7 @@ export function Dialer({ campaign, agent, pollMs = 5000 }: DialerProps) {
                   )}
                 </CardHeader>
                 <CardContent className="grid gap-4">
-                  <KeyValueList columns={2}>
+                  <KeyValueList>
                     <KeyValue label="Rating">
                       {formatRating(b.rating)} · {b.reviewCount} reviews
                     </KeyValue>
@@ -341,7 +341,7 @@ export function Dialer({ campaign, agent, pollMs = 5000 }: DialerProps) {
               </Card>
 
               <Card>
-                <CardContent className="grid gap-3">
+                <CardContent className="@container grid gap-3">
                   <label htmlFor="dialer-notes" className="flex items-center justify-between text-sm font-medium">
                     Notes
                     <span className="text-xs font-normal text-muted-foreground">
@@ -359,7 +359,7 @@ export function Dialer({ campaign, agent, pollMs = 5000 }: DialerProps) {
                     }}
                     placeholder="What happened on the call?"
                   />
-                  <div className="grid grid-cols-2 gap-2 sm:grid-cols-4" role="group" aria-label="Outcomes">
+                  <div className="grid grid-cols-2 gap-2 @md:grid-cols-4" role="group" aria-label="Outcomes">
                     {CALL_OUTCOMES.map((o, i) => (
                       <Button
                         key={o}
