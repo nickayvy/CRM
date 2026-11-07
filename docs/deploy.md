@@ -17,7 +17,7 @@ Project Settings → General → Node.js Version to **24.x**.
    characters (`@` → `%40`, `#` → `%23`, `/` → `%2F`, `:` → `%3A`, `%` → `%25`),
    or reset the password to something alphanumeric.
 
-**Why the session pooler, and no extra flags.** The transaction pooler (6543) hangs any postgres-js query that has to wait for a free pooled connection, so bursty pages never finish; the session pooler does not. It also does not support
+**Why these client flags.** The transaction pooler does not support
 prepared statements. `src/db/client.ts` creates the postgres-js client as
 `postgres(url, { prepare: false, max: 3, max_pipeline: 1, idle_timeout: 20, max_lifetime: 300, connect_timeout: 10 })`:
 prepared statements are off, at most 3 connections are opened per server
