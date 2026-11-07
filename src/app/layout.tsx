@@ -19,7 +19,10 @@ export const viewport: Viewport = {
   initialScale: 1,
 };
 
-export default function RootLayout({ children }: LayoutProps<"/">) {
+// Explicit props type: Next's global LayoutProps/PageProps helpers only exist
+// after `next dev`/`next build`/`next typegen`, and `npm run typecheck` must
+// pass on a clean clone.
+export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="en" suppressHydrationWarning className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}>
       <body className="min-h-full overflow-x-hidden">
