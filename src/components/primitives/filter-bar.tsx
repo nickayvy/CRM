@@ -55,14 +55,17 @@ function SearchBox({ search }: { search: FilterBarSearch }) {
   const { value, onChange, placeholder = "Search…", debounceMs = 250 } = search;
   const inputRef = React.useRef<HTMLInputElement>(null);
   const [draft, setDraft] = React.useState(value);
-  const [synced, setSynced] = React.useState(value);
+  const [prevValue, setPrevValue] = React.useState(value);
+  // Values this box emitted recently. When the page round-trips them through the URL they arrive
+  // late (possibly after more typing), so they must not overwrite the draft.
+  const [emitted, setEmitted] = React.useState<string[]>([]);
   const timer = React.useRef<ReturnType<typeof setTimeout> | null>(null);
   const [mac, setMac] = React.useState(true);
 
-  // Adopt external changes (back button, "Clear all") without fighting the user's typing.
-  if (value !== synced) {
-    setSynced(value);
-    setDraft(value);
+  // Adopt genuinely external changes (back button, "Clear all") without fighting the user's typing.
+  if (value !== prevValue) {
+    setPrevValue(value);
+    if (!emitted.includes(value)) setDraft(value);
   }
 
   React.useEffect(() => {
@@ -85,15 +88,15 @@ function SearchBox({ search }: { search: FilterBarSearch }) {
 
   const emit = (next: string, immediate = false) => {
     if (timer.current) clearTimeout(timer.current);
-    if (immediate || debounceMs <= 0) {
-      setSynced(next);
+    const fire = () => {
+      setEmitted((list) => [...list.slice(-4), next]);
       onChange(next);
+    };
+    if (immediate || debounceMs <= 0) {
+      fire();
       return;
     }
-    timer.current = setTimeout(() => {
-      setSynced(next);
-      onChange(next);
-    }, debounceMs);
+    timer.current = setTimeout(fire, debounceMs);
   };
 
   return (

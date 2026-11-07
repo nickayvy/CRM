@@ -54,13 +54,14 @@ export type FadeInProps = Omit<HTMLMotionProps<"div">, "variants" | "initial" | 
  */
 export function FadeIn({ variant = "up", delay, transition, ...props }: FadeInProps) {
   const reduced = useReducedMotion();
-  const canAnimate = useCanAnimateMount();
+  const animateIn = useCanAnimateMount() && !reduced;
   return (
     <StaticWhen reduced={reduced}>
       <motion.div
         variants={FADE_VARIANTS[variant]}
-        initial={canAnimate && !reduced ? "hidden" : false}
-        animate="visible"
+        // Static branch: no initial and no animate target, so motion writes no inline opacity/transform at all.
+        initial={animateIn ? "hidden" : false}
+        animate={animateIn ? "visible" : undefined}
         exit="exit"
         transition={delay ? { delay, ...transition } : transition}
         {...props}
@@ -253,14 +254,14 @@ export type PageTransitionProps = {
  */
 export function PageTransition({ children, className }: PageTransitionProps) {
   const reduced = useReducedMotion();
-  const canAnimate = useCanAnimateMount();
+  const animateIn = useCanAnimateMount() && !reduced;
   return (
     <StaticWhen reduced={reduced}>
       <motion.div
         className={className}
         variants={fadeInUp}
-        initial={canAnimate && !reduced ? "hidden" : false}
-        animate="visible"
+        initial={animateIn ? "hidden" : false}
+        animate={animateIn ? "visible" : undefined}
       >
         {children}
       </motion.div>
