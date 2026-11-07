@@ -568,7 +568,7 @@ else state completed. Log `activities(type:'email')` per send.
 | Concern | Choice | Why |
 |---|---|---|
 | Framework | Next.js latest stable (App Router, Turbopack), React 19, TS strict | one codebase, Vercel-native |
-| Styling | Tailwind CSS v4 + shadcn/ui (new-york style, neutral base) | fast, consistent, accessible |
+| Styling | Tailwind CSS v4 + shadcn/ui (`radix-nova` style, neutral base; `field` is used instead of the removed `form` item) | fast, consistent, accessible |
 | Animation | `motion` (framer-motion v12, `motion/react`) | layout animations, presence, reduced-motion support |
 | ORM | Drizzle ORM + drizzle-kit migrations | typed schema, same SQL for PGlite and Supabase |
 | DB drivers | `postgres` (postgres-js) for `DATABASE_URL` (Supabase pooler, `prepare: false`); `@electric-sql/pglite` otherwise | no Docker for local/test; real Postgres in prod |
@@ -598,7 +598,9 @@ else state completed. Log `activities(type:'email')` per send.
   unexpected errors with `console.error` and return `{ ok:false, message }`.
 - Forms: `useActionState` + shadcn `Form` primitives; field errors under
   fields; submit buttons disabled while pending.
-- Money/phone/date formatting only via `src/lib/format.ts`.
+- Money/phone/date formatting only via `src/lib/format.ts`. `normalizeName` strips legal suffixes (llc, inc, co, corp, ltd) only when they end the name.
+- `typecheck` is plain `tsc --noEmit`: type page/layout props explicitly (e.g. `{ params: Promise<{ id: string }> }`), do not rely on Next's generated `PageProps`/`LayoutProps` globals.
+- Next 16: middleware is `src/proxy.ts`; Cache Components is off because pages use `force-dynamic`.
 - Time zone: all stored timestamps UTC; display via `formatDate(d, env.APP_TIMEZONE)`.
 - Enum labels/colors: `src/lib/labels.ts` (WP-01) exports
   `STATUS_LABELS`, `QUALIFICATION_LABELS`, `OUTCOME_LABELS`, `CAMPAIGN_STATUS_LABELS`
