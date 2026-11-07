@@ -8,7 +8,7 @@
 | WP-04 | Businesses UI | 3 | senior-wp04 (Opus) | wp-04-businesses-ui / PR #5 | merged | reviews/WP-04.md (ACCEPT, round 1) |
 | WP-05 | Calling | 3 | senior-wp05 (Opus) | wp-05-calling / PR #6 | merged | reviews/WP-05.md (ACCEPT, round 1) |
 | WP-06 | Email | 3 | senior-wp06 (Opus) | wp-06-email / PR #4 | merged | reviews/WP-06.md (ACCEPT, round 1) |
-| WP-07 | Dashboard and integration | 4 | — | — | blocked on WP-04/05/06 | — |
+| WP-07 | Dashboard and integration | 4 | senior-wp07 (Opus) | wp-07-dashboard | spawned | — |
 
 Estimated agents: 7 Opus seniors + roughly 1–3 Sonnet juniors each.
 
@@ -24,3 +24,4 @@ Estimated agents: 7 Opus seniors + roughly 1–3 Sonnet juniors each.
 - 2026-11-07 WP-04 delivered (PR #5, 30 files); PM review started.
 - 2026-11-07 WP-04 PM review ACCEPT round 1; merged to main. WP-05 still building.
 - 2026-11-07 WP-05 delivered (PR #6, 27 files, 384 tests); PM review ACCEPT round 1; merged to main. Wave 3 complete.
+- 2026-11-07 main green after wave 3 (448 tests). Wave 4 spawned: WP-07 (dashboard, search, campaign wiring, deploy readiness, carried-over fixes).
