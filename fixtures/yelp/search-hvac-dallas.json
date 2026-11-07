@@ -1,0 +1,1221 @@
+{
+  "_traps": [
+    {
+      "id": "RLNGZm2e9r3rlsrnwYhKda",
+      "name": "One Hour Heating & Air Conditioning of Dallas",
+      "trap": "national chain name (one hour heating)",
+      "expected": "rejected",
+      "reason": "chain"
+    },
+    {
+      "id": "ZomAly2g7_wsRnEcwyi8d_",
+      "name": "Lakewood Comfort Heating & Air",
+      "trap": "permanently closed on Yelp",
+      "expected": "rejected",
+      "reason": "closed"
+    },
+    {
+      "id": "Wb_mAwhjs9vaDxt1x0GPRo",
+      "name": "Trinity Valley Climate Control",
+      "trap": "rating 3.0 below minimum",
+      "expected": "rejected",
+      "reason": "low_rating"
+    },
+    {
+      "id": "gSd042be75oFAMNPTHCqov",
+      "name": "ABC Plumbing",
+      "trap": "plumbing category in an HVAC search",
+      "expected": "rejected",
+      "reason": "category_mismatch"
+    }
+  ],
+  "businesses": [
+    {
+      "id": "RLNGZm2e9r3rlsrnwYhKda",
+      "alias": "one-hour-heating-air-conditioning-of-dallas-dallas",
+      "name": "One Hour Heating & Air Conditioning of Dallas",
+      "image_url": "https://s3-media0.fl.yelpcdn.com/bphoto/1BCDO2dpOVeGM8GMsrgxOs/o.jpg",
+      "is_closed": false,
+      "url": "https://www.yelp.com/biz/one-hour-heating-air-conditioning-of-dallas-dallas",
+      "review_count": 403,
+      "categories": [
+        {
+          "alias": "hvac",
+          "title": "Heating & Air Conditioning/HVAC"
+        }
+      ],
+      "rating": 5,
+      "coordinates": {
+        "latitude": 32.884138,
+        "longitude": -96.806751
+      },
+      "transactions": [],
+      "price": "$$$",
+      "location": {
+        "address1": "15566 Inwood Rd",
+        "address2": "Suite 600",
+        "address3": null,
+        "city": "Dallas",
+        "zip_code": "75248",
+        "country": "US",
+        "state": "TX",
+        "display_address": [
+          "15566 Inwood Rd",
+          "Suite 600",
+          "Dallas, TX 75248"
+        ]
+      },
+      "phone": "+12145556910",
+      "display_phone": "(214) 555-6910",
+      "distance": 11994.82
+    },
+    {
+      "id": "gBUUMIFqedSdAGWWwr9HYZ",
+      "alias": "frontier-hvac-dallas",
+      "name": "Frontier HVAC",
+      "image_url": "https://s3-media0.fl.yelpcdn.com/bphoto/vwXQ6WiWMBpJlt8T6ln0Uw/o.jpg",
+      "is_closed": false,
+      "url": "https://www.yelp.com/biz/frontier-hvac-dallas",
+      "review_count": 116,
+      "categories": [
+        {
+          "alias": "hvac",
+          "title": "Heating & Air Conditioning/HVAC"
+        },
+        {
+          "alias": "ductcleaning",
+          "title": "Air Duct Cleaning"
+        }
+      ],
+      "rating": 4.5,
+      "coordinates": {
+        "latitude": 32.783534,
+        "longitude": -96.810658
+      },
+      "transactions": [],
+      "price": "$$$",
+      "location": {
+        "address1": "5442 Harry Hines Blvd",
+        "address2": null,
+        "address3": null,
+        "city": "Dallas",
+        "zip_code": "75214",
+        "country": "US",
+        "state": "TX",
+        "display_address": [
+          "5442 Harry Hines Blvd",
+          "Dallas, TX 75214"
+        ]
+      },
+      "phone": "+12145558523",
+      "display_phone": "(214) 555-8523",
+      "distance": 1487.59
+    },
+    {
+      "id": "9yFsri7UJtxPrKc4cdrPS7",
+      "alias": "deep-ellum-hvac-dallas",
+      "name": "Deep Ellum HVAC",
+      "image_url": "https://s3-media0.fl.yelpcdn.com/bphoto/6-smob6EHLNTW4rbxaI1Qt/o.jpg",
+      "is_closed": false,
+      "url": "https://www.yelp.com/biz/deep-ellum-hvac-dallas",
+      "review_count": 67,
+      "categories": [
+        {
+          "alias": "hvac",
+          "title": "Heating & Air Conditioning/HVAC"
+        },
+        {
+          "alias": "ductcleaning",
+          "title": "Air Duct Cleaning"
+        }
+      ],
+      "rating": 5,
+      "coordinates": {
+        "latitude": 32.8759,
+        "longitude": -96.924051
+      },
+      "transactions": [],
+      "price": "$$",
+      "location": {
+        "address1": "17877 Webb Chapel Rd",
+        "address2": null,
+        "address3": null,
+        "city": "Dallas",
+        "zip_code": "75219",
+        "country": "US",
+        "state": "TX",
+        "display_address": [
+          "17877 Webb Chapel Rd",
+          "Dallas, TX 75219"
+        ]
+      },
+      "phone": "+12145556118",
+      "display_phone": "(214) 555-6118",
+      "distance": 16228.23
+    },
+    {
+      "id": "s-KpSBo7wYuZVHXITGiZmb",
+      "alias": "ranger-climate-control-dallas",
+      "name": "Ranger Climate Control",
+      "image_url": "",
+      "is_closed": false,
+      "url": "https://www.yelp.com/biz/ranger-climate-control-dallas",
+      "review_count": 65,
+      "categories": [
+        {
+          "alias": "hvac",
+          "title": "Heating & Air Conditioning/HVAC"
+        }
+      ],
+      "rating": 5,
+      "coordinates": {
+        "latitude": 32.779681,
+        "longitude": -96.788931
+      },
+      "transactions": [],
+      "price": "$$",
+      "location": {
+        "address1": "3727 Lovers Ln",
+        "address2": null,
+        "address3": null,
+        "city": "Dallas",
+        "zip_code": "75235",
+        "country": "US",
+        "state": "TX",
+        "display_address": [
+          "3727 Lovers Ln",
+          "Dallas, TX 75235"
+        ]
+      },
+      "phone": "+12145555059",
+      "display_phone": "(214) 555-5059",
+      "distance": 824.93
+    },
+    {
+      "id": "7XYaFsPEm24Gt113tVZHot",
+      "alias": "comanche-climate-control-dallas",
+      "name": "Comanche Climate Control",
+      "image_url": "https://s3-media0.fl.yelpcdn.com/bphoto/0q4K3EYZMHL2iddvAIYVz_/o.jpg",
+      "is_closed": false,
+      "url": "https://www.yelp.com/biz/comanche-climate-control-dallas",
+      "review_count": 259,
+      "categories": [
+        {
+          "alias": "hvac",
+          "title": "Heating & Air Conditioning/HVAC"
+        }
+      ],
+      "rating": 4,
+      "coordinates": {
+        "latitude": 32.719441,
+        "longitude": -96.933261
+      },
+      "transactions": [
+        "request_a_quote"
+      ],
+      "location": {
+        "address1": "17621 Greenville Ave",
+        "address2": "Suite 400",
+        "address3": null,
+        "city": "Dallas",
+        "zip_code": "75235",
+        "country": "US",
+        "state": "TX",
+        "display_address": [
+          "17621 Greenville Ave",
+          "Suite 400",
+          "Dallas, TX 75235"
+        ]
+      },
+      "phone": "+12145557305",
+      "display_phone": "(214) 555-7305",
+      "distance": 14257.63
+    },
+    {
+      "id": "ZKtqddvlA3trKivDyEAbcG",
+      "alias": "big-d-air-conditioning-dallas",
+      "name": "Big D Air Conditioning",
+      "image_url": "",
+      "is_closed": false,
+      "url": "https://www.yelp.com/biz/big-d-air-conditioning-dallas",
+      "review_count": 337,
+      "categories": [
+        {
+          "alias": "hvac",
+          "title": "Heating & Air Conditioning/HVAC"
+        }
+      ],
+      "rating": 5,
+      "coordinates": {
+        "latitude": 32.841723,
+        "longitude": -96.935536
+      },
+      "transactions": [],
+      "price": "$$",
+      "location": {
+        "address1": "4208 Lemmon Ave",
+        "address2": null,
+        "address3": null,
+        "city": "Dallas",
+        "zip_code": "75204",
+        "country": "US",
+        "state": "TX",
+        "display_address": [
+          "4208 Lemmon Ave",
+          "Dallas, TX 75204"
+        ]
+      },
+      "phone": "+12145559792",
+      "display_phone": "(214) 555-9792",
+      "distance": 14850.05
+    },
+    {
+      "id": "umym_Y3oaAx7MmXSxZW0_I",
+      "alias": "oak-cliff-air-conditioning-dallas",
+      "name": "Oak Cliff Air Conditioning",
+      "image_url": "https://s3-media0.fl.yelpcdn.com/bphoto/ERcopvpWTZOBK0iYEIg0Wc/o.jpg",
+      "is_closed": false,
+      "url": "https://www.yelp.com/biz/oak-cliff-air-conditioning-dallas",
+      "review_count": 62,
+      "categories": [
+        {
+          "alias": "hvac",
+          "title": "Heating & Air Conditioning/HVAC"
+        }
+      ],
+      "rating": 4.5,
+      "coordinates": {
+        "latitude": 32.63251,
+        "longitude": -96.817996
+      },
+      "transactions": [],
+      "location": {
+        "address1": "6145 Harry Hines Blvd",
+        "address2": null,
+        "address3": null,
+        "city": "Dallas",
+        "zip_code": "75205",
+        "country": "US",
+        "state": "TX",
+        "display_address": [
+          "6145 Harry Hines Blvd",
+          "Dallas, TX 75205"
+        ]
+      },
+      "phone": "+12145553994",
+      "display_phone": "(214) 555-3994",
+      "distance": 16171.1
+    },
+    {
+      "id": "aEd9wSXSey1Rmfx_gb-voy",
+      "alias": "trinity-river-hvac-dallas",
+      "name": "Trinity River HVAC",
+      "image_url": "",
+      "is_closed": false,
+      "url": "https://www.yelp.com/biz/trinity-river-hvac-dallas",
+      "review_count": 192,
+      "categories": [
+        {
+          "alias": "hvac",
+          "title": "Heating & Air Conditioning/HVAC"
+        },
+        {
+          "alias": "contractors",
+          "title": "Contractors"
+        }
+      ],
+      "rating": 5,
+      "coordinates": {
+        "latitude": 32.752873,
+        "longitude": -96.800854
+      },
+      "transactions": [],
+      "price": "$$",
+      "location": {
+        "address1": "10902 Ross Ave",
+        "address2": "Suite 100",
+        "address3": null,
+        "city": "Dallas",
+        "zip_code": "75204",
+        "country": "US",
+        "state": "TX",
+        "display_address": [
+          "10902 Ross Ave",
+          "Suite 100",
+          "Dallas, TX 75204"
+        ]
+      },
+      "phone": "+12145556336",
+      "display_phone": "(214) 555-6336",
+      "distance": 2676.8
+    },
+    {
+      "id": "R3Fwd3BoA6kS8cCQP6CRnB",
+      "alias": "trinity-river-a-c-heat-dallas",
+      "name": "Trinity River A/C & Heat",
+      "image_url": "https://s3-media0.fl.yelpcdn.com/bphoto/eXztdKBmZCVyaVW1aa45sq/o.jpg",
+      "is_closed": false,
+      "url": "https://www.yelp.com/biz/trinity-river-a-c-heat-dallas",
+      "review_count": 244,
+      "categories": [
+        {
+          "alias": "hvac",
+          "title": "Heating & Air Conditioning/HVAC"
+        }
+      ],
+      "rating": 4.5,
+      "coordinates": {
+        "latitude": 32.872792,
+        "longitude": -96.8178
+      },
+      "transactions": [],
+      "price": "$$$",
+      "location": {
+        "address1": "3246 Jefferson Blvd",
+        "address2": null,
+        "address3": null,
+        "city": "Dallas",
+        "zip_code": "75206",
+        "country": "US",
+        "state": "TX",
+        "display_address": [
+          "3246 Jefferson Blvd",
+          "Dallas, TX 75206"
+        ]
+      },
+      "phone": "+12145557146",
+      "display_phone": "(214) 555-7146",
+      "distance": 10872.69
+    },
+    {
+      "id": "e0JAEtt_9mym4Bs47PQz_1",
+      "alias": "longhorn-hvac-dallas",
+      "name": "Longhorn HVAC",
+      "image_url": "https://s3-media0.fl.yelpcdn.com/bphoto/P8c-jdT3fvzn9H525lfjWJ/o.jpg",
+      "is_closed": false,
+      "url": "https://www.yelp.com/biz/longhorn-hvac-dallas",
+      "review_count": 251,
+      "categories": [
+        {
+          "alias": "hvac",
+          "title": "Heating & Air Conditioning/HVAC"
+        }
+      ],
+      "rating": 4,
+      "coordinates": {
+        "latitude": 32.777994,
+        "longitude": -96.804165
+      },
+      "transactions": [],
+      "price": "$$",
+      "location": {
+        "address1": "13786 Abrams Rd",
+        "address2": null,
+        "address3": null,
+        "city": "Dallas",
+        "zip_code": "75214",
+        "country": "US",
+        "state": "TX",
+        "display_address": [
+          "13786 Abrams Rd",
+          "Dallas, TX 75214"
+        ]
+      },
+      "phone": "+12145552411",
+      "display_phone": "(214) 555-2411",
+      "distance": 685.92
+    },
+    {
+      "id": "x_Q8SxqYalBTlgVcYhLFkv",
+      "alias": "arlington-ridge-hvac-dallas",
+      "name": "Arlington Ridge HVAC",
+      "image_url": "https://s3-media0.fl.yelpcdn.com/bphoto/ZiTm4bJrocZzLgxReTztsC/o.jpg",
+      "is_closed": false,
+      "url": "https://www.yelp.com/biz/arlington-ridge-hvac-dallas",
+      "review_count": 117,
+      "categories": [
+        {
+          "alias": "hvac",
+          "title": "Heating & Air Conditioning/HVAC"
+        }
+      ],
+      "rating": 4.5,
+      "coordinates": {
+        "latitude": 32.764698,
+        "longitude": -96.595662
+      },
+      "transactions": [],
+      "price": "$$",
+      "location": {
+        "address1": "10349 Preston Rd",
+        "address2": "Suite 200",
+        "address3": null,
+        "city": "Dallas",
+        "zip_code": "75225",
+        "country": "US",
+        "state": "TX",
+        "display_address": [
+          "10349 Preston Rd",
+          "Suite 200",
+          "Dallas, TX 75225"
+        ]
+      },
+      "phone": "+12145555326",
+      "display_phone": "(214) 555-5326",
+      "distance": 18891.86
+    },
+    {
+      "id": "ZomAly2g7_wsRnEcwyi8d_",
+      "alias": "lakewood-comfort-heating-air-mesquite",
+      "name": "Lakewood Comfort Heating & Air",
+      "image_url": "https://s3-media0.fl.yelpcdn.com/bphoto/nDN-aCOiEzzuAbmIdoDbmO/o.jpg",
+      "is_closed": true,
+      "url": "https://www.yelp.com/biz/lakewood-comfort-heating-air-mesquite",
+      "review_count": 335,
+      "categories": [
+        {
+          "alias": "hvac",
+          "title": "Heating & Air Conditioning/HVAC"
+        }
+      ],
+      "rating": 5,
+      "coordinates": {
+        "latitude": 32.668478,
+        "longitude": -96.851726
+      },
+      "transactions": [],
+      "price": "$$$",
+      "location": {
+        "address1": "6751 Garland Rd",
+        "address2": null,
+        "address3": null,
+        "city": "Mesquite",
+        "zip_code": "75149",
+        "country": "US",
+        "state": "TX",
+        "display_address": [
+          "6751 Garland Rd",
+          "Mesquite, TX 75149"
+        ]
+      },
+      "phone": "+12145556321",
+      "display_phone": "(214) 555-6321",
+      "distance": 13090.99
+    },
+    {
+      "id": "qKm3JaViXzEkDjLo9nhTVK",
+      "alias": "redline-comfort-systems-dallas",
+      "name": "Redline Comfort Systems",
+      "image_url": "https://s3-media0.fl.yelpcdn.com/bphoto/RT_PKEITHpLOxFuWx1Njdo/o.jpg",
+      "is_closed": false,
+      "url": "https://www.yelp.com/biz/redline-comfort-systems-dallas",
+      "review_count": 186,
+      "categories": [
+        {
+          "alias": "hvac",
+          "title": "Heating & Air Conditioning/HVAC"
+        },
+        {
+          "alias": "contractors",
+          "title": "Contractors"
+        }
+      ],
+      "rating": 4,
+      "coordinates": {
+        "latitude": 32.799584,
+        "longitude": -96.640198
+      },
+      "transactions": [],
+      "price": "$$",
+      "location": {
+        "address1": "15011 Skillman St",
+        "address2": "Suite 500",
+        "address3": null,
+        "city": "Dallas",
+        "zip_code": "75214",
+        "country": "US",
+        "state": "TX",
+        "display_address": [
+          "15011 Skillman St",
+          "Suite 500",
+          "Dallas, TX 75214"
+        ]
+      },
+      "phone": "+12145556126",
+      "display_phone": "(214) 555-6126",
+      "distance": 14895.52
+    },
+    {
+      "id": "Wb_mAwhjs9vaDxt1x0GPRo",
+      "alias": "trinity-valley-climate-control-dallas",
+      "name": "Trinity Valley Climate Control",
+      "image_url": "https://s3-media0.fl.yelpcdn.com/bphoto/-wc0JozVO8OwUEjuBZn113/o.jpg",
+      "is_closed": false,
+      "url": "https://www.yelp.com/biz/trinity-valley-climate-control-dallas",
+      "review_count": 36,
+      "categories": [
+        {
+          "alias": "hvac",
+          "title": "Heating & Air Conditioning/HVAC"
+        },
+        {
+          "alias": "contractors",
+          "title": "Contractors"
+        }
+      ],
+      "rating": 3,
+      "coordinates": {
+        "latitude": 32.718561,
+        "longitude": -96.76181
+      },
+      "transactions": [],
+      "price": "$$",
+      "location": {
+        "address1": "11377 Greenville Ave",
+        "address2": null,
+        "address3": null,
+        "city": "Dallas",
+        "zip_code": "75219",
+        "country": "US",
+        "state": "TX",
+        "display_address": [
+          "11377 Greenville Ave",
+          "Dallas, TX 75219"
+        ]
+      },
+      "phone": "+12145551456",
+      "display_phone": "(214) 555-1456",
+      "distance": 7261.96
+    },
+    {
+      "id": "V7nZefv8b3jutgmSl3dLpp",
+      "alias": "highland-park-air-conditioning-dallas",
+      "name": "Highland Park Air Conditioning",
+      "image_url": "https://s3-media0.fl.yelpcdn.com/bphoto/95WLx3JOohPRVlF-y8gNe-/o.jpg",
+      "is_closed": false,
+      "url": "https://www.yelp.com/biz/highland-park-air-conditioning-dallas",
+      "review_count": 29,
+      "categories": [
+        {
+          "alias": "hvac",
+          "title": "Heating & Air Conditioning/HVAC"
+        }
+      ],
+      "rating": 5,
+      "coordinates": {
+        "latitude": 32.743871,
+        "longitude": -96.809479
+      },
+      "transactions": [],
+      "price": "$$",
+      "location": {
+        "address1": "19510 Northwest Hwy",
+        "address2": null,
+        "address3": null,
+        "city": "Dallas",
+        "zip_code": "75208",
+        "country": "US",
+        "state": "TX",
+        "display_address": [
+          "19510 Northwest Hwy",
+          "Dallas, TX 75208"
+        ]
+      },
+      "phone": "+12145559251",
+      "display_phone": "(214) 555-9251",
+      "distance": 3836.62
+    },
+    {
+      "id": "u6fXTq65ZYpFSoruIHaeA7",
+      "alias": "redline-heating-cooling-dallas",
+      "name": "Redline Heating & Cooling",
+      "image_url": "https://s3-media0.fl.yelpcdn.com/bphoto/QM8aWSLiqw1eTiHIPFcaVo/o.jpg",
+      "is_closed": false,
+      "url": "https://www.yelp.com/biz/redline-heating-cooling-dallas",
+      "review_count": 21,
+      "categories": [
+        {
+          "alias": "hvac",
+          "title": "Heating & Air Conditioning/HVAC"
+        },
+        {
+          "alias": "airconditioningrepair",
+          "title": "Air Conditioning Repair"
+        }
+      ],
+      "rating": 5,
+      "coordinates": {
+        "latitude": 32.687253,
+        "longitude": -96.794706
+      },
+      "transactions": [],
+      "price": "$$$",
+      "location": {
+        "address1": "4673 Harry Hines Blvd",
+        "address2": null,
+        "address3": null,
+        "city": "Dallas",
+        "zip_code": "75235",
+        "country": "US",
+        "state": "TX",
+        "display_address": [
+          "4673 Harry Hines Blvd",
+          "Dallas, TX 75235"
+        ]
+      },
+      "phone": "+12145558074",
+      "display_phone": "(214) 555-8074",
+      "distance": 9959.51
+    },
+    {
+      "id": "q-svzmekrX-VwyTtn5DHSX",
+      "alias": "arlington-ridge-a-c-heat-dallas",
+      "name": "Arlington Ridge A/C & Heat",
+      "image_url": "https://s3-media0.fl.yelpcdn.com/bphoto/Q3-qVIo0GdZISVxrwT6A0J/o.jpg",
+      "is_closed": false,
+      "url": "https://www.yelp.com/biz/arlington-ridge-a-c-heat-dallas",
+      "review_count": 149,
+      "categories": [
+        {
+          "alias": "hvac",
+          "title": "Heating & Air Conditioning/HVAC"
+        }
+      ],
+      "rating": 4.5,
+      "coordinates": {
+        "latitude": 32.720096,
+        "longitude": -96.893999
+      },
+      "transactions": [],
+      "price": "$$",
+      "location": {
+        "address1": "7135 Ross Ave",
+        "address2": "Suite 900",
+        "address3": null,
+        "city": "Dallas",
+        "zip_code": "75225",
+        "country": "US",
+        "state": "TX",
+        "display_address": [
+          "7135 Ross Ave",
+          "Suite 900",
+          "Dallas, TX 75225"
+        ]
+      },
+      "phone": "+12145551059",
+      "display_phone": "(214) 555-1059",
+      "distance": 11051.19
+    },
+    {
+      "id": "5rF1JusWP2DYJrC1NQG2l-",
+      "alias": "sunbelt-hvac-dallas",
+      "name": "Sunbelt HVAC",
+      "image_url": "https://s3-media0.fl.yelpcdn.com/bphoto/svFS4fSxRiNsjSrPs8hXQo/o.jpg",
+      "is_closed": false,
+      "url": "https://www.yelp.com/biz/sunbelt-hvac-dallas",
+      "review_count": 288,
+      "categories": [
+        {
+          "alias": "hvac",
+          "title": "Heating & Air Conditioning/HVAC"
+        }
+      ],
+      "rating": 4,
+      "coordinates": {
+        "latitude": 32.70553,
+        "longitude": -96.908063
+      },
+      "transactions": [],
+      "price": "$",
+      "location": {
+        "address1": "10020 Ross Ave",
+        "address2": null,
+        "address3": null,
+        "city": "Dallas",
+        "zip_code": "75204",
+        "country": "US",
+        "state": "TX",
+        "display_address": [
+          "10020 Ross Ave",
+          "Dallas, TX 75204"
+        ]
+      },
+      "phone": "+12145552395",
+      "display_phone": "(214) 555-2395",
+      "distance": 13070.02
+    },
+    {
+      "id": "2VIVcVV1eC_Tffus1vbIfF",
+      "alias": "mesa-air-conditioning-dallas",
+      "name": "Mesa Air Conditioning",
+      "image_url": "https://s3-media0.fl.yelpcdn.com/bphoto/MyU5VZkPGCHqpuzNkKXtFV/o.jpg",
+      "is_closed": false,
+      "url": "https://www.yelp.com/biz/mesa-air-conditioning-dallas",
+      "review_count": 48,
+      "categories": [
+        {
+          "alias": "hvac",
+          "title": "Heating & Air Conditioning/HVAC"
+        },
+        {
+          "alias": "contractors",
+          "title": "Contractors"
+        }
+      ],
+      "rating": 4,
+      "coordinates": {
+        "latitude": 32.808545,
+        "longitude": -96.806478
+      },
+      "transactions": [],
+      "price": "$$",
+      "location": {
+        "address1": "12156 Skillman St",
+        "address2": null,
+        "address3": null,
+        "city": "Dallas",
+        "zip_code": "75225",
+        "country": "US",
+        "state": "TX",
+        "display_address": [
+          "12156 Skillman St",
+          "Dallas, TX 75225"
+        ]
+      },
+      "phone": "+12145559460",
+      "display_phone": "(214) 555-9460",
+      "distance": 3654.34
+    },
+    {
+      "id": "P_0RlDTTVPgGZj3lTU--r4",
+      "alias": "longhorn-heating-air-dallas",
+      "name": "Longhorn Heating & Air",
+      "image_url": "https://s3-media0.fl.yelpcdn.com/bphoto/jZpQaFxyn8mdfSdxV_EBwZ/o.jpg",
+      "is_closed": false,
+      "url": "https://www.yelp.com/biz/longhorn-heating-air-dallas",
+      "review_count": 14,
+      "categories": [
+        {
+          "alias": "hvac",
+          "title": "Heating & Air Conditioning/HVAC"
+        },
+        {
+          "alias": "ductcleaning",
+          "title": "Air Duct Cleaning"
+        }
+      ],
+      "rating": 4,
+      "coordinates": {
+        "latitude": 32.756734,
+        "longitude": -96.801836
+      },
+      "transactions": [],
+      "price": "$$",
+      "location": {
+        "address1": "4572 Abrams Rd",
+        "address2": null,
+        "address3": null,
+        "city": "Dallas",
+        "zip_code": "75208",
+        "country": "US",
+        "state": "TX",
+        "display_address": [
+          "4572 Abrams Rd",
+          "Dallas, TX 75208"
+        ]
+      },
+      "phone": "+12145559194",
+      "display_phone": "(214) 555-9194",
+      "distance": 2268.18
+    },
+    {
+      "id": "MsQR88h7gotzlBLupCCNtw",
+      "alias": "ranger-comfort-systems-dallas",
+      "name": "Ranger Comfort Systems",
+      "image_url": "https://s3-media0.fl.yelpcdn.com/bphoto/1cVmLw0v_rrFkOnLGTmhcI/o.jpg",
+      "is_closed": false,
+      "url": "https://www.yelp.com/biz/ranger-comfort-systems-dallas",
+      "review_count": 368,
+      "categories": [
+        {
+          "alias": "hvac",
+          "title": "Heating & Air Conditioning/HVAC"
+        }
+      ],
+      "rating": 4,
+      "coordinates": {
+        "latitude": 32.769175,
+        "longitude": -96.784217
+      },
+      "transactions": [],
+      "price": "$$$",
+      "location": {
+        "address1": "2208 Mockingbird Ln",
+        "address2": null,
+        "address3": null,
+        "city": "Dallas",
+        "zip_code": "75235",
+        "country": "US",
+        "state": "TX",
+        "display_address": [
+          "2208 Mockingbird Ln",
+          "Dallas, TX 75235"
+        ]
+      },
+      "phone": "+12145553818",
+      "display_phone": "(214) 555-3818",
+      "distance": 1460.53
+    },
+    {
+      "id": "RIhD7DF677U2yZsziYf6e1",
+      "alias": "skyline-heating-cooling-dallas",
+      "name": "Skyline Heating & Cooling",
+      "image_url": "https://s3-media0.fl.yelpcdn.com/bphoto/waNjqecj5YbHMrj5_Dyd3K/o.jpg",
+      "is_closed": false,
+      "url": "https://www.yelp.com/biz/skyline-heating-cooling-dallas",
+      "review_count": 13,
+      "categories": [
+        {
+          "alias": "hvac",
+          "title": "Heating & Air Conditioning/HVAC"
+        },
+        {
+          "alias": "ductcleaning",
+          "title": "Air Duct Cleaning"
+        }
+      ],
+      "rating": 4,
+      "coordinates": {
+        "latitude": 32.737963,
+        "longitude": -96.765596
+      },
+      "transactions": [],
+      "location": {
+        "address1": "14942 Lovers Ln",
+        "address2": null,
+        "address3": null,
+        "city": "Dallas",
+        "zip_code": "75248",
+        "country": "US",
+        "state": "TX",
+        "display_address": [
+          "14942 Lovers Ln",
+          "Dallas, TX 75248"
+        ]
+      },
+      "phone": "+12145558801",
+      "display_phone": "(214) 555-8801",
+      "distance": 5218.68
+    },
+    {
+      "id": "kthowGcS2aD0Ls7ltQeaG5",
+      "alias": "white-rock-air-conditioning-garland",
+      "name": "White Rock Air Conditioning",
+      "image_url": "https://s3-media0.fl.yelpcdn.com/bphoto/WemgdB2UAll_M_20MA4xIl/o.jpg",
+      "is_closed": false,
+      "url": "https://www.yelp.com/biz/white-rock-air-conditioning-garland",
+      "review_count": 91,
+      "categories": [
+        {
+          "alias": "hvac",
+          "title": "Heating & Air Conditioning/HVAC"
+        }
+      ],
+      "rating": 5,
+      "coordinates": {
+        "latitude": 32.777299,
+        "longitude": -96.80216
+      },
+      "transactions": [],
+      "location": {
+        "address1": "18027 Skillman St",
+        "address2": null,
+        "address3": null,
+        "city": "Garland",
+        "zip_code": "75040",
+        "country": "US",
+        "state": "TX",
+        "display_address": [
+          "18027 Skillman St",
+          "Garland, TX 75040"
+        ]
+      },
+      "phone": "+12145555479",
+      "display_phone": "(214) 555-5479",
+      "distance": 487.58
+    },
+    {
+      "id": "PhLprV3R0bSMMGx0i1-EKZ",
+      "alias": "north-texas-climate-control-dallas",
+      "name": "North Texas Climate Control",
+      "image_url": "https://s3-media0.fl.yelpcdn.com/bphoto/I1mOGVeCD3teyrbjt2K90K/o.jpg",
+      "is_closed": false,
+      "url": "https://www.yelp.com/biz/north-texas-climate-control-dallas",
+      "review_count": 12,
+      "categories": [
+        {
+          "alias": "hvac",
+          "title": "Heating & Air Conditioning/HVAC"
+        }
+      ],
+      "rating": 4.5,
+      "coordinates": {
+        "latitude": 32.770638,
+        "longitude": -96.739629
+      },
+      "transactions": [],
+      "price": "$$",
+      "location": {
+        "address1": "16704 Ross Ave",
+        "address2": "Suite 500",
+        "address3": null,
+        "city": "Dallas",
+        "zip_code": "75228",
+        "country": "US",
+        "state": "TX",
+        "display_address": [
+          "16704 Ross Ave",
+          "Suite 500",
+          "Dallas, TX 75228"
+        ]
+      },
+      "phone": "+12145551839",
+      "display_phone": "(214) 555-1839",
+      "distance": 5411.93
+    },
+    {
+      "id": "qQgZbhMg5KG3jgHBZLI_s0",
+      "alias": "cowtown-heating-cooling-dallas",
+      "name": "Cowtown Heating & Cooling",
+      "image_url": "https://s3-media0.fl.yelpcdn.com/bphoto/OwnKL8LQ19OIoOn_AMiG0Q/o.jpg",
+      "is_closed": false,
+      "url": "https://www.yelp.com/biz/cowtown-heating-cooling-dallas",
+      "review_count": 44,
+      "categories": [
+        {
+          "alias": "hvac",
+          "title": "Heating & Air Conditioning/HVAC"
+        }
+      ],
+      "rating": 4.5,
+      "coordinates": {
+        "latitude": 32.739703,
+        "longitude": -96.745859
+      },
+      "transactions": [],
+      "price": "$$$",
+      "location": {
+        "address1": "3230 Webb Chapel Rd",
+        "address2": null,
+        "address3": null,
+        "city": "Dallas",
+        "zip_code": "75208",
+        "country": "US",
+        "state": "TX",
+        "display_address": [
+          "3230 Webb Chapel Rd",
+          "Dallas, TX 75208"
+        ]
+      },
+      "phone": "+12145551504",
+      "display_phone": "(214) 555-1504",
+      "distance": 6314.53
+    },
+    {
+      "id": "crH9rVAwoqPyssMGV7Xukj",
+      "alias": "bishop-arts-climate-control-mesquite",
+      "name": "Bishop Arts Climate Control",
+      "image_url": "https://s3-media0.fl.yelpcdn.com/bphoto/_QMZrCNYvgJCPRxgbtG5XS/o.jpg",
+      "is_closed": false,
+      "url": "https://www.yelp.com/biz/bishop-arts-climate-control-mesquite",
+      "review_count": 387,
+      "categories": [
+        {
+          "alias": "hvac",
+          "title": "Heating & Air Conditioning/HVAC"
+        },
+        {
+          "alias": "contractors",
+          "title": "Contractors"
+        }
+      ],
+      "rating": 5,
+      "coordinates": {
+        "latitude": 32.786421,
+        "longitude": -96.790506
+      },
+      "transactions": [],
+      "price": "$$",
+      "location": {
+        "address1": "13405 Samuell Blvd",
+        "address2": null,
+        "address3": null,
+        "city": "Mesquite",
+        "zip_code": "75149",
+        "country": "US",
+        "state": "TX",
+        "display_address": [
+          "13405 Samuell Blvd",
+          "Mesquite, TX 75149"
+        ]
+      },
+      "phone": "+12145554073",
+      "display_phone": "(214) 555-4073",
+      "distance": 1241.18
+    },
+    {
+      "id": "GB4NFSEFaB-SRG9bs5iq6r",
+      "alias": "preston-hollow-heating-cooling-dallas",
+      "name": "Preston Hollow Heating & Cooling",
+      "image_url": "https://s3-media0.fl.yelpcdn.com/bphoto/yFGsA9As3FveTOrXj5hJx9/o.jpg",
+      "is_closed": false,
+      "url": "https://www.yelp.com/biz/preston-hollow-heating-cooling-dallas",
+      "review_count": 59,
+      "categories": [
+        {
+          "alias": "hvac",
+          "title": "Heating & Air Conditioning/HVAC"
+        }
+      ],
+      "rating": 4.5,
+      "coordinates": {
+        "latitude": 32.849128,
+        "longitude": -96.903509
+      },
+      "transactions": [],
+      "price": "$$",
+      "location": {
+        "address1": "17867 Garland Rd",
+        "address2": null,
+        "address3": null,
+        "city": "Dallas",
+        "zip_code": "75235",
+        "country": "US",
+        "state": "TX",
+        "display_address": [
+          "17867 Garland Rd",
+          "Dallas, TX 75235"
+        ]
+      },
+      "phone": "+12145557088",
+      "display_phone": "(214) 555-7088",
+      "distance": 12821.25
+    },
+    {
+      "id": "gSd042be75oFAMNPTHCqov",
+      "alias": "abc-plumbing-dallas",
+      "name": "ABC Plumbing",
+      "image_url": "https://s3-media0.fl.yelpcdn.com/bphoto/4WumasXUaO110a2JSAOxp_/o.jpg",
+      "is_closed": false,
+      "url": "https://www.yelp.com/biz/abc-plumbing-dallas",
+      "review_count": 12,
+      "categories": [
+        {
+          "alias": "plumbing",
+          "title": "Plumbing"
+        }
+      ],
+      "rating": 4,
+      "coordinates": {
+        "latitude": 32.784546,
+        "longitude": -96.847134
+      },
+      "transactions": [],
+      "price": "$$",
+      "location": {
+        "address1": "3696 Lake June Rd",
+        "address2": null,
+        "address3": null,
+        "city": "Dallas",
+        "zip_code": "75214",
+        "country": "US",
+        "state": "TX",
+        "display_address": [
+          "3696 Lake June Rd",
+          "Dallas, TX 75214"
+        ]
+      },
+      "phone": "+12145556171",
+      "display_phone": "(214) 555-6171",
+      "distance": 4772.94
+    },
+    {
+      "id": "8Kdk36geb3dIrB81mqsEFH",
+      "alias": "big-d-climate-control-carrollton",
+      "name": "Big D Climate Control",
+      "image_url": "https://s3-media0.fl.yelpcdn.com/bphoto/QeIkRfv2RLiwPh8byigrmk/o.jpg",
+      "is_closed": false,
+      "url": "https://www.yelp.com/biz/big-d-climate-control-carrollton",
+      "review_count": 145,
+      "categories": [
+        {
+          "alias": "hvac",
+          "title": "Heating & Air Conditioning/HVAC"
+        }
+      ],
+      "rating": 4.5,
+      "coordinates": {
+        "latitude": 32.768336,
+        "longitude": -96.830464
+      },
+      "transactions": [],
+      "price": "$$",
+      "location": {
+        "address1": "10654 Skillman St",
+        "address2": null,
+        "address3": null,
+        "city": "Carrollton",
+        "zip_code": "75006",
+        "country": "US",
+        "state": "TX",
+        "display_address": [
+          "10654 Skillman St",
+          "Carrollton, TX 75006"
+        ]
+      },
+      "phone": "+12145557402",
+      "display_phone": "(214) 555-7402",
+      "distance": 3267.56
+    },
+    {
+      "id": "X4uW2kvx3p8WyuiLbNRm-b",
+      "alias": "longhorn-air-conditioning-irving",
+      "name": "Longhorn Air Conditioning",
+      "image_url": "https://s3-media0.fl.yelpcdn.com/bphoto/50aHK16io5GB2Z07l1L9VP/o.jpg",
+      "is_closed": false,
+      "url": "https://www.yelp.com/biz/longhorn-air-conditioning-irving",
+      "review_count": 381,
+      "categories": [
+        {
+          "alias": "hvac",
+          "title": "Heating & Air Conditioning/HVAC"
+        }
+      ],
+      "rating": 4.5,
+      "coordinates": {
+        "latitude": 32.710631,
+        "longitude": -96.966965
+      },
+      "transactions": [],
+      "price": "$$",
+      "location": {
+        "address1": "7163 Lake June Rd",
+        "address2": "Suite 100",
+        "address3": null,
+        "city": "Irving",
+        "zip_code": "75060",
+        "country": "US",
+        "state": "TX",
+        "display_address": [
+          "7163 Lake June Rd",
+          "Suite 100",
+          "Irving, TX 75060"
+        ]
+      },
+      "phone": "+12145552712",
+      "display_phone": "(214) 555-2712",
+      "distance": 17525.96
+    }
+  ],
+  "total": 30
+}

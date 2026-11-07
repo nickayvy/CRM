@@ -1,0 +1,1689 @@
+{
+  "_traps": [
+    {
+      "id": "ipgQPfI6e-km0aAITO82Yk",
+      "name": "Dusty Wrench Plumbing",
+      "trap": "borderline: rating 3.5, 5 reviews, plumbing only secondary category, 19000 m",
+      "expected": "qualified",
+      "reason": null
+    },
+    {
+      "id": "HP1LSCmJoah3jkYaZ7W3_P",
+      "name": "Mr. Rooter Plumbing of Houston",
+      "trap": "national chain name (mr. rooter)",
+      "expected": "rejected",
+      "reason": "chain"
+    },
+    {
+      "id": "6o552ZUTsPPtE1iYRssNwq",
+      "name": "Reliable Plumbing Co",
+      "trap": "first of a duplicate-phone pair (kept)",
+      "expected": "qualified",
+      "reason": null
+    },
+    {
+      "id": "mOjz70PFrqr0CuYKZzrqY9",
+      "name": "Sugar Land Pipe Masters",
+      "trap": "21500 m, outside radius but inside 10% tolerance",
+      "expected": "qualified",
+      "reason": null
+    },
+    {
+      "id": "Jv8jUeeWm9Oiv0gLIIDjWh",
+      "name": "Gulf Coast Plumbing",
+      "trap": "permanently closed on Yelp",
+      "expected": "rejected",
+      "reason": "closed"
+    },
+    {
+      "id": "WmhgLVDX8aF4Z19-AysKD_",
+      "name": "Handy Hank Plumbing",
+      "trap": "no phone number",
+      "expected": "rejected",
+      "reason": "no_phone"
+    },
+    {
+      "id": "KGbIjTTqeO3ZENvfgpunYW",
+      "name": "Reliable Plumbing Co",
+      "trap": "second of a duplicate-phone pair (same phone as first)",
+      "expected": "rejected",
+      "reason": "duplicate_phone"
+    },
+    {
+      "id": "jQfhJslxmoiJSE1-GuHOay",
+      "name": "ABC Plumbing",
+      "trap": "ordinary plumber sharing its name with the ABC Plumbing in the other files",
+      "expected": "qualified",
+      "reason": null
+    },
+    {
+      "id": "dVajVceTnT0M441VGSufYU",
+      "name": "Quick Fix Plumbing",
+      "trap": "rating 2.5 below minimum",
+      "expected": "rejected",
+      "reason": "low_rating"
+    },
+    {
+      "id": "D1PWH9-ugWglCa0TEZWu6h",
+      "name": "New Guy Plumbing LLC",
+      "trap": "only 2 reviews",
+      "expected": "rejected",
+      "reason": "too_few_reviews"
+    },
+    {
+      "id": "jL1ubAPu_iC3AH8RLZj_RB",
+      "name": "Katy Drain Pros",
+      "trap": "outside radius (31000 m, hard out of area)",
+      "expected": "rejected",
+      "reason": "out_of_area"
+    },
+    {
+      "id": "xP-o46dl5zr8a-eZw69fJf",
+      "name": "Roto-Rooter Plumbing & Water Cleanup",
+      "trap": "national chain name (roto-rooter)",
+      "expected": "rejected",
+      "reason": "chain"
+    },
+    {
+      "id": "eLURK9WZDjR9QVN-dgZvXl",
+      "name": "Bayou City Lawn & Landscape",
+      "trap": "category is landscaping, not plumbing",
+      "expected": "rejected",
+      "reason": "category_mismatch"
+    }
+  ],
+  "businesses": [
+    {
+      "id": "CfQwacWaJKWTi-Ull7BeXj",
+      "alias": "precision-plumbing-repair-houston",
+      "name": "Precision Plumbing & Repair",
+      "image_url": "https://s3-media0.fl.yelpcdn.com/bphoto/M9Ld5fBGZvFjnBgn_X01oO/o.jpg",
+      "is_closed": false,
+      "url": "https://www.yelp.com/biz/precision-plumbing-repair-houston",
+      "review_count": 12,
+      "categories": [
+        {
+          "alias": "plumbing",
+          "title": "Plumbing"
+        }
+      ],
+      "rating": 4.5,
+      "coordinates": {
+        "latitude": 29.664784,
+        "longitude": -95.446501
+      },
+      "transactions": [],
+      "price": "$$",
+      "location": {
+        "address1": "15776 Katy Fwy",
+        "address2": null,
+        "address3": null,
+        "city": "Houston",
+        "zip_code": "77098",
+        "country": "US",
+        "state": "TX",
+        "display_address": [
+          "15776 Katy Fwy",
+          "Houston, TX 77098"
+        ]
+      },
+      "phone": "+17135554493",
+      "display_phone": "(713) 555-4493",
+      "distance": 12970.57
+    },
+    {
+      "id": "zgHZK4KdDezeTkADXYN0ov",
+      "alias": "cornerstone-plumbing-co-pearland",
+      "name": "Cornerstone Plumbing Co.",
+      "image_url": "",
+      "is_closed": false,
+      "url": "https://www.yelp.com/biz/cornerstone-plumbing-co-pearland",
+      "review_count": 27,
+      "categories": [
+        {
+          "alias": "plumbing",
+          "title": "Plumbing"
+        }
+      ],
+      "rating": 4.5,
+      "coordinates": {
+        "latitude": 29.771367,
+        "longitude": -95.353676
+      },
+      "transactions": [],
+      "location": {
+        "address1": "6008 Harrisburg Blvd",
+        "address2": null,
+        "address3": null,
+        "city": "Pearland",
+        "zip_code": "77581",
+        "country": "US",
+        "state": "TX",
+        "display_address": [
+          "6008 Harrisburg Blvd",
+          "Pearland, TX 77581"
+        ]
+      },
+      "phone": "+17135553789",
+      "display_phone": "(713) 555-3789",
+      "distance": 1979.49
+    },
+    {
+      "id": "ipgQPfI6e-km0aAITO82Yk",
+      "alias": "dusty-wrench-plumbing-houston",
+      "name": "Dusty Wrench Plumbing",
+      "image_url": "https://s3-media0.fl.yelpcdn.com/bphoto/JfEZnBFl-j-GoOAPe2vqSZ/o.jpg",
+      "is_closed": false,
+      "url": "https://www.yelp.com/biz/dusty-wrench-plumbing-houston",
+      "review_count": 5,
+      "categories": [
+        {
+          "alias": "handyman",
+          "title": "Handyman"
+        },
+        {
+          "alias": "plumbing",
+          "title": "Plumbing"
+        }
+      ],
+      "rating": 3.5,
+      "coordinates": {
+        "latitude": 29.664458,
+        "longitude": -95.532408
+      },
+      "transactions": [],
+      "price": "$$$",
+      "location": {
+        "address1": "6403 W Gray St",
+        "address2": null,
+        "address3": null,
+        "city": "Houston",
+        "zip_code": "77036",
+        "country": "US",
+        "state": "TX",
+        "display_address": [
+          "6403 W Gray St",
+          "Houston, TX 77036"
+        ]
+      },
+      "phone": "+17135553897",
+      "display_phone": "(713) 555-3897",
+      "distance": 19000
+    },
+    {
+      "id": "HP1LSCmJoah3jkYaZ7W3_P",
+      "alias": "mr-rooter-plumbing-of-houston-stafford",
+      "name": "Mr. Rooter Plumbing of Houston",
+      "image_url": "",
+      "is_closed": false,
+      "url": "https://www.yelp.com/biz/mr-rooter-plumbing-of-houston-stafford",
+      "review_count": 17,
+      "categories": [
+        {
+          "alias": "plumbing",
+          "title": "Plumbing"
+        }
+      ],
+      "rating": 4.5,
+      "coordinates": {
+        "latitude": 29.916125,
+        "longitude": -95.381171
+      },
+      "transactions": [],
+      "price": "$$",
+      "location": {
+        "address1": "18681 Kirby Dr",
+        "address2": null,
+        "address3": null,
+        "city": "Stafford",
+        "zip_code": "77477",
+        "country": "US",
+        "state": "TX",
+        "display_address": [
+          "18681 Kirby Dr",
+          "Stafford, TX 77477"
+        ]
+      },
+      "phone": "+17135557750",
+      "display_phone": "(713) 555-7750",
+      "distance": 17370.05
+    },
+    {
+      "id": "Zo5xddprE3f1rrznPHRszC",
+      "alias": "montrose-plumbing-repair-houston",
+      "name": "Montrose Plumbing & Repair",
+      "image_url": "",
+      "is_closed": false,
+      "url": "https://www.yelp.com/biz/montrose-plumbing-repair-houston",
+      "review_count": 17,
+      "categories": [
+        {
+          "alias": "plumbing",
+          "title": "Plumbing"
+        }
+      ],
+      "rating": 4.5,
+      "coordinates": {
+        "latitude": 29.646198,
+        "longitude": -95.367889
+      },
+      "transactions": [],
+      "price": "$$",
+      "location": {
+        "address1": "19891 Memorial Dr",
+        "address2": "Suite 600",
+        "address3": null,
+        "city": "Houston",
+        "zip_code": "77019",
+        "country": "US",
+        "state": "TX",
+        "display_address": [
+          "19891 Memorial Dr",
+          "Suite 600",
+          "Houston, TX 77019"
+        ]
+      },
+      "phone": "+17135553374",
+      "display_phone": "(713) 555-3374",
+      "distance": 12714.32
+    },
+    {
+      "id": "RMzVY3hLf8QUWZGymOx8aR",
+      "alias": "brazos-plumbing-repair-stafford",
+      "name": "Brazos Plumbing & Repair",
+      "image_url": "https://s3-media0.fl.yelpcdn.com/bphoto/mR6mH3OZ8QCiQ0T4v_Arpo/o.jpg",
+      "is_closed": false,
+      "url": "https://www.yelp.com/biz/brazos-plumbing-repair-stafford",
+      "review_count": 44,
+      "categories": [
+        {
+          "alias": "plumbing",
+          "title": "Plumbing"
+        },
+        {
+          "alias": "waterheaterinstallrepair",
+          "title": "Water Heater Installation/Repair"
+        }
+      ],
+      "rating": 4,
+      "coordinates": {
+        "latitude": 29.610751,
+        "longitude": -95.462631
+      },
+      "transactions": [],
+      "price": "$",
+      "location": {
+        "address1": "8462 N Main St",
+        "address2": null,
+        "address3": null,
+        "city": "Stafford",
+        "zip_code": "77477",
+        "country": "US",
+        "state": "TX",
+        "display_address": [
+          "8462 N Main St",
+          "Stafford, TX 77477"
+        ]
+      },
+      "phone": "+17135555713",
+      "display_phone": "(713) 555-5713",
+      "distance": 18920.82
+    },
+    {
+      "id": "fg4ucFx5oypIYl6u2kzduD",
+      "alias": "memorial-plumbing-repair-houston",
+      "name": "Memorial Plumbing & Repair",
+      "image_url": "https://s3-media0.fl.yelpcdn.com/bphoto/enPg8ZujEa-4Xc8J6I-ABc/o.jpg",
+      "is_closed": false,
+      "url": "https://www.yelp.com/biz/memorial-plumbing-repair-houston",
+      "review_count": 67,
+      "categories": [
+        {
+          "alias": "plumbing",
+          "title": "Plumbing"
+        }
+      ],
+      "rating": 4.5,
+      "coordinates": {
+        "latitude": 29.728197,
+        "longitude": -95.210096
+      },
+      "transactions": [],
+      "price": "$$",
+      "location": {
+        "address1": "4339 Kirby Dr",
+        "address2": null,
+        "address3": null,
+        "city": "Houston",
+        "zip_code": "77027",
+        "country": "US",
+        "state": "TX",
+        "display_address": [
+          "4339 Kirby Dr",
+          "Houston, TX 77027"
+        ]
+      },
+      "phone": "+17135557200",
+      "display_phone": "(713) 555-7200",
+      "distance": 15844.29
+    },
+    {
+      "id": "6o552ZUTsPPtE1iYRssNwq",
+      "alias": "reliable-plumbing-co-houston",
+      "name": "Reliable Plumbing Co",
+      "image_url": "https://s3-media0.fl.yelpcdn.com/bphoto/Em19ft1rts2BLsOs1rs8z9/o.jpg",
+      "is_closed": false,
+      "url": "https://www.yelp.com/biz/reliable-plumbing-co-houston",
+      "review_count": 346,
+      "categories": [
+        {
+          "alias": "plumbing",
+          "title": "Plumbing"
+        }
+      ],
+      "rating": 4,
+      "coordinates": {
+        "latitude": 29.899791,
+        "longitude": -95.468818
+      },
+      "transactions": [],
+      "price": "$$$",
+      "location": {
+        "address1": "9790 Airline Dr",
+        "address2": null,
+        "address3": null,
+        "city": "Houston",
+        "zip_code": "77057",
+        "country": "US",
+        "state": "TX",
+        "display_address": [
+          "9790 Airline Dr",
+          "Houston, TX 77057"
+        ]
+      },
+      "phone": "+17135557920",
+      "display_phone": "(713) 555-7920",
+      "distance": 18230.19
+    },
+    {
+      "id": "mOjz70PFrqr0CuYKZzrqY9",
+      "alias": "sugar-land-pipe-masters-sugar-land",
+      "name": "Sugar Land Pipe Masters",
+      "image_url": "https://s3-media0.fl.yelpcdn.com/bphoto/qnlkn8VzoQgmKWhtvIdihC/o.jpg",
+      "is_closed": false,
+      "url": "https://www.yelp.com/biz/sugar-land-pipe-masters-sugar-land",
+      "review_count": 310,
+      "categories": [
+        {
+          "alias": "plumbing",
+          "title": "Plumbing"
+        }
+      ],
+      "rating": 3.5,
+      "coordinates": {
+        "latitude": 29.602192,
+        "longitude": -95.497409
+      },
+      "transactions": [],
+      "price": "$",
+      "location": {
+        "address1": "17353 Kirby Dr",
+        "address2": null,
+        "address3": null,
+        "city": "Sugar Land",
+        "zip_code": "77478",
+        "country": "US",
+        "state": "TX",
+        "display_address": [
+          "17353 Kirby Dr",
+          "Sugar Land, TX 77478"
+        ]
+      },
+      "phone": "+17135552249",
+      "display_phone": "(713) 555-2249",
+      "distance": 21500
+    },
+    {
+      "id": "hpYRYNEbYE_0nUGYEbHitg",
+      "alias": "evergreen-plumbing-houston",
+      "name": "Evergreen Plumbing",
+      "image_url": "https://s3-media0.fl.yelpcdn.com/bphoto/nR9CKgx_5FwMAaT1kT1x_Q/o.jpg",
+      "is_closed": false,
+      "url": "https://www.yelp.com/biz/evergreen-plumbing-houston",
+      "review_count": 176,
+      "categories": [
+        {
+          "alias": "plumbing",
+          "title": "Plumbing"
+        }
+      ],
+      "rating": 4.5,
+      "coordinates": {
+        "latitude": 29.718886,
+        "longitude": -95.493079
+      },
+      "transactions": [
+        "request_a_quote"
+      ],
+      "price": "$$",
+      "location": {
+        "address1": "5035 Richmond Ave",
+        "address2": null,
+        "address3": null,
+        "city": "Houston",
+        "zip_code": "77024",
+        "country": "US",
+        "state": "TX",
+        "display_address": [
+          "5035 Richmond Ave",
+          "Houston, TX 77024"
+        ]
+      },
+      "phone": "+17135553747",
+      "display_phone": "(713) 555-3747",
+      "distance": 12778.38
+    },
+    {
+      "id": "HfECPQJlprbX3eIDTQeYRO",
+      "alias": "space-city-plumbing-repair-houston",
+      "name": "Space City Plumbing & Repair",
+      "image_url": "https://s3-media0.fl.yelpcdn.com/bphoto/8-YWYvh6zc44AcRYLdY8lz/o.jpg",
+      "is_closed": false,
+      "url": "https://www.yelp.com/biz/space-city-plumbing-repair-houston",
+      "review_count": 36,
+      "categories": [
+        {
+          "alias": "plumbing",
+          "title": "Plumbing"
+        }
+      ],
+      "rating": 4.5,
+      "coordinates": {
+        "latitude": 29.819444,
+        "longitude": -95.204564
+      },
+      "transactions": [],
+      "price": "$",
+      "location": {
+        "address1": "6578 Cullen Blvd",
+        "address2": null,
+        "address3": null,
+        "city": "Houston",
+        "zip_code": "77079",
+        "country": "US",
+        "state": "TX",
+        "display_address": [
+          "6578 Cullen Blvd",
+          "Houston, TX 77079"
+        ]
+      },
+      "phone": "+17135557895",
+      "display_phone": "(713) 555-7895",
+      "distance": 17267.89
+    },
+    {
+      "id": "f5dZ7hF9QOpAytFg0Cb15C",
+      "alias": "eagle-plumbing-co-houston",
+      "name": "Eagle Plumbing Co.",
+      "image_url": "https://s3-media0.fl.yelpcdn.com/bphoto/H45FKzVrvw0aKZQaRuT09I/o.jpg",
+      "is_closed": false,
+      "url": "https://www.yelp.com/biz/eagle-plumbing-co-houston",
+      "review_count": 206,
+      "categories": [
+        {
+          "alias": "plumbing",
+          "title": "Plumbing"
+        }
+      ],
+      "rating": 3.5,
+      "coordinates": {
+        "latitude": 29.812526,
+        "longitude": -95.45954
+      },
+      "transactions": [],
+      "price": "$$",
+      "location": {
+        "address1": "12449 Cullen Blvd",
+        "address2": null,
+        "address3": null,
+        "city": "Houston",
+        "zip_code": "77007",
+        "country": "US",
+        "state": "TX",
+        "display_address": [
+          "12449 Cullen Blvd",
+          "Houston, TX 77007"
+        ]
+      },
+      "phone": "+17135552636",
+      "display_phone": "(713) 555-2636",
+      "distance": 10434.56
+    },
+    {
+      "id": "Jv8jUeeWm9Oiv0gLIIDjWh",
+      "alias": "gulf-coast-plumbing-houston",
+      "name": "Gulf Coast Plumbing",
+      "image_url": "https://s3-media0.fl.yelpcdn.com/bphoto/Dj-eGvngpv6fkzoTLD_CjB/o.jpg",
+      "is_closed": true,
+      "url": "https://www.yelp.com/biz/gulf-coast-plumbing-houston",
+      "review_count": 294,
+      "categories": [
+        {
+          "alias": "plumbing",
+          "title": "Plumbing"
+        }
+      ],
+      "rating": 4.5,
+      "coordinates": {
+        "latitude": 29.754867,
+        "longitude": -95.467005
+      },
+      "transactions": [],
+      "price": "$",
+      "location": {
+        "address1": "7018 Beechnut St",
+        "address2": "Suite 800",
+        "address3": null,
+        "city": "Houston",
+        "zip_code": "77098",
+        "country": "US",
+        "state": "TX",
+        "display_address": [
+          "7018 Beechnut St",
+          "Suite 800",
+          "Houston, TX 77098"
+        ]
+      },
+      "phone": "+17135557127",
+      "display_phone": "(713) 555-7127",
+      "distance": 9413.87
+    },
+    {
+      "id": "r8YWarZDjvtSAsV4URhsqP",
+      "alias": "trusty-plumbing-repair-bellaire",
+      "name": "Trusty Plumbing & Repair",
+      "image_url": "https://s3-media0.fl.yelpcdn.com/bphoto/IZ_Q0WM0dcUj3dabuEz8NK/o.jpg",
+      "is_closed": false,
+      "url": "https://www.yelp.com/biz/trusty-plumbing-repair-bellaire",
+      "review_count": 232,
+      "categories": [
+        {
+          "alias": "plumbing",
+          "title": "Plumbing"
+        }
+      ],
+      "rating": 4.5,
+      "coordinates": {
+        "latitude": 29.751383,
+        "longitude": -95.434595
+      },
+      "transactions": [],
+      "location": {
+        "address1": "11701 Kirby Dr",
+        "address2": null,
+        "address3": null,
+        "city": "Bellaire",
+        "zip_code": "77401",
+        "country": "US",
+        "state": "TX",
+        "display_address": [
+          "11701 Kirby Dr",
+          "Bellaire, TX 77401"
+        ]
+      },
+      "phone": "+17135555368",
+      "display_phone": "(713) 555-5368",
+      "distance": 6341.58
+    },
+    {
+      "id": "WmhgLVDX8aF4Z19-AysKD_",
+      "alias": "handy-hank-plumbing-houston",
+      "name": "Handy Hank Plumbing",
+      "image_url": "https://s3-media0.fl.yelpcdn.com/bphoto/ikUBGbqu1tcj_hBOgDswYU/o.jpg",
+      "is_closed": false,
+      "url": "https://www.yelp.com/biz/handy-hank-plumbing-houston",
+      "review_count": 123,
+      "categories": [
+        {
+          "alias": "plumbing",
+          "title": "Plumbing"
+        },
+        {
+          "alias": "septic",
+          "title": "Septic Services"
+        }
+      ],
+      "rating": 5,
+      "coordinates": {
+        "latitude": 29.81852,
+        "longitude": -95.310882
+      },
+      "transactions": [],
+      "price": "$$$",
+      "location": {
+        "address1": "16836 Harrisburg Blvd",
+        "address2": null,
+        "address3": null,
+        "city": "Houston",
+        "zip_code": "77027",
+        "country": "US",
+        "state": "TX",
+        "display_address": [
+          "16836 Harrisburg Blvd",
+          "Houston, TX 77027"
+        ]
+      },
+      "phone": "",
+      "display_phone": "",
+      "distance": 8618.51
+    },
+    {
+      "id": "7iNUtRD6-1_PkjO9UEgQlq",
+      "alias": "armadillo-plumbers-houston",
+      "name": "Armadillo Plumbers",
+      "image_url": "https://s3-media0.fl.yelpcdn.com/bphoto/FIQp4qbYTRPhyEOJEjmDJ7/o.jpg",
+      "is_closed": false,
+      "url": "https://www.yelp.com/biz/armadillo-plumbers-houston",
+      "review_count": 17,
+      "categories": [
+        {
+          "alias": "plumbing",
+          "title": "Plumbing"
+        },
+        {
+          "alias": "waterheaterinstallrepair",
+          "title": "Water Heater Installation/Repair"
+        }
+      ],
+      "rating": 3.5,
+      "coordinates": {
+        "latitude": 29.833477,
+        "longitude": -95.404816
+      },
+      "transactions": [],
+      "price": "$$",
+      "location": {
+        "address1": "8131 Beechnut St",
+        "address2": "Suite 500",
+        "address3": null,
+        "city": "Houston",
+        "zip_code": "77004",
+        "country": "US",
+        "state": "TX",
+        "display_address": [
+          "8131 Beechnut St",
+          "Suite 500",
+          "Houston, TX 77004"
+        ]
+      },
+      "phone": "+17135550463",
+      "display_phone": "(713) 555-0463",
+      "distance": 8810.65
+    },
+    {
+      "id": "KGbIjTTqeO3ZENvfgpunYW",
+      "alias": "reliable-plumbing-co-houston-2",
+      "name": "Reliable Plumbing Co",
+      "image_url": "https://s3-media0.fl.yelpcdn.com/bphoto/JdMVoWL5FZjdrgE62AQhrk/o.jpg",
+      "is_closed": false,
+      "url": "https://www.yelp.com/biz/reliable-plumbing-co-houston-2",
+      "review_count": 113,
+      "categories": [
+        {
+          "alias": "plumbing",
+          "title": "Plumbing"
+        }
+      ],
+      "rating": 4.5,
+      "coordinates": {
+        "latitude": 29.656898,
+        "longitude": -95.387139
+      },
+      "transactions": [
+        "request_a_quote"
+      ],
+      "price": "$",
+      "location": {
+        "address1": "19648 Bingle Rd",
+        "address2": null,
+        "address3": null,
+        "city": "Houston",
+        "zip_code": "77077",
+        "country": "US",
+        "state": "TX",
+        "display_address": [
+          "19648 Bingle Rd",
+          "Houston, TX 77077"
+        ]
+      },
+      "phone": "+17135557920",
+      "display_phone": "(713) 555-7920",
+      "distance": 11642.99
+    },
+    {
+      "id": "KBCZ24yVvaOlhbLOyDnxJm",
+      "alias": "brazos-plumbing-stafford",
+      "name": "Brazos Plumbing",
+      "image_url": "",
+      "is_closed": false,
+      "url": "https://www.yelp.com/biz/brazos-plumbing-stafford",
+      "review_count": 129,
+      "categories": [
+        {
+          "alias": "plumbing",
+          "title": "Plumbing"
+        },
+        {
+          "alias": "contractors",
+          "title": "Contractors"
+        }
+      ],
+      "rating": 4.5,
+      "coordinates": {
+        "latitude": 29.748776,
+        "longitude": -95.349551
+      },
+      "transactions": [],
+      "price": "$$$",
+      "location": {
+        "address1": "194 Durham Dr",
+        "address2": null,
+        "address3": null,
+        "city": "Stafford",
+        "zip_code": "77477",
+        "country": "US",
+        "state": "TX",
+        "display_address": [
+          "194 Durham Dr",
+          "Stafford, TX 77477"
+        ]
+      },
+      "phone": "+17135553285",
+      "display_phone": "(713) 555-3285",
+      "distance": 2345.92
+    },
+    {
+      "id": "03qW0Y4b02wuLjz3dZCNYu",
+      "alias": "pinnacle-plumbing-houston",
+      "name": "Pinnacle Plumbing",
+      "image_url": "https://s3-media0.fl.yelpcdn.com/bphoto/Nc_Dkc4HktX9HhlZzeheD2/o.jpg",
+      "is_closed": false,
+      "url": "https://www.yelp.com/biz/pinnacle-plumbing-houston",
+      "review_count": 337,
+      "categories": [
+        {
+          "alias": "plumbing",
+          "title": "Plumbing"
+        },
+        {
+          "alias": "septic",
+          "title": "Septic Services"
+        }
+      ],
+      "rating": 4.5,
+      "coordinates": {
+        "latitude": 29.733079,
+        "longitude": -95.221203
+      },
+      "transactions": [],
+      "location": {
+        "address1": "17024 Bellaire Blvd",
+        "address2": "Suite 500",
+        "address3": null,
+        "city": "Houston",
+        "zip_code": "77030",
+        "country": "US",
+        "state": "TX",
+        "display_address": [
+          "17024 Bellaire Blvd",
+          "Suite 500",
+          "Houston, TX 77030"
+        ]
+      },
+      "phone": "+17135558499",
+      "display_phone": "(713) 555-8499",
+      "distance": 14678.6
+    },
+    {
+      "id": "Siynqx-OTeAFMrcEhHXPwQ",
+      "alias": "third-ward-plumbing-services-houston",
+      "name": "Third Ward Plumbing Services",
+      "image_url": "https://s3-media0.fl.yelpcdn.com/bphoto/rIpBZ41_UFZUOve2Baf7r3/o.jpg",
+      "is_closed": false,
+      "url": "https://www.yelp.com/biz/third-ward-plumbing-services-houston",
+      "review_count": 395,
+      "categories": [
+        {
+          "alias": "plumbing",
+          "title": "Plumbing"
+        }
+      ],
+      "rating": 5,
+      "coordinates": {
+        "latitude": 29.676536,
+        "longitude": -95.365153
+      },
+      "transactions": [],
+      "price": "$$",
+      "location": {
+        "address1": "14597 Hillcroft Ave",
+        "address2": "Suite 200",
+        "address3": null,
+        "city": "Houston",
+        "zip_code": "77024",
+        "country": "US",
+        "state": "TX",
+        "display_address": [
+          "14597 Hillcroft Ave",
+          "Suite 200",
+          "Houston, TX 77024"
+        ]
+      },
+      "phone": "+17135553009",
+      "display_phone": "(713) 555-3009",
+      "distance": 9346.56
+    },
+    {
+      "id": "txvlQLTXh9ik3GKIHR_sUg",
+      "alias": "rice-village-plumbing-bellaire",
+      "name": "Rice Village Plumbing",
+      "image_url": "https://s3-media0.fl.yelpcdn.com/bphoto/vx727tzX2khDhLkx1nn_H2/o.jpg",
+      "is_closed": false,
+      "url": "https://www.yelp.com/biz/rice-village-plumbing-bellaire",
+      "review_count": 26,
+      "categories": [
+        {
+          "alias": "plumbing",
+          "title": "Plumbing"
+        }
+      ],
+      "rating": 5,
+      "coordinates": {
+        "latitude": 29.81375,
+        "longitude": -95.378059
+      },
+      "transactions": [],
+      "price": "$",
+      "location": {
+        "address1": "13605 Fannin St",
+        "address2": "Suite 200",
+        "address3": null,
+        "city": "Bellaire",
+        "zip_code": "77401",
+        "country": "US",
+        "state": "TX",
+        "display_address": [
+          "13605 Fannin St",
+          "Suite 200",
+          "Bellaire, TX 77401"
+        ]
+      },
+      "phone": "+17135552521",
+      "display_phone": "(713) 555-2521",
+      "distance": 5992.36
+    },
+    {
+      "id": "zyoo4DGGL29o_1bC_OKO8X",
+      "alias": "steadfast-plumbing-services-houston",
+      "name": "Steadfast Plumbing Services",
+      "image_url": "https://s3-media0.fl.yelpcdn.com/bphoto/cgXv_hwQ5JeAFktrdKvHpB/o.jpg",
+      "is_closed": false,
+      "url": "https://www.yelp.com/biz/steadfast-plumbing-services-houston",
+      "review_count": 66,
+      "categories": [
+        {
+          "alias": "plumbing",
+          "title": "Plumbing"
+        },
+        {
+          "alias": "contractors",
+          "title": "Contractors"
+        }
+      ],
+      "rating": 4.5,
+      "coordinates": {
+        "latitude": 29.76868,
+        "longitude": -95.358451
+      },
+      "transactions": [],
+      "price": "$$",
+      "location": {
+        "address1": "14758 Harrisburg Blvd",
+        "address2": "Suite 300",
+        "address3": null,
+        "city": "Houston",
+        "zip_code": "77042",
+        "country": "US",
+        "state": "TX",
+        "display_address": [
+          "14758 Harrisburg Blvd",
+          "Suite 300",
+          "Houston, TX 77042"
+        ]
+      },
+      "phone": "+17135552616",
+      "display_phone": "(713) 555-2616",
+      "distance": 1432.69
+    },
+    {
+      "id": "Z8kta7p7ssUC-wcPBsX2Fe",
+      "alias": "oak-forest-plumbing-stafford",
+      "name": "Oak Forest Plumbing",
+      "image_url": "https://s3-media0.fl.yelpcdn.com/bphoto/mhIROEBBraMCJpbPm9vLiL/o.jpg",
+      "is_closed": false,
+      "url": "https://www.yelp.com/biz/oak-forest-plumbing-stafford",
+      "review_count": 73,
+      "categories": [
+        {
+          "alias": "plumbing",
+          "title": "Plumbing"
+        },
+        {
+          "alias": "waterheaterinstallrepair",
+          "title": "Water Heater Installation/Repair"
+        }
+      ],
+      "rating": 4,
+      "coordinates": {
+        "latitude": 29.776786,
+        "longitude": -95.318743
+      },
+      "transactions": [],
+      "price": "$$$",
+      "location": {
+        "address1": "6347 Bellaire Blvd",
+        "address2": "Suite 400",
+        "address3": null,
+        "city": "Stafford",
+        "zip_code": "77477",
+        "country": "US",
+        "state": "TX",
+        "display_address": [
+          "6347 Bellaire Blvd",
+          "Suite 400",
+          "Stafford, TX 77477"
+        ]
+      },
+      "phone": "+17135552328",
+      "display_phone": "(713) 555-2328",
+      "distance": 5260.41
+    },
+    {
+      "id": "JPjYt-qpndNloCYqdiaTY5",
+      "alias": "dependable-plumbing-services-houston",
+      "name": "Dependable Plumbing Services",
+      "image_url": "https://s3-media0.fl.yelpcdn.com/bphoto/g5JGseO0FhaJLlSvwnnB2D/o.jpg",
+      "is_closed": false,
+      "url": "https://www.yelp.com/biz/dependable-plumbing-services-houston",
+      "review_count": 18,
+      "categories": [
+        {
+          "alias": "plumbing",
+          "title": "Plumbing"
+        }
+      ],
+      "rating": 4.5,
+      "coordinates": {
+        "latitude": 29.774087,
+        "longitude": -95.279976
+      },
+      "transactions": [],
+      "price": "$$",
+      "location": {
+        "address1": "2612 Bellaire Blvd",
+        "address2": null,
+        "address3": null,
+        "city": "Houston",
+        "zip_code": "77027",
+        "country": "US",
+        "state": "TX",
+        "display_address": [
+          "2612 Bellaire Blvd",
+          "Houston, TX 77027"
+        ]
+      },
+      "phone": "+17135554869",
+      "display_phone": "(713) 555-4869",
+      "distance": 8813.15
+    },
+    {
+      "id": "jpaG-POdA3HgKtiEdUu06s",
+      "alias": "patriot-plumbing-humble",
+      "name": "Patriot Plumbing",
+      "image_url": "https://s3-media0.fl.yelpcdn.com/bphoto/XKTlM3wi9_WYtb0tN-HxEi/o.jpg",
+      "is_closed": false,
+      "url": "https://www.yelp.com/biz/patriot-plumbing-humble",
+      "review_count": 13,
+      "categories": [
+        {
+          "alias": "plumbing",
+          "title": "Plumbing"
+        },
+        {
+          "alias": "septic",
+          "title": "Septic Services"
+        }
+      ],
+      "rating": 4.5,
+      "coordinates": {
+        "latitude": 29.645974,
+        "longitude": -95.424818
+      },
+      "transactions": [
+        "request_a_quote"
+      ],
+      "price": "$$",
+      "location": {
+        "address1": "1584 Mykawa Rd",
+        "address2": null,
+        "address3": null,
+        "city": "Humble",
+        "zip_code": "77338",
+        "country": "US",
+        "state": "TX",
+        "display_address": [
+          "1584 Mykawa Rd",
+          "Humble, TX 77338"
+        ]
+      },
+      "phone": "+17135551497",
+      "display_phone": "(713) 555-1497",
+      "distance": 13802.96
+    },
+    {
+      "id": "jQfhJslxmoiJSE1-GuHOay",
+      "alias": "abc-plumbing-houston",
+      "name": "ABC Plumbing",
+      "image_url": "https://s3-media0.fl.yelpcdn.com/bphoto/FdAKyCFGbxBB1W1qwItvog/o.jpg",
+      "is_closed": false,
+      "url": "https://www.yelp.com/biz/abc-plumbing-houston",
+      "review_count": 181,
+      "categories": [
+        {
+          "alias": "plumbing",
+          "title": "Plumbing"
+        }
+      ],
+      "rating": 4,
+      "coordinates": {
+        "latitude": 29.770095,
+        "longitude": -95.37111
+      },
+      "transactions": [],
+      "price": "$$",
+      "location": {
+        "address1": "15137 Memorial Dr",
+        "address2": null,
+        "address3": null,
+        "city": "Houston",
+        "zip_code": "77008",
+        "country": "US",
+        "state": "TX",
+        "display_address": [
+          "15137 Memorial Dr",
+          "Houston, TX 77008"
+        ]
+      },
+      "phone": "+17135551162",
+      "display_phone": "(713) 555-1162",
+      "distance": 1086.69
+    },
+    {
+      "id": "TwabBMs7x9xtd_KMSzyQeA",
+      "alias": "armadillo-plumbing-humble",
+      "name": "Armadillo Plumbing",
+      "image_url": "https://s3-media0.fl.yelpcdn.com/bphoto/uvs11QIs80pmvzQka7Mt3k/o.jpg",
+      "is_closed": false,
+      "url": "https://www.yelp.com/biz/armadillo-plumbing-humble",
+      "review_count": 445,
+      "categories": [
+        {
+          "alias": "plumbing",
+          "title": "Plumbing"
+        },
+        {
+          "alias": "contractors",
+          "title": "Contractors"
+        }
+      ],
+      "rating": 4.5,
+      "coordinates": {
+        "latitude": 29.619122,
+        "longitude": -95.451779
+      },
+      "transactions": [],
+      "price": "$",
+      "location": {
+        "address1": "4035 Kirby Dr",
+        "address2": "Suite 100",
+        "address3": null,
+        "city": "Humble",
+        "zip_code": "77338",
+        "country": "US",
+        "state": "TX",
+        "display_address": [
+          "4035 Kirby Dr",
+          "Suite 100",
+          "Humble, TX 77338"
+        ]
+      },
+      "phone": "+17135554885",
+      "display_phone": "(713) 555-4885",
+      "distance": 17609.76
+    },
+    {
+      "id": "dVajVceTnT0M441VGSufYU",
+      "alias": "quick-fix-plumbing-houston",
+      "name": "Quick Fix Plumbing",
+      "image_url": "https://s3-media0.fl.yelpcdn.com/bphoto/VrOswl36HGl_FbcQr3msY_/o.jpg",
+      "is_closed": false,
+      "url": "https://www.yelp.com/biz/quick-fix-plumbing-houston",
+      "review_count": 40,
+      "categories": [
+        {
+          "alias": "plumbing",
+          "title": "Plumbing"
+        }
+      ],
+      "rating": 2.5,
+      "coordinates": {
+        "latitude": 29.75717,
+        "longitude": -95.363609
+      },
+      "transactions": [],
+      "price": "$$",
+      "location": {
+        "address1": "7664 Bingle Rd",
+        "address2": null,
+        "address3": null,
+        "city": "Houston",
+        "zip_code": "77027",
+        "country": "US",
+        "state": "TX",
+        "display_address": [
+          "7664 Bingle Rd",
+          "Houston, TX 77027"
+        ]
+      },
+      "phone": "+17135559389",
+      "display_phone": "(713) 555-9389",
+      "distance": 697.98
+    },
+    {
+      "id": "Ww1qnYHo89HDPzsL3lF6kX",
+      "alias": "prime-pipe-drain-humble",
+      "name": "Prime Pipe & Drain",
+      "image_url": "https://s3-media0.fl.yelpcdn.com/bphoto/OCHHIXGWaGyY0n4acSyKdr/o.jpg",
+      "is_closed": false,
+      "url": "https://www.yelp.com/biz/prime-pipe-drain-humble",
+      "review_count": 256,
+      "categories": [
+        {
+          "alias": "plumbing",
+          "title": "Plumbing"
+        },
+        {
+          "alias": "septic",
+          "title": "Septic Services"
+        }
+      ],
+      "rating": 4,
+      "coordinates": {
+        "latitude": 29.818711,
+        "longitude": -95.395076
+      },
+      "transactions": [],
+      "price": "$",
+      "location": {
+        "address1": "1972 Katy Fwy",
+        "address2": null,
+        "address3": null,
+        "city": "Humble",
+        "zip_code": "77338",
+        "country": "US",
+        "state": "TX",
+        "display_address": [
+          "1972 Katy Fwy",
+          "Humble, TX 77338"
+        ]
+      },
+      "phone": "+17135553113",
+      "display_phone": "(713) 555-3113",
+      "distance": 6935.59
+    },
+    {
+      "id": "A_WVRIXI2j-DK9wCzxJdcF",
+      "alias": "steadfast-plumbers-houston",
+      "name": "Steadfast Plumbers",
+      "image_url": "https://s3-media0.fl.yelpcdn.com/bphoto/q-XBTF1f6W-SbFctyawdzA/o.jpg",
+      "is_closed": false,
+      "url": "https://www.yelp.com/biz/steadfast-plumbers-houston",
+      "review_count": 14,
+      "categories": [
+        {
+          "alias": "plumbing",
+          "title": "Plumbing"
+        }
+      ],
+      "rating": 4,
+      "coordinates": {
+        "latitude": 29.75894,
+        "longitude": -95.382613
+      },
+      "transactions": [],
+      "location": {
+        "address1": "15674 Montrose Blvd",
+        "address2": "Suite 200",
+        "address3": null,
+        "city": "Houston",
+        "zip_code": "77025",
+        "country": "US",
+        "state": "TX",
+        "display_address": [
+          "15674 Montrose Blvd",
+          "Suite 200",
+          "Houston, TX 77025"
+        ]
+      },
+      "phone": "+17135550511",
+      "display_phone": "(713) 555-0511",
+      "distance": 1248.8
+    },
+    {
+      "id": "D1PWH9-ugWglCa0TEZWu6h",
+      "alias": "new-guy-plumbing-llc-houston",
+      "name": "New Guy Plumbing LLC",
+      "image_url": "https://s3-media0.fl.yelpcdn.com/bphoto/oZ7x2CoisnXaAdaDSZbRC6/o.jpg",
+      "is_closed": false,
+      "url": "https://www.yelp.com/biz/new-guy-plumbing-llc-houston",
+      "review_count": 2,
+      "categories": [
+        {
+          "alias": "plumbing",
+          "title": "Plumbing"
+        },
+        {
+          "alias": "waterheaterinstallrepair",
+          "title": "Water Heater Installation/Repair"
+        }
+      ],
+      "rating": 5,
+      "coordinates": {
+        "latitude": 29.77149,
+        "longitude": -95.370845
+      },
+      "transactions": [],
+      "price": "$$$",
+      "location": {
+        "address1": "16076 Shepherd Dr",
+        "address2": null,
+        "address3": null,
+        "city": "Houston",
+        "zip_code": "77056",
+        "country": "US",
+        "state": "TX",
+        "display_address": [
+          "16076 Shepherd Dr",
+          "Houston, TX 77056"
+        ]
+      },
+      "phone": "+17135551878",
+      "display_phone": "(713) 555-1878",
+      "distance": 1238.66
+    },
+    {
+      "id": "oVPcEwxgEZpkh6RwmS260X",
+      "alias": "westchase-plumbing-repair-houston",
+      "name": "Westchase Plumbing & Repair",
+      "image_url": "https://s3-media0.fl.yelpcdn.com/bphoto/MFzxCAcKS_vokbihLvie8R/o.jpg",
+      "is_closed": false,
+      "url": "https://www.yelp.com/biz/westchase-plumbing-repair-houston",
+      "review_count": 102,
+      "categories": [
+        {
+          "alias": "plumbing",
+          "title": "Plumbing"
+        }
+      ],
+      "rating": 5,
+      "coordinates": {
+        "latitude": 29.688335,
+        "longitude": -95.408862
+      },
+      "transactions": [],
+      "price": "$$$",
+      "location": {
+        "address1": "4428 Telephone Rd",
+        "address2": "Suite 900",
+        "address3": null,
+        "city": "Houston",
+        "zip_code": "77098",
+        "country": "US",
+        "state": "TX",
+        "display_address": [
+          "4428 Telephone Rd",
+          "Suite 900",
+          "Houston, TX 77098"
+        ]
+      },
+      "phone": "+17135555166",
+      "display_phone": "(713) 555-5166",
+      "distance": 8865.99
+    },
+    {
+      "id": "c7YUVdmNxYtrFuM0dW0gED",
+      "alias": "prime-plumbing-services-houston",
+      "name": "Prime Plumbing Services",
+      "image_url": "https://s3-media0.fl.yelpcdn.com/bphoto/PiCLuaAVFXUqhIjSEydzNf/o.jpg",
+      "is_closed": false,
+      "url": "https://www.yelp.com/biz/prime-plumbing-services-houston",
+      "review_count": 358,
+      "categories": [
+        {
+          "alias": "plumbing",
+          "title": "Plumbing"
+        }
+      ],
+      "rating": 3.5,
+      "coordinates": {
+        "latitude": 29.742073,
+        "longitude": -95.262184
+      },
+      "transactions": [],
+      "location": {
+        "address1": "109 Washington Ave",
+        "address2": null,
+        "address3": null,
+        "city": "Houston",
+        "zip_code": "77027",
+        "country": "US",
+        "state": "TX",
+        "display_address": [
+          "109 Washington Ave",
+          "Houston, TX 77027"
+        ]
+      },
+      "phone": "+17135552770",
+      "display_phone": "(713) 555-2770",
+      "distance": 10598.01
+    },
+    {
+      "id": "ximMp2BZo23ds-lBuqOEoc",
+      "alias": "memorial-plumbers-humble",
+      "name": "Memorial Plumbers",
+      "image_url": "https://s3-media0.fl.yelpcdn.com/bphoto/2b4HcHX6L58NbuttVPDyVh/o.jpg",
+      "is_closed": false,
+      "url": "https://www.yelp.com/biz/memorial-plumbers-humble",
+      "review_count": 13,
+      "categories": [
+        {
+          "alias": "plumbing",
+          "title": "Plumbing"
+        }
+      ],
+      "rating": 4,
+      "coordinates": {
+        "latitude": 29.683864,
+        "longitude": -95.411772
+      },
+      "transactions": [],
+      "price": "$$$",
+      "location": {
+        "address1": "9190 Durham Dr",
+        "address2": "Suite 300",
+        "address3": null,
+        "city": "Humble",
+        "zip_code": "77338",
+        "country": "US",
+        "state": "TX",
+        "display_address": [
+          "9190 Durham Dr",
+          "Suite 300",
+          "Humble, TX 77338"
+        ]
+      },
+      "phone": "+17135556114",
+      "display_phone": "(713) 555-6114",
+      "distance": 9436.16
+    },
+    {
+      "id": "jL1ubAPu_iC3AH8RLZj_RB",
+      "alias": "katy-drain-pros-katy",
+      "name": "Katy Drain Pros",
+      "image_url": "https://s3-media0.fl.yelpcdn.com/bphoto/tfexdQiZDkEUl7Mu444rrJ/o.jpg",
+      "is_closed": false,
+      "url": "https://www.yelp.com/biz/katy-drain-pros-katy",
+      "review_count": 43,
+      "categories": [
+        {
+          "alias": "plumbing",
+          "title": "Plumbing"
+        }
+      ],
+      "rating": 4,
+      "coordinates": {
+        "latitude": 29.736129,
+        "longitude": -95.689365
+      },
+      "transactions": [],
+      "price": "$$",
+      "location": {
+        "address1": "7273 N Main St",
+        "address2": null,
+        "address3": null,
+        "city": "Katy",
+        "zip_code": "77449",
+        "country": "US",
+        "state": "TX",
+        "display_address": [
+          "7273 N Main St",
+          "Katy, TX 77449"
+        ]
+      },
+      "phone": "+17135552306",
+      "display_phone": "(713) 555-2306",
+      "distance": 31000
+    },
+    {
+      "id": "xP-o46dl5zr8a-eZw69fJf",
+      "alias": "roto-rooter-plumbing-water-cleanup-houston",
+      "name": "Roto-Rooter Plumbing & Water Cleanup",
+      "image_url": "https://s3-media0.fl.yelpcdn.com/bphoto/G7Hq5W4lcUMRlmB1P6gjgO/o.jpg",
+      "is_closed": false,
+      "url": "https://www.yelp.com/biz/roto-rooter-plumbing-water-cleanup-houston",
+      "review_count": 179,
+      "categories": [
+        {
+          "alias": "plumbing",
+          "title": "Plumbing"
+        }
+      ],
+      "rating": 4.5,
+      "coordinates": {
+        "latitude": 29.70903,
+        "longitude": -95.542303
+      },
+      "transactions": [],
+      "price": "$$",
+      "location": {
+        "address1": "7761 Hillcroft Ave",
+        "address2": "Suite 100",
+        "address3": null,
+        "city": "Houston",
+        "zip_code": "77098",
+        "country": "US",
+        "state": "TX",
+        "display_address": [
+          "7761 Hillcroft Ave",
+          "Suite 100",
+          "Houston, TX 77098"
+        ]
+      },
+      "phone": "+17135553707",
+      "display_phone": "(713) 555-3707",
+      "distance": 17623.87
+    },
+    {
+      "id": "vs4S8r3Ch_ZyHfZfGfCIpb",
+      "alias": "tomball-plumbing-services-houston",
+      "name": "Tomball Plumbing Services",
+      "image_url": "",
+      "is_closed": false,
+      "url": "https://www.yelp.com/biz/tomball-plumbing-services-houston",
+      "review_count": 138,
+      "categories": [
+        {
+          "alias": "plumbing",
+          "title": "Plumbing"
+        },
+        {
+          "alias": "septic",
+          "title": "Septic Services"
+        }
+      ],
+      "rating": 4.5,
+      "coordinates": {
+        "latitude": 29.630685,
+        "longitude": -95.430691
+      },
+      "transactions": [
+        "request_a_quote"
+      ],
+      "price": "$",
+      "location": {
+        "address1": "11494 Cullen Blvd",
+        "address2": null,
+        "address3": null,
+        "city": "Houston",
+        "zip_code": "77063",
+        "country": "US",
+        "state": "TX",
+        "display_address": [
+          "11494 Cullen Blvd",
+          "Houston, TX 77063"
+        ]
+      },
+      "phone": "+17135556431",
+      "display_phone": "(713) 555-6431",
+      "distance": 15592.8
+    },
+    {
+      "id": "juLJB61UhjSMJG-0HdPMMw",
+      "alias": "evergreen-plumbing-repair-houston",
+      "name": "Evergreen Plumbing & Repair",
+      "image_url": "https://s3-media0.fl.yelpcdn.com/bphoto/cpJ2slphFshft-yYUHvVSc/o.jpg",
+      "is_closed": false,
+      "url": "https://www.yelp.com/biz/evergreen-plumbing-repair-houston",
+      "review_count": 399,
+      "categories": [
+        {
+          "alias": "plumbing",
+          "title": "Plumbing"
+        }
+      ],
+      "rating": 4.5,
+      "coordinates": {
+        "latitude": 29.886375,
+        "longitude": -95.477713
+      },
+      "transactions": [],
+      "price": "$",
+      "location": {
+        "address1": "2990 Washington Ave",
+        "address2": null,
+        "address3": null,
+        "city": "Houston",
+        "zip_code": "77057",
+        "country": "US",
+        "state": "TX",
+        "display_address": [
+          "2990 Washington Ave",
+          "Houston, TX 77057"
+        ]
+      },
+      "phone": "+17135556402",
+      "display_phone": "(713) 555-6402",
+      "distance": 17476.1
+    },
+    {
+      "id": "n3tZ_lpR0RuPNnUEarER1k",
+      "alias": "blue-heron-pipe-drain-houston",
+      "name": "Blue Heron Pipe & Drain",
+      "image_url": "https://s3-media0.fl.yelpcdn.com/bphoto/jq6GIH0RpyaMjAGfZjrfq6/o.jpg",
+      "is_closed": false,
+      "url": "https://www.yelp.com/biz/blue-heron-pipe-drain-houston",
+      "review_count": 398,
+      "categories": [
+        {
+          "alias": "plumbing",
+          "title": "Plumbing"
+        }
+      ],
+      "rating": 5,
+      "coordinates": {
+        "latitude": 29.768875,
+        "longitude": -95.435581
+      },
+      "transactions": [],
+      "price": "$",
+      "location": {
+        "address1": "10327 Gessner Rd",
+        "address2": null,
+        "address3": null,
+        "city": "Houston",
+        "zip_code": "77007",
+        "country": "US",
+        "state": "TX",
+        "display_address": [
+          "10327 Gessner Rd",
+          "Houston, TX 77007"
+        ]
+      },
+      "phone": "+17135558591",
+      "display_phone": "(713) 555-8591",
+      "distance": 6426.56
+    },
+    {
+      "id": "eLURK9WZDjR9QVN-dgZvXl",
+      "alias": "bayou-city-lawn-landscape-houston",
+      "name": "Bayou City Lawn & Landscape",
+      "image_url": "https://s3-media0.fl.yelpcdn.com/bphoto/LiJlMnB46HrBIvdyCykLHZ/o.jpg",
+      "is_closed": false,
+      "url": "https://www.yelp.com/biz/bayou-city-lawn-landscape-houston",
+      "review_count": 35,
+      "categories": [
+        {
+          "alias": "landscaping",
+          "title": "Landscaping"
+        }
+      ],
+      "rating": 5,
+      "coordinates": {
+        "latitude": 29.736441,
+        "longitude": -95.370715
+      },
+      "transactions": [
+        "request_a_quote"
+      ],
+      "price": "$$",
+      "location": {
+        "address1": "211 Bellaire Blvd",
+        "address2": "Suite 100",
+        "address3": null,
+        "city": "Houston",
+        "zip_code": "77027",
+        "country": "US",
+        "state": "TX",
+        "display_address": [
+          "211 Bellaire Blvd",
+          "Suite 100",
+          "Houston, TX 77027"
+        ]
+      },
+      "phone": "+17135557058",
+      "display_phone": "(713) 555-7058",
+      "distance": 2668.62
+    }
+  ],
+  "total": 40
+}

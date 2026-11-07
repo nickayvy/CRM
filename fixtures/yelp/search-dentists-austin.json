@@ -1,0 +1,1238 @@
+{
+  "_traps": [
+    {
+      "id": "mtyz35bCWVufZpyZp5bAEB",
+      "name": "ABC Plumbing",
+      "trap": "plumbing category in a dentist search",
+      "expected": "rejected",
+      "reason": "category_mismatch"
+    },
+    {
+      "id": "RwLACJEkrqkdDnOWBkynXx",
+      "name": "Aspen Dental - South Lamar",
+      "trap": "national chain name (aspen dental)",
+      "expected": "rejected",
+      "reason": "chain"
+    },
+    {
+      "id": "nWA4GgBO-aVJ-08MTUavpf",
+      "name": "Barton Hills Family Dental",
+      "trap": "no phone number",
+      "expected": "rejected",
+      "reason": "no_phone"
+    },
+    {
+      "id": "CfkrV6cCG5fVAFidbt_Yoj",
+      "name": "Sun City Family Dentistry",
+      "trap": "Georgetown, 41000 m, out of area",
+      "expected": "rejected",
+      "reason": "out_of_area"
+    }
+  ],
+  "businesses": [
+    {
+      "id": "YQS_Gf779WHE9itjtflirj",
+      "alias": "brentwood-dental-associates-austin",
+      "name": "Brentwood Dental Associates",
+      "image_url": "",
+      "is_closed": false,
+      "url": "https://www.yelp.com/biz/brentwood-dental-associates-austin",
+      "review_count": 29,
+      "categories": [
+        {
+          "alias": "dentists",
+          "title": "General Dentistry"
+        }
+      ],
+      "rating": 4.5,
+      "coordinates": {
+        "latitude": 30.179201,
+        "longitude": -97.871187
+      },
+      "transactions": [
+        "request_a_quote"
+      ],
+      "price": "$$",
+      "location": {
+        "address1": "16664 Slaughter Ln",
+        "address2": "Suite 400",
+        "address3": null,
+        "city": "Austin",
+        "zip_code": "78731",
+        "country": "US",
+        "state": "TX",
+        "display_address": [
+          "16664 Slaughter Ln",
+          "Suite 400",
+          "Austin, TX 78731"
+        ]
+      },
+      "phone": "+15125553891",
+      "display_phone": "(512) 555-3891",
+      "distance": 15735.96
+    },
+    {
+      "id": "U0-akvPFOSSTYItcGLVQth",
+      "alias": "windsor-park-dentistry-austin",
+      "name": "Windsor Park Dentistry",
+      "image_url": "https://s3-media0.fl.yelpcdn.com/bphoto/OWvrugLqdSPOcYdl-Epl8K/o.jpg",
+      "is_closed": false,
+      "url": "https://www.yelp.com/biz/windsor-park-dentistry-austin",
+      "review_count": 55,
+      "categories": [
+        {
+          "alias": "dentists",
+          "title": "General Dentistry"
+        }
+      ],
+      "rating": 3.5,
+      "coordinates": {
+        "latitude": 30.347977,
+        "longitude": -97.804395
+      },
+      "transactions": [],
+      "price": "$$",
+      "location": {
+        "address1": "14120 Riverside Dr",
+        "address2": null,
+        "address3": null,
+        "city": "Austin",
+        "zip_code": "78703",
+        "country": "US",
+        "state": "TX",
+        "display_address": [
+          "14120 Riverside Dr",
+          "Austin, TX 78703"
+        ]
+      },
+      "phone": "+15125556391",
+      "display_phone": "(512) 555-6391",
+      "distance": 10751.16
+    },
+    {
+      "id": "Eev1Mm4GV35nm6lwxIu3ke",
+      "alias": "westlake-dental-studio-bee-cave",
+      "name": "Westlake Dental Studio",
+      "image_url": "https://s3-media0.fl.yelpcdn.com/bphoto/Z7fgvEPLT1ozT_X-1ccTVO/o.jpg",
+      "is_closed": false,
+      "url": "https://www.yelp.com/biz/westlake-dental-studio-bee-cave",
+      "review_count": 95,
+      "categories": [
+        {
+          "alias": "dentists",
+          "title": "General Dentistry"
+        }
+      ],
+      "rating": 4.5,
+      "coordinates": {
+        "latitude": 30.19129,
+        "longitude": -97.832156
+      },
+      "transactions": [],
+      "price": "$$",
+      "location": {
+        "address1": "17985 S Lamar Blvd",
+        "address2": null,
+        "address3": null,
+        "city": "Bee Cave",
+        "zip_code": "78738",
+        "country": "US",
+        "state": "TX",
+        "display_address": [
+          "17985 S Lamar Blvd",
+          "Bee Cave, TX 78738"
+        ]
+      },
+      "phone": "+15125558615",
+      "display_phone": "(512) 555-8615",
+      "distance": 12030.02
+    },
+    {
+      "id": "oNatU4S4IXzyZKP5iQAVQb",
+      "alias": "great-hills-smiles-dental-round-rock",
+      "name": "Great Hills Smiles Dental",
+      "image_url": "https://s3-media0.fl.yelpcdn.com/bphoto/WMaUhfb8rnflx2F7mjbOnJ/o.jpg",
+      "is_closed": false,
+      "url": "https://www.yelp.com/biz/great-hills-smiles-dental-round-rock",
+      "review_count": 75,
+      "categories": [
+        {
+          "alias": "dentists",
+          "title": "General Dentistry"
+        },
+        {
+          "alias": "cosmeticdentists",
+          "title": "Cosmetic Dentists"
+        }
+      ],
+      "rating": 5,
+      "coordinates": {
+        "latitude": 30.27517,
+        "longitude": -97.735291
+      },
+      "transactions": [],
+      "price": "$",
+      "location": {
+        "address1": "11466 Airport Blvd",
+        "address2": null,
+        "address3": null,
+        "city": "Round Rock",
+        "zip_code": "78664",
+        "country": "US",
+        "state": "TX",
+        "display_address": [
+          "11466 Airport Blvd",
+          "Round Rock, TX 78664"
+        ]
+      },
+      "phone": "+15125555387",
+      "display_phone": "(512) 555-5387",
+      "distance": 1162.33
+    },
+    {
+      "id": "yoOyfX4n_Mc5S-fGNm3ttg",
+      "alias": "bluebonnet-dental-studio-bee-cave",
+      "name": "Bluebonnet Dental Studio",
+      "image_url": "",
+      "is_closed": false,
+      "url": "https://www.yelp.com/biz/bluebonnet-dental-studio-bee-cave",
+      "review_count": 17,
+      "categories": [
+        {
+          "alias": "dentists",
+          "title": "General Dentistry"
+        }
+      ],
+      "rating": 4.5,
+      "coordinates": {
+        "latitude": 30.202642,
+        "longitude": -97.802327
+      },
+      "transactions": [],
+      "price": "$$",
+      "location": {
+        "address1": "19620 Slaughter Ln",
+        "address2": "Suite 900",
+        "address3": null,
+        "city": "Bee Cave",
+        "zip_code": "78738",
+        "country": "US",
+        "state": "TX",
+        "display_address": [
+          "19620 Slaughter Ln",
+          "Suite 900",
+          "Bee Cave, TX 78738"
+        ]
+      },
+      "phone": "+15125550520",
+      "display_phone": "(512) 555-0520",
+      "distance": 9169.19
+    },
+    {
+      "id": "tq4hLY_OPWb2ZYU42HuAEL",
+      "alias": "shoal-creek-smiles-dental-austin",
+      "name": "Shoal Creek Smiles Dental",
+      "image_url": "",
+      "is_closed": false,
+      "url": "https://www.yelp.com/biz/shoal-creek-smiles-dental-austin",
+      "review_count": 280,
+      "categories": [
+        {
+          "alias": "dentists",
+          "title": "General Dentistry"
+        },
+        {
+          "alias": "cosmeticdentists",
+          "title": "Cosmetic Dentists"
+        }
+      ],
+      "rating": 3.5,
+      "coordinates": {
+        "latitude": 30.283949,
+        "longitude": -97.610973
+      },
+      "transactions": [],
+      "price": "$$$",
+      "location": {
+        "address1": "15314 Mopac Expy",
+        "address2": null,
+        "address3": null,
+        "city": "Austin",
+        "zip_code": "78703",
+        "country": "US",
+        "state": "TX",
+        "display_address": [
+          "15314 Mopac Expy",
+          "Austin, TX 78703"
+        ]
+      },
+      "phone": "+15125556588",
+      "display_phone": "(512) 555-6588",
+      "distance": 12839.47
+    },
+    {
+      "id": "8lyZJdqofSkqmHQ33uhEgs",
+      "alias": "bouldin-dental-associates-austin",
+      "name": "Bouldin Dental Associates",
+      "image_url": "https://s3-media0.fl.yelpcdn.com/bphoto/hUC3kBZJ15GgyZac9jwMsg/o.jpg",
+      "is_closed": false,
+      "url": "https://www.yelp.com/biz/bouldin-dental-associates-austin",
+      "review_count": 22,
+      "categories": [
+        {
+          "alias": "dentists",
+          "title": "General Dentistry"
+        },
+        {
+          "alias": "orthodontists",
+          "title": "Orthodontists"
+        }
+      ],
+      "rating": 4.5,
+      "coordinates": {
+        "latitude": 30.277373,
+        "longitude": -97.707755
+      },
+      "transactions": [],
+      "price": "$",
+      "location": {
+        "address1": "6231 Mopac Expy",
+        "address2": null,
+        "address3": null,
+        "city": "Austin",
+        "zip_code": "78731",
+        "country": "US",
+        "state": "TX",
+        "display_address": [
+          "6231 Mopac Expy",
+          "Austin, TX 78731"
+        ]
+      },
+      "phone": "+15125557341",
+      "display_phone": "(512) 555-7341",
+      "distance": 3581.98
+    },
+    {
+      "id": "ZFmO6gz9ZumIItBJ9PkdW7",
+      "alias": "capital-city-dental-studio-austin",
+      "name": "Capital City Dental Studio",
+      "image_url": "https://s3-media0.fl.yelpcdn.com/bphoto/N3krXL1H9lQFkLfNmOaI5X/o.jpg",
+      "is_closed": false,
+      "url": "https://www.yelp.com/biz/capital-city-dental-studio-austin",
+      "review_count": 74,
+      "categories": [
+        {
+          "alias": "dentists",
+          "title": "General Dentistry"
+        },
+        {
+          "alias": "orthodontists",
+          "title": "Orthodontists"
+        }
+      ],
+      "rating": 5,
+      "coordinates": {
+        "latitude": 30.148232,
+        "longitude": -97.728934
+      },
+      "transactions": [],
+      "location": {
+        "address1": "932 Research Blvd",
+        "address2": "Suite 300",
+        "address3": null,
+        "city": "Austin",
+        "zip_code": "78705",
+        "country": "US",
+        "state": "TX",
+        "display_address": [
+          "932 Research Blvd",
+          "Suite 300",
+          "Austin, TX 78705"
+        ]
+      },
+      "phone": "+15125552705",
+      "display_phone": "(512) 555-2705",
+      "distance": 13313.42
+    },
+    {
+      "id": "jabMWqYlSAENoRzZLnt2V6",
+      "alias": "bluebonnet-dental-associates-austin",
+      "name": "Bluebonnet Dental Associates",
+      "image_url": "https://s3-media0.fl.yelpcdn.com/bphoto/kuAseFvQAg9vqBRonhwxwN/o.jpg",
+      "is_closed": false,
+      "url": "https://www.yelp.com/biz/bluebonnet-dental-associates-austin",
+      "review_count": 323,
+      "categories": [
+        {
+          "alias": "dentists",
+          "title": "General Dentistry"
+        },
+        {
+          "alias": "pediatric_dentists",
+          "title": "Pediatric Dentists"
+        }
+      ],
+      "rating": 4,
+      "coordinates": {
+        "latitude": 30.256141,
+        "longitude": -97.71307
+      },
+      "transactions": [],
+      "location": {
+        "address1": "16257 Mopac Expy",
+        "address2": "Suite 900",
+        "address3": null,
+        "city": "Austin",
+        "zip_code": "78704",
+        "country": "US",
+        "state": "TX",
+        "display_address": [
+          "16257 Mopac Expy",
+          "Suite 900",
+          "Austin, TX 78704"
+        ]
+      },
+      "phone": "+15125557164",
+      "display_phone": "(512) 555-7164",
+      "distance": 3138.78
+    },
+    {
+      "id": "ZIMSJgm_DKSLU_y5-qW3fu",
+      "alias": "rosedale-dental-group-austin",
+      "name": "Rosedale Dental Group",
+      "image_url": "https://s3-media0.fl.yelpcdn.com/bphoto/X70VKMGS0DO5CC-nfC37NX/o.jpg",
+      "is_closed": false,
+      "url": "https://www.yelp.com/biz/rosedale-dental-group-austin",
+      "review_count": 15,
+      "categories": [
+        {
+          "alias": "dentists",
+          "title": "General Dentistry"
+        },
+        {
+          "alias": "pediatric_dentists",
+          "title": "Pediatric Dentists"
+        }
+      ],
+      "rating": 5,
+      "coordinates": {
+        "latitude": 30.281112,
+        "longitude": -97.573188
+      },
+      "transactions": [],
+      "price": "$$$",
+      "location": {
+        "address1": "13681 S Lamar Blvd",
+        "address2": "Suite 900",
+        "address3": null,
+        "city": "Austin",
+        "zip_code": "78701",
+        "country": "US",
+        "state": "TX",
+        "display_address": [
+          "13681 S Lamar Blvd",
+          "Suite 900",
+          "Austin, TX 78701"
+        ]
+      },
+      "phone": "+15125558350",
+      "display_phone": "(512) 555-8350",
+      "distance": 16409.49
+    },
+    {
+      "id": "HE6vRSGwy-TA5m4gxaXf1v",
+      "alias": "bouldin-dental-studio-austin",
+      "name": "Bouldin Dental Studio",
+      "image_url": "https://s3-media0.fl.yelpcdn.com/bphoto/d14Ek0mn7kLI1LaAYbJcW5/o.jpg",
+      "is_closed": false,
+      "url": "https://www.yelp.com/biz/bouldin-dental-studio-austin",
+      "review_count": 37,
+      "categories": [
+        {
+          "alias": "dentists",
+          "title": "General Dentistry"
+        }
+      ],
+      "rating": 4.5,
+      "coordinates": {
+        "latitude": 30.39491,
+        "longitude": -97.638151
+      },
+      "transactions": [],
+      "price": "$",
+      "location": {
+        "address1": "19578 Guadalupe St",
+        "address2": "Suite 500",
+        "address3": null,
+        "city": "Austin",
+        "zip_code": "78741",
+        "country": "US",
+        "state": "TX",
+        "display_address": [
+          "19578 Guadalupe St",
+          "Suite 500",
+          "Austin, TX 78741"
+        ]
+      },
+      "phone": "+15125559882",
+      "display_phone": "(512) 555-9882",
+      "distance": 17433.56
+    },
+    {
+      "id": "FEU6NlDS5m1nZi50JlFftt",
+      "alias": "rosedale-dental-associates-austin",
+      "name": "Rosedale Dental Associates",
+      "image_url": "https://s3-media0.fl.yelpcdn.com/bphoto/uN1tXVdCr8rfxYfsSTqHcR/o.jpg",
+      "is_closed": false,
+      "url": "https://www.yelp.com/biz/rosedale-dental-associates-austin",
+      "review_count": 12,
+      "categories": [
+        {
+          "alias": "dentists",
+          "title": "General Dentistry"
+        },
+        {
+          "alias": "cosmeticdentists",
+          "title": "Cosmetic Dentists"
+        }
+      ],
+      "rating": 4.5,
+      "coordinates": {
+        "latitude": 30.407838,
+        "longitude": -97.720233
+      },
+      "transactions": [],
+      "price": "$$$",
+      "location": {
+        "address1": "18098 Manchaca Rd",
+        "address2": null,
+        "address3": null,
+        "city": "Austin",
+        "zip_code": "78731",
+        "country": "US",
+        "state": "TX",
+        "display_address": [
+          "18098 Manchaca Rd",
+          "Austin, TX 78731"
+        ]
+      },
+      "phone": "+15125554600",
+      "display_phone": "(512) 555-4600",
+      "distance": 15809.48
+    },
+    {
+      "id": "flun5G-iPXvmYgOymgY_d5",
+      "alias": "cherrywood-dental-care-austin",
+      "name": "Cherrywood Dental Care",
+      "image_url": "https://s3-media0.fl.yelpcdn.com/bphoto/D4r_gIJbDMSk6QZHgBgLiO/o.jpg",
+      "is_closed": false,
+      "url": "https://www.yelp.com/biz/cherrywood-dental-care-austin",
+      "review_count": 296,
+      "categories": [
+        {
+          "alias": "dentists",
+          "title": "General Dentistry"
+        }
+      ],
+      "rating": 5,
+      "coordinates": {
+        "latitude": 30.264217,
+        "longitude": -97.73057
+      },
+      "transactions": [],
+      "price": "$$$",
+      "location": {
+        "address1": "17253 Manchaca Rd",
+        "address2": "Suite 800",
+        "address3": null,
+        "city": "Austin",
+        "zip_code": "78702",
+        "country": "US",
+        "state": "TX",
+        "display_address": [
+          "17253 Manchaca Rd",
+          "Suite 800",
+          "Austin, TX 78702"
+        ]
+      },
+      "phone": "+15125559401",
+      "display_phone": "(512) 555-9401",
+      "distance": 1249.66
+    },
+    {
+      "id": "tdeWCp7pI6aPhiezgOkTnj",
+      "alias": "domain-smiles-dental-austin",
+      "name": "Domain Smiles Dental",
+      "image_url": "https://s3-media0.fl.yelpcdn.com/bphoto/fd8R514qR8_gfCKWZ3JKKN/o.jpg",
+      "is_closed": false,
+      "url": "https://www.yelp.com/biz/domain-smiles-dental-austin",
+      "review_count": 120,
+      "categories": [
+        {
+          "alias": "dentists",
+          "title": "General Dentistry"
+        },
+        {
+          "alias": "pediatric_dentists",
+          "title": "Pediatric Dentists"
+        }
+      ],
+      "rating": 3.5,
+      "coordinates": {
+        "latitude": 30.271165,
+        "longitude": -97.74892
+      },
+      "transactions": [],
+      "price": "$$",
+      "location": {
+        "address1": "10425 Slaughter Ln",
+        "address2": null,
+        "address3": null,
+        "city": "Austin",
+        "zip_code": "78752",
+        "country": "US",
+        "state": "TX",
+        "display_address": [
+          "10425 Slaughter Ln",
+          "Austin, TX 78752"
+        ]
+      },
+      "phone": "+15125552536",
+      "display_phone": "(512) 555-2536",
+      "distance": 712.69
+    },
+    {
+      "id": "tPhEY2VrNlN4H3i0SWE0q7",
+      "alias": "lady-bird-smiles-dental-austin",
+      "name": "Lady Bird Smiles Dental",
+      "image_url": "https://s3-media0.fl.yelpcdn.com/bphoto/lmoxRRuGR-f4XLatB9RiIa/o.jpg",
+      "is_closed": false,
+      "url": "https://www.yelp.com/biz/lady-bird-smiles-dental-austin",
+      "review_count": 78,
+      "categories": [
+        {
+          "alias": "dentists",
+          "title": "General Dentistry"
+        },
+        {
+          "alias": "orthodontists",
+          "title": "Orthodontists"
+        }
+      ],
+      "rating": 4,
+      "coordinates": {
+        "latitude": 30.232688,
+        "longitude": -97.724352
+      },
+      "transactions": [],
+      "price": "$$",
+      "location": {
+        "address1": "7914 Manchaca Rd",
+        "address2": null,
+        "address3": null,
+        "city": "Austin",
+        "zip_code": "78753",
+        "country": "US",
+        "state": "TX",
+        "display_address": [
+          "7914 Manchaca Rd",
+          "Austin, TX 78753"
+        ]
+      },
+      "phone": "+15125551184",
+      "display_phone": "(512) 555-1184",
+      "distance": 4243.69
+    },
+    {
+      "id": "0LP9TTaKNSuPgdgLoAgD2Z",
+      "alias": "zilker-family-dentistry-austin",
+      "name": "Zilker Family Dentistry",
+      "image_url": "https://s3-media0.fl.yelpcdn.com/bphoto/fWQEHQAkUg6NOcQ8NyQBgr/o.jpg",
+      "is_closed": false,
+      "url": "https://www.yelp.com/biz/zilker-family-dentistry-austin",
+      "review_count": 175,
+      "categories": [
+        {
+          "alias": "dentists",
+          "title": "General Dentistry"
+        },
+        {
+          "alias": "orthodontists",
+          "title": "Orthodontists"
+        }
+      ],
+      "rating": 5,
+      "coordinates": {
+        "latitude": 30.229756,
+        "longitude": -97.745578
+      },
+      "transactions": [],
+      "price": "$$",
+      "location": {
+        "address1": "9783 Burnet Rd",
+        "address2": null,
+        "address3": null,
+        "city": "Austin",
+        "zip_code": "78746",
+        "country": "US",
+        "state": "TX",
+        "display_address": [
+          "9783 Burnet Rd",
+          "Austin, TX 78746"
+        ]
+      },
+      "phone": "+15125556111",
+      "display_phone": "(512) 555-6111",
+      "distance": 4175.08
+    },
+    {
+      "id": "8D8x3BP7yHaBHoMqg_U9eU",
+      "alias": "travis-heights-dental-care-austin",
+      "name": "Travis Heights Dental Care",
+      "image_url": "https://s3-media0.fl.yelpcdn.com/bphoto/DTVWe-NIcY9Ak7Dgab3ZDq/o.jpg",
+      "is_closed": false,
+      "url": "https://www.yelp.com/biz/travis-heights-dental-care-austin",
+      "review_count": 300,
+      "categories": [
+        {
+          "alias": "dentists",
+          "title": "General Dentistry"
+        }
+      ],
+      "rating": 3.5,
+      "coordinates": {
+        "latitude": 30.365516,
+        "longitude": -97.772731
+      },
+      "transactions": [],
+      "price": "$$$",
+      "location": {
+        "address1": "10575 Research Blvd",
+        "address2": null,
+        "address3": null,
+        "city": "Austin",
+        "zip_code": "78731",
+        "country": "US",
+        "state": "TX",
+        "display_address": [
+          "10575 Research Blvd",
+          "Austin, TX 78731"
+        ]
+      },
+      "phone": "+15125551349",
+      "display_phone": "(512) 555-1349",
+      "distance": 11309.2
+    },
+    {
+      "id": "fJsnk2Ky0u9aE2ZxADRHcc",
+      "alias": "springdale-dental-care-austin",
+      "name": "Springdale Dental Care",
+      "image_url": "https://s3-media0.fl.yelpcdn.com/bphoto/rDo3OAvolGiotvEEcj2tdR/o.jpg",
+      "is_closed": false,
+      "url": "https://www.yelp.com/biz/springdale-dental-care-austin",
+      "review_count": 12,
+      "categories": [
+        {
+          "alias": "dentists",
+          "title": "General Dentistry"
+        },
+        {
+          "alias": "cosmeticdentists",
+          "title": "Cosmetic Dentists"
+        }
+      ],
+      "rating": 4.5,
+      "coordinates": {
+        "latitude": 30.278049,
+        "longitude": -97.89551
+      },
+      "transactions": [],
+      "location": {
+        "address1": "2479 William Cannon Dr",
+        "address2": null,
+        "address3": null,
+        "city": "Austin",
+        "zip_code": "78745",
+        "country": "US",
+        "state": "TX",
+        "display_address": [
+          "2479 William Cannon Dr",
+          "Austin, TX 78745"
+        ]
+      },
+      "phone": "+15125553929",
+      "display_phone": "(512) 555-3929",
+      "distance": 14703.2
+    },
+    {
+      "id": "0JbiIWxDoGgg1PihSfRumx",
+      "alias": "travis-heights-dental-studio-austin",
+      "name": "Travis Heights Dental Studio",
+      "image_url": "https://s3-media0.fl.yelpcdn.com/bphoto/otnd6-gO7hHPe9o8bI0ibe/o.jpg",
+      "is_closed": false,
+      "url": "https://www.yelp.com/biz/travis-heights-dental-studio-austin",
+      "review_count": 436,
+      "categories": [
+        {
+          "alias": "dentists",
+          "title": "General Dentistry"
+        }
+      ],
+      "rating": 4,
+      "coordinates": {
+        "latitude": 30.328728,
+        "longitude": -97.842447
+      },
+      "transactions": [],
+      "price": "$",
+      "location": {
+        "address1": "7715 Far West Blvd",
+        "address2": null,
+        "address3": null,
+        "city": "Austin",
+        "zip_code": "78703",
+        "country": "US",
+        "state": "TX",
+        "display_address": [
+          "7715 Far West Blvd",
+          "Austin, TX 78703"
+        ]
+      },
+      "phone": "+15125557231",
+      "display_phone": "(512) 555-7231",
+      "distance": 11753.67
+    },
+    {
+      "id": "5yXyldugJHMwsfBOoSxbf9",
+      "alias": "westlake-dental-care-austin",
+      "name": "Westlake Dental Care",
+      "image_url": "https://s3-media0.fl.yelpcdn.com/bphoto/Xw6oHUPiHnEFseLrQ9Q05c/o.jpg",
+      "is_closed": false,
+      "url": "https://www.yelp.com/biz/westlake-dental-care-austin",
+      "review_count": 12,
+      "categories": [
+        {
+          "alias": "dentists",
+          "title": "General Dentistry"
+        }
+      ],
+      "rating": 5,
+      "coordinates": {
+        "latitude": 30.201012,
+        "longitude": -97.863186
+      },
+      "transactions": [
+        "request_a_quote"
+      ],
+      "price": "$$",
+      "location": {
+        "address1": "2160 E 51st St",
+        "address2": null,
+        "address3": null,
+        "city": "Austin",
+        "zip_code": "78731",
+        "country": "US",
+        "state": "TX",
+        "display_address": [
+          "2160 E 51st St",
+          "Austin, TX 78731"
+        ]
+      },
+      "phone": "+15125554782",
+      "display_phone": "(512) 555-4782",
+      "distance": 13696.36
+    },
+    {
+      "id": "pfQZZcJ5-1R0uv8Qb2bXL-",
+      "alias": "riverside-family-dentistry-austin",
+      "name": "Riverside Family Dentistry",
+      "image_url": "https://s3-media0.fl.yelpcdn.com/bphoto/LM6vefLJU8oUCgofZEFAgK/o.jpg",
+      "is_closed": false,
+      "url": "https://www.yelp.com/biz/riverside-family-dentistry-austin",
+      "review_count": 386,
+      "categories": [
+        {
+          "alias": "dentists",
+          "title": "General Dentistry"
+        }
+      ],
+      "rating": 4.5,
+      "coordinates": {
+        "latitude": 30.221639,
+        "longitude": -97.75264
+      },
+      "transactions": [],
+      "price": "$$",
+      "location": {
+        "address1": "18558 Anderson Ln",
+        "address2": null,
+        "address3": null,
+        "city": "Austin",
+        "zip_code": "78701",
+        "country": "US",
+        "state": "TX",
+        "display_address": [
+          "18558 Anderson Ln",
+          "Austin, TX 78701"
+        ]
+      },
+      "phone": "+15125559761",
+      "display_phone": "(512) 555-9761",
+      "distance": 5154.08
+    },
+    {
+      "id": "mtyz35bCWVufZpyZp5bAEB",
+      "alias": "abc-plumbing-austin",
+      "name": "ABC Plumbing",
+      "image_url": "https://s3-media0.fl.yelpcdn.com/bphoto/3D8Zi0_pFUjl2Zqmm2AWp_/o.jpg",
+      "is_closed": false,
+      "url": "https://www.yelp.com/biz/abc-plumbing-austin",
+      "review_count": 210,
+      "categories": [
+        {
+          "alias": "plumbing",
+          "title": "Plumbing"
+        }
+      ],
+      "rating": 4.5,
+      "coordinates": {
+        "latitude": 30.341014,
+        "longitude": -97.716805
+      },
+      "transactions": [],
+      "price": "$",
+      "location": {
+        "address1": "14341 S Lamar Blvd",
+        "address2": null,
+        "address3": null,
+        "city": "Austin",
+        "zip_code": "78745",
+        "country": "US",
+        "state": "TX",
+        "display_address": [
+          "14341 S Lamar Blvd",
+          "Austin, TX 78745"
+        ]
+      },
+      "phone": "+15125555748",
+      "display_phone": "(512) 555-5748",
+      "distance": 8597.13
+    },
+    {
+      "id": "RwLACJEkrqkdDnOWBkynXx",
+      "alias": "aspen-dental-south-lamar-pflugerville",
+      "name": "Aspen Dental - South Lamar",
+      "image_url": "https://s3-media0.fl.yelpcdn.com/bphoto/MqSqxSJtxHaaTmvmSHKNLs/o.jpg",
+      "is_closed": false,
+      "url": "https://www.yelp.com/biz/aspen-dental-south-lamar-pflugerville",
+      "review_count": 182,
+      "categories": [
+        {
+          "alias": "dentists",
+          "title": "General Dentistry"
+        }
+      ],
+      "rating": 3.5,
+      "coordinates": {
+        "latitude": 30.26483,
+        "longitude": -97.750014
+      },
+      "transactions": [],
+      "price": "$$",
+      "location": {
+        "address1": "10337 William Cannon Dr",
+        "address2": "Suite 700",
+        "address3": null,
+        "city": "Pflugerville",
+        "zip_code": "78660",
+        "country": "US",
+        "state": "TX",
+        "display_address": [
+          "10337 William Cannon Dr",
+          "Suite 700",
+          "Pflugerville, TX 78660"
+        ]
+      },
+      "phone": "+15125554101",
+      "display_phone": "(512) 555-4101",
+      "distance": 715.2
+    },
+    {
+      "id": "Wc0P_EYuPSaoi2OwHBJCJ4",
+      "alias": "hyde-park-dental-associates-bee-cave",
+      "name": "Hyde Park Dental Associates",
+      "image_url": "https://s3-media0.fl.yelpcdn.com/bphoto/fGAjrqjufBpmgTGsUniShF/o.jpg",
+      "is_closed": false,
+      "url": "https://www.yelp.com/biz/hyde-park-dental-associates-bee-cave",
+      "review_count": 25,
+      "categories": [
+        {
+          "alias": "dentists",
+          "title": "General Dentistry"
+        }
+      ],
+      "rating": 4,
+      "coordinates": {
+        "latitude": 30.305487,
+        "longitude": -97.708308
+      },
+      "transactions": [],
+      "price": "$$",
+      "location": {
+        "address1": "15301 Burnet Rd",
+        "address2": null,
+        "address3": null,
+        "city": "Bee Cave",
+        "zip_code": "78738",
+        "country": "US",
+        "state": "TX",
+        "display_address": [
+          "15301 Burnet Rd",
+          "Bee Cave, TX 78738"
+        ]
+      },
+      "phone": "+15125551948",
+      "display_phone": "(512) 555-1948",
+      "distance": 5418.03
+    },
+    {
+      "id": "kFVvWMqSy48iGHlxlHbdJr",
+      "alias": "westlake-family-dentistry-austin",
+      "name": "Westlake Family Dentistry",
+      "image_url": "https://s3-media0.fl.yelpcdn.com/bphoto/zhQkvqpoVi_E5oaYmlKmSP/o.jpg",
+      "is_closed": false,
+      "url": "https://www.yelp.com/biz/westlake-family-dentistry-austin",
+      "review_count": 112,
+      "categories": [
+        {
+          "alias": "dentists",
+          "title": "General Dentistry"
+        }
+      ],
+      "rating": 5,
+      "coordinates": {
+        "latitude": 30.326853,
+        "longitude": -97.612323
+      },
+      "transactions": [],
+      "price": "$$",
+      "location": {
+        "address1": "13883 Manchaca Rd",
+        "address2": null,
+        "address3": null,
+        "city": "Austin",
+        "zip_code": "78757",
+        "country": "US",
+        "state": "TX",
+        "display_address": [
+          "13883 Manchaca Rd",
+          "Austin, TX 78757"
+        ]
+      },
+      "phone": "+15125551130",
+      "display_phone": "(512) 555-1130",
+      "distance": 14219.44
+    },
+    {
+      "id": "nWA4GgBO-aVJ-08MTUavpf",
+      "alias": "barton-hills-family-dental-round-rock",
+      "name": "Barton Hills Family Dental",
+      "image_url": "https://s3-media0.fl.yelpcdn.com/bphoto/NTdaP5_V2g0JL_V4-XkYe9/o.jpg",
+      "is_closed": false,
+      "url": "https://www.yelp.com/biz/barton-hills-family-dental-round-rock",
+      "review_count": 21,
+      "categories": [
+        {
+          "alias": "dentists",
+          "title": "General Dentistry"
+        },
+        {
+          "alias": "orthodontists",
+          "title": "Orthodontists"
+        }
+      ],
+      "rating": 5,
+      "coordinates": {
+        "latitude": 30.214094,
+        "longitude": -97.572658
+      },
+      "transactions": [],
+      "price": "$$",
+      "location": {
+        "address1": "14592 Parmer Ln",
+        "address2": null,
+        "address3": null,
+        "city": "Round Rock",
+        "zip_code": "78664",
+        "country": "US",
+        "state": "TX",
+        "display_address": [
+          "14592 Parmer Ln",
+          "Round Rock, TX 78664"
+        ]
+      },
+      "phone": "",
+      "display_phone": "",
+      "distance": 17420.95
+    },
+    {
+      "id": "0gIoFLp90LWYoWcEpdeljO",
+      "alias": "hyde-park-smiles-dental-austin",
+      "name": "Hyde Park Smiles Dental",
+      "image_url": "https://s3-media0.fl.yelpcdn.com/bphoto/fNFtpcCkjnXoNUPZcYijfV/o.jpg",
+      "is_closed": false,
+      "url": "https://www.yelp.com/biz/hyde-park-smiles-dental-austin",
+      "review_count": 121,
+      "categories": [
+        {
+          "alias": "dentists",
+          "title": "General Dentistry"
+        },
+        {
+          "alias": "cosmeticdentists",
+          "title": "Cosmetic Dentists"
+        }
+      ],
+      "rating": 5,
+      "coordinates": {
+        "latitude": 30.205492,
+        "longitude": -97.853352
+      },
+      "transactions": [],
+      "price": "$$",
+      "location": {
+        "address1": "6175 Congress Ave",
+        "address2": null,
+        "address3": null,
+        "city": "Austin",
+        "zip_code": "78748",
+        "country": "US",
+        "state": "TX",
+        "display_address": [
+          "6175 Congress Ave",
+          "Austin, TX 78748"
+        ]
+      },
+      "phone": "+15125553845",
+      "display_phone": "(512) 555-3845",
+      "distance": 12631.42
+    },
+    {
+      "id": "CwXRqVj0jP_onuoGEgl7dg",
+      "alias": "lakeline-smiles-dental-austin",
+      "name": "Lakeline Smiles Dental",
+      "image_url": "https://s3-media0.fl.yelpcdn.com/bphoto/zEInZESEGh4OfG9DIwE9ZP/o.jpg",
+      "is_closed": false,
+      "url": "https://www.yelp.com/biz/lakeline-smiles-dental-austin",
+      "review_count": 57,
+      "categories": [
+        {
+          "alias": "dentists",
+          "title": "General Dentistry"
+        }
+      ],
+      "rating": 4.5,
+      "coordinates": {
+        "latitude": 30.264009,
+        "longitude": -97.857525
+      },
+      "transactions": [],
+      "price": "$$",
+      "location": {
+        "address1": "5947 Airport Blvd",
+        "address2": null,
+        "address3": null,
+        "city": "Austin",
+        "zip_code": "78705",
+        "country": "US",
+        "state": "TX",
+        "display_address": [
+          "5947 Airport Blvd",
+          "Austin, TX 78705"
+        ]
+      },
+      "phone": "+15125552967",
+      "display_phone": "(512) 555-2967",
+      "distance": 11007.17
+    },
+    {
+      "id": "CfkrV6cCG5fVAFidbt_Yoj",
+      "alias": "sun-city-family-dentistry-georgetown",
+      "name": "Sun City Family Dentistry",
+      "image_url": "https://s3-media0.fl.yelpcdn.com/bphoto/VEYq5Wb2HqCGWXlvsGvRGo/o.jpg",
+      "is_closed": false,
+      "url": "https://www.yelp.com/biz/sun-city-family-dentistry-georgetown",
+      "review_count": 12,
+      "categories": [
+        {
+          "alias": "dentists",
+          "title": "General Dentistry"
+        }
+      ],
+      "rating": 5,
+      "coordinates": {
+        "latitude": 30.629912,
+        "longitude": -97.81715
+      },
+      "transactions": [],
+      "price": "$$",
+      "location": {
+        "address1": "5657 Parmer Ln",
+        "address2": "Suite 600",
+        "address3": null,
+        "city": "Georgetown",
+        "zip_code": "78628",
+        "country": "US",
+        "state": "TX",
+        "display_address": [
+          "5657 Parmer Ln",
+          "Suite 600",
+          "Georgetown, TX 78628"
+        ]
+      },
+      "phone": "+15125555844",
+      "display_phone": "(512) 555-5844",
+      "distance": 41000
+    },
+    {
+      "id": "BATMeCnyQS5SfnsrCJjtoU",
+      "alias": "south-congress-dental-studio-austin",
+      "name": "South Congress Dental Studio",
+      "image_url": "",
+      "is_closed": false,
+      "url": "https://www.yelp.com/biz/south-congress-dental-studio-austin",
+      "review_count": 309,
+      "categories": [
+        {
+          "alias": "dentists",
+          "title": "General Dentistry"
+        }
+      ],
+      "rating": 3.5,
+      "coordinates": {
+        "latitude": 30.341329,
+        "longitude": -97.60131
+      },
+      "transactions": [],
+      "price": "$$",
+      "location": {
+        "address1": "3358 Barton Springs Rd",
+        "address2": "Suite 900",
+        "address3": null,
+        "city": "Austin",
+        "zip_code": "78705",
+        "country": "US",
+        "state": "TX",
+        "display_address": [
+          "3358 Barton Springs Rd",
+          "Suite 900",
+          "Austin, TX 78705"
+        ]
+      },
+      "phone": "+15125555307",
+      "display_phone": "(512) 555-5307",
+      "distance": 15935.52
+    }
+  ],
+  "total": 30
+}

@@ -1,0 +1,82 @@
+{
+  "id": "Zo5xddprE3f1rrznPHRszC",
+  "alias": "montrose-plumbing-repair-houston",
+  "name": "Montrose Plumbing & Repair",
+  "image_url": "",
+  "is_closed": false,
+  "url": "https://www.yelp.com/biz/montrose-plumbing-repair-houston",
+  "review_count": 17,
+  "categories": [
+    {
+      "alias": "plumbing",
+      "title": "Plumbing"
+    }
+  ],
+  "rating": 4.5,
+  "coordinates": {
+    "latitude": 29.646198,
+    "longitude": -95.367889
+  },
+  "transactions": [],
+  "price": "$$",
+  "location": {
+    "address1": "19891 Memorial Dr",
+    "address2": "Suite 600",
+    "address3": null,
+    "city": "Houston",
+    "zip_code": "77019",
+    "country": "US",
+    "state": "TX",
+    "display_address": [
+      "19891 Memorial Dr",
+      "Suite 600",
+      "Houston, TX 77019"
+    ]
+  },
+  "phone": "+17135553374",
+  "display_phone": "(713) 555-3374",
+  "is_claimed": true,
+  "photos": [
+    "https://s3-media0.fl.yelpcdn.com/bphoto/1q8SNz5748BNNJzH9O_atj/o.jpg",
+    "https://s3-media0.fl.yelpcdn.com/bphoto/7adxVmexEXmxNA7D7QVuhU/o.jpg",
+    "https://s3-media0.fl.yelpcdn.com/bphoto/cB1zPagwrKSMbwUDfyt2bI/o.jpg"
+  ],
+  "hours": [
+    {
+      "open": [
+        {
+          "is_overnight": false,
+          "start": "0800",
+          "end": "1700",
+          "day": 0
+        },
+        {
+          "is_overnight": false,
+          "start": "0800",
+          "end": "1700",
+          "day": 1
+        },
+        {
+          "is_overnight": false,
+          "start": "0800",
+          "end": "1700",
+          "day": 2
+        },
+        {
+          "is_overnight": false,
+          "start": "0800",
+          "end": "1700",
+          "day": 3
+        },
+        {
+          "is_overnight": false,
+          "start": "0800",
+          "end": "1700",
+          "day": 4
+        }
+      ],
+      "hours_type": "REGULAR",
+      "is_open_now": true
+    }
+  ]
+}
