@@ -1,9 +1,38 @@
+# dependencies
 node_modules/
+/.pnp
+.pnp.*
+
+# testing
+coverage/
+
+# next.js
 .next/
+/out/
+/build
+
+# local database (PGlite)
 .data/
+
+# misc
+.DS_Store
+*.pem
+*.log
+
+# env files (.env.example is committed)
 .env
 .env.local
 .env*.local
-*.log
-.DS_Store
-coverage/
+
+# vercel
+.vercel
+
+# typescript
+*.tsbuildinfo
+next-env.d.ts
+
+# lockfiles other than npm's
+yarn.lock
+pnpm-lock.yaml
+bun.lockb
+bun.lock
