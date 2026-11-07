@@ -12,6 +12,9 @@ const eslintConfig = defineConfig([
     "out/**",
     "build/**",
     "next-env.d.ts",
+    // Agent worktrees and local data live inside the repo folder; never lint them.
+    ".claude/**",
+    ".data/**",
   ]),
 ]);
 
