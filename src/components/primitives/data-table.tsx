@@ -21,11 +21,20 @@ import {
   type Updater,
 } from "@tanstack/react-table";
 import { motion } from "motion/react";
-import { ArrowDownIcon, ArrowUpDownIcon, ArrowUpIcon, ChevronLeftIcon, ChevronRightIcon, XIcon } from "lucide-react";
+import {
+  ArrowDownIcon,
+  ArrowUpDownIcon,
+  ArrowUpIcon,
+  ChevronLeftIcon,
+  ChevronRightIcon,
+  MoreHorizontalIcon,
+  XIcon,
+} from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Presence, fadeInUp, formatNumber } from "@/lib/motion";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Skeleton } from "@/components/ui/skeleton";
 import { EmptyState } from "./empty-state";
@@ -530,17 +539,80 @@ export type BulkActionBarProps = {
   count: number;
   /** Clears the selection (the × button). Omit to hide it. */
   onClear?: () => void;
-  /** Action buttons (use `size="sm"`). */
+  /**
+   * Action buttons (use `size="sm"`). Below the `md` breakpoint only the first
+   * one (`sm`–`md`: two) stay inline; the rest move into a "More…" menu, where
+   * each becomes the menu item itself (`DropdownMenuItem asChild`), so they
+   * must be elements that forward props and a ref, like `Button`. Put actions
+   * that open their own menu first so they stay inline.
+   */
   children?: React.ReactNode;
   className?: string;
 };
 
+/** Inline bulk actions per breakpoint; the rest go into the "More…" menu. `Infinity` = all inline. */
+const BULK_INLINE = { base: 1, sm: 2, md: Infinity } as const;
+const SM_QUERY = "(min-width: 40rem)";
+const MD_QUERY = "(min-width: 48rem)";
+
+function subscribeMedia(onChange: () => void) {
+  if (typeof window === "undefined" || typeof window.matchMedia !== "function") return () => {};
+  const lists = [window.matchMedia(SM_QUERY), window.matchMedia(MD_QUERY)];
+  lists.forEach((l) => l.addEventListener?.("change", onChange));
+  return () => lists.forEach((l) => l.removeEventListener?.("change", onChange));
+}
+
+/**
+ * How many bulk actions fit inline at the current viewport width. Without
+ * `matchMedia` (server, old test environments) every action stays inline,
+ * which is the desktop layout.
+ */
+function useBulkInlineCount(): number {
+  return React.useSyncExternalStore(
+    subscribeMedia,
+    () => {
+      if (typeof window.matchMedia !== "function") return BULK_INLINE.md;
+      if (window.matchMedia(MD_QUERY).matches) return BULK_INLINE.md;
+      return window.matchMedia(SM_QUERY).matches ? BULK_INLINE.sm : BULK_INLINE.base;
+    },
+    () => BULK_INLINE.md,
+  );
+}
+
+/** Children as a flat list of actions: fragments (the usual render-prop shape) are expanded, empty nodes dropped. */
+function flattenActions(children: React.ReactNode): React.ReactNode[] {
+  return React.Children.toArray(children).flatMap((child) =>
+    React.isValidElement<{ children?: React.ReactNode }>(child) && child.type === React.Fragment
+      ? flattenActions(child.props.children)
+      : [child],
+  );
+}
+
+function OverflowItem({ action }: { action: React.ReactNode }) {
+  if (!React.isValidElement<{ disabled?: boolean }>(action)) return <DropdownMenuItem>{action}</DropdownMenuItem>;
+  return (
+    <DropdownMenuItem
+      asChild
+      disabled={action.props.disabled}
+      className="h-auto w-full justify-start px-1.5 py-1 font-normal"
+    >
+      {action}
+    </DropdownMenuItem>
+  );
+}
+
 /**
  * Floating bar with the selection count and bulk actions. `DataTable` renders
  * it automatically when `bulkActions` is set; use it directly for custom lists.
- * Wrap in `Presence` (with a `key`) for its enter/exit animation.
+ * Wrap in `Presence` (with a `key`) for its enter/exit animation. On narrow
+ * viewports extra actions collapse into a "More…" menu so the bar never
+ * scrolls sideways.
  */
 export function BulkActionBar({ count, onClear, children, className }: BulkActionBarProps) {
+  const inlineCount = useBulkInlineCount();
+  const actions = flattenActions(children);
+  const inline = actions.slice(0, inlineCount);
+  const overflow = actions.slice(inlineCount);
   return (
     <motion.div
       role="region"
@@ -558,8 +630,26 @@ export function BulkActionBar({ count, onClear, children, className }: BulkActio
       <span className="text-dense font-medium whitespace-nowrap tabular-nums" aria-live="polite">
         {`${count} selected`}
       </span>
-      {children ? <span aria-hidden className="h-4 w-px bg-border" /> : null}
-      <div className="flex items-center gap-1">{children}</div>
+      {actions.length > 0 ? <span aria-hidden className="h-4 w-px shrink-0 bg-border" /> : null}
+      <div className="flex items-center gap-1">
+        {inline.map((action, i) => (
+          <React.Fragment key={i}>{action}</React.Fragment>
+        ))}
+        {overflow.length > 0 ? (
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button size="sm" variant="ghost" data-slot="bulk-action-more">
+                <MoreHorizontalIcon /> More…
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" data-slot="bulk-action-overflow">
+              {overflow.map((action, i) => (
+                <OverflowItem key={i} action={action} />
+              ))}
+            </DropdownMenuContent>
+          </DropdownMenu>
+        ) : null}
+      </div>
       {onClear ? (
         <Button variant="ghost" size="icon-sm" aria-label="Clear selection" onClick={onClear}>
           <XIcon />
