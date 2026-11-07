@@ -580,7 +580,7 @@ else state completed. Log `activities(type:'email')` per send.
 | Charts (dashboard) | recharts | shadcn chart components wrap it |
 | Dates | date-fns + date-fns-tz | timezone math for calling hours |
 | Markdown (scripts) | react-markdown | script rendering |
-| Tables | TanStack Table inside `DataTable` | sorting/selection without reinventing |
+| Tables | TanStack Table **v9** inside `DataTable`; define columns with `dataTableColumnHelper<T>()` from `@/components/primitives` in a client component (not v8's `createColumnHelper`) | sorting/selection without reinventing |
 
 ## Cross-cutting conventions
 - Package manager: npm. Scripts: `dev`, `build`, `start`, `lint`, `typecheck`
@@ -610,6 +610,7 @@ else state completed. Log `activities(type:'email')` per send.
   a small form; `agent` string is stored on claims and activities.
 - Cron auth: when `CRON_SECRET` is set, routes require
   `Authorization: Bearer <CRON_SECRET>`; otherwise open (local only).
+- WP-02 primitive contracts: `DataTable` sort is single-column `{id, desc} | null` (maps to URL params) with `manualSorting`/`onSortChange`; selection keyed by row id; `bulkActions` is a render prop receiving `{selectedIds, selectedRows, clear}`; the table scrolls internally (sticky header, `maxHeight` prop); `useConfirm()` returns `{confirm, dialog}` and `dialog` must be rendered; `StatCard.format` accepts presets (`integer`, `decimal`, `percent`, `currency`, `compact`) or `Intl.NumberFormatOptions` so server components can pass it; mount animations play after hydration (no opacity-0 SSR).
 - Every new UI package composes pages only from primitives; raw Tailwind is
   fine inside feature components, but tables, cards, headers, badges, empty
   states, and panels must be the shared ones.
