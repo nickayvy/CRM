@@ -638,11 +638,13 @@ export function BulkActionBar({ count, onClear, children, className }: BulkActio
         {overflow.length > 0 ? (
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <Button size="sm" variant="ghost" data-slot="bulk-action-more">
-                <MoreHorizontalIcon /> More…
+              {/* Icon-only below `sm` (the label stays as the accessible name) so the bar fits a 375 px screen. */}
+              <Button size="sm" variant="ghost" data-slot="bulk-action-more" className="max-sm:w-8 max-sm:px-0">
+                <MoreHorizontalIcon aria-hidden />
+                <span className="max-sm:sr-only">More…</span>
               </Button>
             </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" data-slot="bulk-action-overflow">
+            <DropdownMenuContent align="end" data-slot="bulk-action-overflow" className="w-auto">
               {overflow.map((action, i) => (
                 <OverflowItem key={i} action={action} />
               ))}
