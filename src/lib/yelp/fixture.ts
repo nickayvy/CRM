@@ -5,6 +5,11 @@ import { YELP_PAGE_LIMIT, YelpApiError } from "./types";
 
 export const DEFAULT_FIXTURE_DIR = path.join(process.cwd(), "fixtures", "yelp");
 
+// File tracing: the fs calls below carry `turbopackIgnore` because the
+// directory is a runtime value (tests and the seed pass their own). The
+// fixtures still ship in every server bundle through
+// `outputFileTracingIncludes` in next.config.ts.
+
 type FixtureFile = { _traps?: unknown; businesses: YelpBusiness[]; total: number };
 
 function slugPart(s: string): string {
@@ -34,15 +39,17 @@ export function createFixtureClient(opts: { fixtureDir?: string } = {}): YelpCli
 
   function load(file: string): FixtureFile | null {
     if (cache.has(file)) return cache.get(file)!;
-    const p = path.join(dir, file);
-    const data = existsSync(p) ? (JSON.parse(readFileSync(p, "utf8")) as FixtureFile) : null;
+    const p = path.join(/*turbopackIgnore: true*/ dir, file);
+    const data = existsSync(/*turbopackIgnore: true*/ p)
+      ? (JSON.parse(readFileSync(/*turbopackIgnore: true*/ p, "utf8")) as FixtureFile)
+      : null;
     cache.set(file, data);
     return data;
   }
 
   function findInSearchFixtures(idOrAlias: string): YelpBusiness | null {
-    if (!existsSync(dir)) return null;
-    for (const file of readdirSync(dir).sort()) {
+    if (!existsSync(/*turbopackIgnore: true*/ dir)) return null;
+    for (const file of readdirSync(/*turbopackIgnore: true*/ dir).sort()) {
       if (!file.startsWith("search-") || !file.endsWith(".json")) continue;
       const hit = load(file)?.businesses.find((b) => b.id === idOrAlias || b.alias === idOrAlias);
       if (hit) return hit;
