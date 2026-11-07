@@ -17,7 +17,7 @@ Project Settings → General → Node.js Version to **24.x**.
    characters (`@` → `%40`, `#` → `%23`, `/` → `%2F`, `:` → `%3A`, `%` → `%25`),
    or reset the password to something alphanumeric.
 
-**Why the transaction pooler works without extra flags.** It does not support
+**Why the session pooler, and no extra flags.** The transaction pooler (6543) hangs any postgres-js query that has to wait for a free pooled connection, so bursty pages never finish; the session pooler does not. It also does not support
 prepared statements. `src/db/client.ts` creates the postgres-js client as
 `postgres(url, { prepare: false, max: 5 })`, so prepared statements are off
 and at most 5 connections are opened per server instance. The URL is passed
@@ -51,7 +51,7 @@ dependency.
 
 | Variable | Required | Default if unset | Notes |
 |---|---|---|---|
-| `DATABASE_URL` | **Yes, on Vercel** | PGlite on disk | The transaction pooler URI from step 1. PGlite cannot persist on serverless, so leaving it unset breaks the deployment. |
+| `DATABASE_URL` | **Yes, on Vercel** | PGlite on disk | The session pooler URI from step 1 (port 5432, not 6543). PGlite cannot persist on serverless, so leaving it unset breaks the deployment. |
 | `APP_PASSWORD` | Recommended | Gate off, every page is open | Shared workspace password. |
 | `APP_SESSION_SECRET` | Recommended (needed with `APP_PASSWORD`) | Insecure dev default, with a warning in logs | Generate with `openssl rand -hex 32`. Changing it, or `APP_PASSWORD`, logs everyone out. |
 | `CRON_SECRET` | Recommended | `/api/cron/*` are open | Vercel sends it automatically as `Authorization: Bearer <CRON_SECRET>` to declared crons. Use a long random value, e.g. `openssl rand -hex 32`. |
