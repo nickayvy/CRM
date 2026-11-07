@@ -3,7 +3,7 @@
 import * as React from "react";
 import Link from "next/link";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
-import { BanIcon, ChevronDownIcon, InboxIcon, TagIcon, UserCheckIcon } from "lucide-react";
+import { BanIcon, ChevronDownIcon, InboxIcon, MailPlusIcon, PhoneForwardedIcon, TagIcon, UserCheckIcon } from "lucide-react";
 import { toast } from "sonner";
 import {
   DataTable,
@@ -33,10 +33,11 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Field, FieldError, FieldLabel } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
-import type { BusinessStatus } from "@/db/schema";
+import type { BusinessStatus, CampaignStatus } from "@/db/schema";
 import { formatPhone, formatRating, formatRelative } from "@/lib/format";
-import { QUALIFICATION_LABELS, STATUS_LABELS } from "@/lib/labels";
+import { CAMPAIGN_STATUS_LABELS, QUALIFICATION_LABELS, STATUS_LABELS } from "@/lib/labels";
 import { bulkAddTagAction, bulkDoNotCallAction, bulkUpdateStatusAction } from "../actions";
+import { addToCallCampaignAction, addToEmailCampaignAction } from "../campaign-actions";
 import { PAGE_SIZES, patchSearchParams } from "../search-params";
 import type { BusinessRow } from "../types";
 import { ReasonChips } from "./reason-chips";
@@ -52,6 +53,9 @@ export type BulkAction = {
   onSelect: (ids: string[]) => void | Promise<void>;
 };
 
+/** A campaign the "Add to … campaign" bulk actions can target (non-completed). */
+export type CampaignTarget = { id: string; name: string; status: CampaignStatus };
+
 export type BusinessesTableProps = {
   rows: BusinessRow[];
   /** Total matches across all pages. */
@@ -65,6 +69,8 @@ export type BusinessesTableProps = {
   bulkActions?: BulkAction[];
   /** Shown when there are no rows. */
   emptyState?: React.ReactNode;
+  /** Enables "Add to call campaign…" / "Add to email campaign…" (WP-07). */
+  campaignTargets?: { call: CampaignTarget[]; email: CampaignTarget[] };
 };
 
 const col = dataTableColumnHelper<BusinessRow>();
@@ -178,12 +184,24 @@ function useUrlNavigation() {
  * The businesses table: server-sorted and paginated via URL params
  * (`sort`, `dir`, `page`, `pageSize`), row selection with bulk actions.
  */
-export function BusinessesTable({ rows, total, page, pageSize, sort, bulkActions = [], emptyState }: BusinessesTableProps) {
+export function BusinessesTable({
+  rows,
+  total,
+  page,
+  pageSize,
+  sort,
+  bulkActions = [],
+  emptyState,
+  campaignTargets,
+}: BusinessesTableProps) {
   const columns = useColumns();
   const { navigate, refresh, pending } = useUrlNavigation();
   const [selection, setSelection] = React.useState<RowSelectionState>({});
   const [busy, setBusy] = React.useState(false);
   const [tagIds, setTagIds] = React.useState<string[] | null>(null);
+  const [campaignPick, setCampaignPick] = React.useState<{ kind: "call" | "email"; ids: string[]; clear: () => void } | null>(
+    null,
+  );
   const { confirm, dialog } = useConfirm();
 
   async function run<T>(fn: () => Promise<T>, clear: () => void) {
@@ -233,6 +251,19 @@ export function BusinessesTable({ rows, total, page, pageSize, sort, bulkActions
           }}
         />
       ) : null}
+      {campaignPick && campaignTargets ? (
+        <AddToCampaignDialog
+          kind={campaignPick.kind}
+          ids={campaignPick.ids}
+          campaigns={campaignTargets[campaignPick.kind]}
+          onClose={() => setCampaignPick(null)}
+          onDone={() => {
+            campaignPick.clear();
+            setCampaignPick(null);
+            refresh();
+          }}
+        />
+      ) : null}
       <DataTable
         aria-label="Businesses"
         className={pending ? "opacity-70 transition-opacity" : "transition-opacity"}
@@ -274,6 +305,26 @@ export function BusinessesTable({ rows, total, page, pageSize, sort, bulkActions
             >
               <BanIcon /> Mark do-not-call
             </Button>
+            {campaignTargets ? (
+              <>
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  disabled={busy}
+                  onClick={() => setCampaignPick({ kind: "call", ids: selectedIds, clear })}
+                >
+                  <PhoneForwardedIcon /> Add to call campaign…
+                </Button>
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  disabled={busy}
+                  onClick={() => setCampaignPick({ kind: "email", ids: selectedIds, clear })}
+                >
+                  <MailPlusIcon /> Add to email campaign…
+                </Button>
+              </>
+            ) : null}
             {/* Extension point: extra bulk actions passed by other packages (e.g. WP-07 "Add to campaign"). */}
             {bulkActions.map((a) => (
               <Button
@@ -361,6 +412,98 @@ function AddTagDialog({ ids, onClose, onDone }: { ids: string[]; onClose: () => 
             </Button>
             <Button type="submit" disabled={saving}>
               Add tag
+            </Button>
+          </DialogFooter>
+        </form>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+/** Pick a non-completed campaign, then add (call) or enroll (email) the selection. Mounted only while open. */
+function AddToCampaignDialog({
+  kind,
+  ids,
+  campaigns,
+  onClose,
+  onDone,
+}: {
+  kind: "call" | "email";
+  ids: string[];
+  campaigns: CampaignTarget[];
+  onClose: () => void;
+  onDone: () => void;
+}) {
+  const [chosen, setChosen] = React.useState<string | null>(campaigns.length === 1 ? campaigns[0].id : null);
+  const [saving, setSaving] = React.useState(false);
+  const noun = kind === "call" ? "call" : "email";
+  const n = ids.length;
+
+  async function submit(e: React.FormEvent) {
+    e.preventDefault();
+    if (!chosen) return;
+    setSaving(true);
+    try {
+      const r = kind === "call" ? await addToCallCampaignAction(chosen, ids) : await addToEmailCampaignAction(chosen, ids);
+      if (!r.ok) {
+        toast.error(r.message ?? "Could not add to the campaign.");
+        return;
+      }
+      const verb = kind === "call" ? "Added" : "Enrolled";
+      const why = kind === "call" ? "already queued, do not call, or no phone" : "already enrolled, do not email, or no owner email";
+      toast.success(`${verb} ${r.data.added} to ${r.data.campaignName}`, {
+        description: r.data.skipped ? `${r.data.skipped} skipped (${why}).` : undefined,
+      });
+      onDone();
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  return (
+    <Dialog open onOpenChange={(o) => !o && onClose()}>
+      <DialogContent className="sm:max-w-md">
+        <form onSubmit={submit} className="flex min-w-0 flex-col gap-4">
+          <DialogHeader>
+            <DialogTitle>Add to {noun} campaign</DialogTitle>
+            <DialogDescription>
+              {n} selected business{n === 1 ? "" : "es"}.{" "}
+              {kind === "call"
+                ? "Businesses already in the queue, marked do not call, or without a phone are skipped."
+                : "Businesses already enrolled, marked do not email, or without an owner email are skipped."}
+            </DialogDescription>
+          </DialogHeader>
+          {campaigns.length === 0 ? (
+            <p className="text-sm text-muted-foreground">
+              No open {noun} campaigns.{" "}
+              <Link href={kind === "call" ? "/calling/new" : "/email/new"} className="underline">
+                Create one
+              </Link>
+              .
+            </p>
+          ) : (
+            <div role="radiogroup" aria-label="Campaign" className="flex max-h-72 flex-col gap-1 overflow-y-auto">
+              {campaigns.map((c) => (
+                <button
+                  key={c.id}
+                  type="button"
+                  role="radio"
+                  aria-checked={chosen === c.id}
+                  onClick={() => setChosen(c.id)}
+                  className="flex min-w-0 items-center justify-between gap-2 rounded-md border px-3 py-2 text-left text-sm transition-colors hover:bg-accent/50 aria-checked:border-primary aria-checked:bg-accent"
+                >
+                  <span className="min-w-0 truncate font-medium">{c.name}</span>
+                  <StatusBadge label={CAMPAIGN_STATUS_LABELS[c.status]} />
+                </button>
+              ))}
+            </div>
+          )}
+          <DialogFooter>
+            <Button type="button" variant="outline" onClick={onClose}>
+              Cancel
+            </Button>
+            <Button type="submit" disabled={saving || !chosen}>
+              {kind === "call" ? "Add to queue" : "Enroll"}
             </Button>
           </DialogFooter>
         </form>

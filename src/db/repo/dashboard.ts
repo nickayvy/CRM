@@ -1,7 +1,7 @@
 // Dashboard numbers (WP-07). Definitions are in architecture §Interfaces
 // `DashboardStats` and the WP-07 brief; every field is recomputed
 // independently in tests/dashboard.test.ts.
-import { and, count, eq, gte, inArray, isNotNull, lt, lte, sql } from "drizzle-orm";
+import { and, asc, count, desc, eq, gte, inArray, isNotNull, lt, lte, sql } from "drizzle-orm";
 import { addDays } from "date-fns";
 import { localDay, localDayBounds } from "@/features/calling/time";
 import { env } from "@/lib/env";
@@ -9,11 +9,15 @@ import { HARD_REASONS } from "@/lib/qualify";
 import type { Db } from "../client";
 import {
   type BusinessStatus,
+  type CallQueueItem,
+  type CampaignStatus,
+  type EmailEnrollment,
   activities,
   businessStatusEnum,
   callCampaigns,
   callQueueItems,
   emailCampaigns,
+  emailEnrollments,
   emailMessages,
 } from "../schema";
 import { countByQualification, countByReason, countByStatus } from "./businesses";
@@ -139,5 +143,44 @@ export async function getDashboardStats(db: Db, now: Date = new Date()): Promise
     rejectionBreakdown: reasons.filter((r) => hard.has(r.reason)),
     callsByOutcome7d,
     statusFunnel: order.map((status) => ({ status, count: statuses[status] ?? 0 })),
+  };
+}
+
+// ---------------------------------------------------------------- campaign membership (business detail)
+
+export type BusinessMemberships = {
+  calls: (CallQueueItem & { campaignName: string; campaignStatus: CampaignStatus })[];
+  emails: (EmailEnrollment & { campaignName: string; campaignStatus: CampaignStatus; stepCount: number })[];
+};
+
+/** Every call queue item and email enrollment of one business, newest first, with campaign names. */
+export async function listBusinessMemberships(db: Db, businessId: string): Promise<BusinessMemberships> {
+  const [calls, emails] = await Promise.all([
+    db
+      .select({ item: callQueueItems, campaignName: callCampaigns.name, campaignStatus: callCampaigns.status })
+      .from(callQueueItems)
+      .innerJoin(callCampaigns, eq(callCampaigns.id, callQueueItems.campaignId))
+      .where(eq(callQueueItems.businessId, businessId))
+      .orderBy(desc(callQueueItems.createdAt), asc(callQueueItems.id)),
+    db
+      .select({
+        enrollment: emailEnrollments,
+        campaignName: emailCampaigns.name,
+        campaignStatus: emailCampaigns.status,
+        stepCount: sql<number>`(SELECT count(*)::int FROM email_steps s WHERE s.campaign_id = ${emailEnrollments.campaignId})`,
+      })
+      .from(emailEnrollments)
+      .innerJoin(emailCampaigns, eq(emailCampaigns.id, emailEnrollments.campaignId))
+      .where(eq(emailEnrollments.businessId, businessId))
+      .orderBy(desc(emailEnrollments.enrolledAt), asc(emailEnrollments.id)),
+  ]);
+  return {
+    calls: calls.map((r) => ({ ...r.item, campaignName: r.campaignName, campaignStatus: r.campaignStatus })),
+    emails: emails.map((r) => ({
+      ...r.enrollment,
+      campaignName: r.campaignName,
+      campaignStatus: r.campaignStatus,
+      stepCount: Number(r.stepCount),
+    })),
   };
 }
