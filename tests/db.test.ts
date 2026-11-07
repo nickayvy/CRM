@@ -9,6 +9,7 @@ import {
   emailEnrollments,
   emailMessages,
   emailSteps,
+  searchJobs,
 } from "@/db/schema";
 import { createTestDb } from "@/db/test-utils";
 import { formatInTimeZone } from "date-fns-tz";
@@ -48,7 +49,14 @@ describe("createTestDb + seed", () => {
 
   it("fills every table", async () => {
     first = await seed(db);
-    expect(Object.keys(first).sort()).toEqual([...TABLES].sort());
+    expect(Object.keys(first).sort()).toEqual(
+      [...TABLES, "businesses_qualified", "businesses_review", "businesses_rejected"].sort(),
+    );
+    // Engine results after the three fixture searches + requalifyAll: Houston 31/0/9 minus ABC Plumbing
+    // (now multi_location), Dallas 26/0/4, Austin 26/0/4 (its ABC is already rejected for category_mismatch).
+    expect(first.businesses_qualified).toBe(82);
+    expect(first.businesses_review).toBe(0);
+    expect(first.businesses_rejected).toBe(18);
     for (const t of TABLES) expect(first[t], t).toBeGreaterThan(0);
     expect(first.businesses).toBe(100);
     expect(first.search_jobs).toBe(3);
@@ -70,7 +78,19 @@ describe("createTestDb + seed", () => {
 
   it("seeds the documented shape", async () => {
     const all = await db.select().from(businesses);
-    expect(all.every((b) => b.qualification === "review" && b.score === 0 && b.rejectionReasons.length === 0)).toBe(true);
+    expect(all.every((b) => b.qualifiedAt !== null && b.score > 0)).toBe(true);
+    const abc = all.filter((b) => b.name === "ABC Plumbing");
+    expect(abc).toHaveLength(3);
+    expect(abc.every((b) => b.qualification === "rejected" && b.rejectionReasons.includes("multi_location"))).toBe(true);
+    const jobs = await db.select().from(searchJobs);
+    for (const j of jobs) {
+      const mine = all.filter((b) => b.sourceJobId === j.id);
+      expect(j.fetchedCount).toBe(mine.length);
+      expect(j.apiCalls).toBe(1);
+      expect(j.qualifiedCount).toBe(mine.filter((b) => b.qualification === "qualified").length);
+      expect(j.rejectedCount).toBe(mine.filter((b) => b.qualification === "rejected").length);
+      expect(j.status).toBe("completed");
+    }
     expect(all.filter((b) => b.ownerName && b.ownerEmail)).toHaveLength(12);
     expect(new Set(all.map((b) => b.searchCategory))).toEqual(new Set(["plumbing", "hvac", "dentists"]));
 
@@ -85,6 +105,8 @@ describe("createTestDb + seed", () => {
 
     const enrollments = await db.select().from(emailEnrollments);
     const byId = new Map(all.map((b) => [b.id, b]));
+    expect(items.every((i) => byId.get(i.businessId)?.qualification === "qualified")).toBe(true);
+    expect(enrollments.every((e) => byId.get(e.businessId)?.qualification === "qualified")).toBe(true);
     expect(enrollments.every((e) => byId.get(e.businessId)?.ownerEmail)).toBe(true);
     const msgs = await db.select().from(emailMessages);
     expect(msgs.every((m) => m.status === "dry_run" && !m.bodyRendered.includes("{{"))).toBe(true);

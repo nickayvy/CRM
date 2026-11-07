@@ -2,16 +2,18 @@ import { readFileSync } from "node:fs";
 import path from "node:path";
 import { startOfDay } from "date-fns";
 import { fromZonedTime, toZonedTime } from "date-fns-tz";
-import { count, sql } from "drizzle-orm";
-import { normalizeName, phoneDigits } from "@/lib/format";
+import { asc, count, eq, sql } from "drizzle-orm";
+import { requalifyAll, runSearchJob } from "@/features/ingest/run";
+import { createFixtureClient } from "@/lib/yelp/fixture";
 import type { Db } from "./client";
+import { countByQualification } from "./repo/businesses";
 import { getRules } from "./repo/rules";
+import { createSearchJob, updateSearchJob } from "./repo/search-jobs";
 import {
   type ActivityType,
   type Business,
   type CallOutcome,
   type NewActivity,
-  type NewBusiness,
   activities,
   businesses,
   callCampaigns,
@@ -40,33 +42,7 @@ const TABLES = {
   email_messages: emailMessages,
 } as const;
 
-/** Minimal Yelp Fusion search record shape the seed reads from fixtures. */
-type FixtureBusiness = {
-  id: string;
-  alias: string;
-  name: string;
-  image_url?: string;
-  is_closed: boolean;
-  url: string;
-  review_count: number;
-  categories: { alias: string; title: string }[];
-  rating: number;
-  coordinates: { latitude: number | null; longitude: number | null };
-  transactions: string[];
-  price?: string;
-  location: {
-    address1?: string | null;
-    address2?: string | null;
-    city: string;
-    zip_code: string;
-    country: string;
-    state: string;
-  };
-  phone: string;
-  display_phone: string;
-  distance?: number;
-};
-type FixtureFile = { _traps: { id: string }[]; businesses: FixtureBusiness[]; total: number };
+type FixtureFile = { _traps: { id: string }[]; businesses: { id: string }[]; total: number };
 
 export const SEED_SEARCHES = [
   { file: "search-plumbing-houston.json", term: "plumbers", category: "plumbing", location: "Houston, TX" },
@@ -79,47 +55,6 @@ const SEED_TZ = "America/Chicago";
 
 function readFixture(file: string): FixtureFile {
   return JSON.parse(readFileSync(path.join(FIXTURE_DIR, file), "utf8")) as FixtureFile;
-}
-
-function toNewBusiness(
-  b: FixtureBusiness,
-  ctx: { jobId: string; searchCategory: string; searchLocation: string },
-): NewBusiness {
-  return {
-    yelpId: b.id,
-    yelpAlias: b.alias,
-    name: b.name,
-    nameNormalized: normalizeName(b.name),
-    phone: b.phone || null,
-    phoneDigits: phoneDigits(b.phone),
-    displayPhone: b.display_phone || null,
-    yelpUrl: b.url,
-    imageUrl: b.image_url || null,
-    rating: b.rating == null ? null : b.rating.toFixed(1),
-    reviewCount: b.review_count,
-    price: b.price ?? null,
-    categories: b.categories,
-    primaryCategory: b.categories[0]?.alias ?? null,
-    isClosed: b.is_closed,
-    isClaimed: null,
-    address1: b.location.address1 ?? null,
-    address2: b.location.address2 ?? null,
-    city: b.location.city,
-    state: b.location.state,
-    zip: b.location.zip_code,
-    country: b.location.country,
-    latitude: b.coordinates.latitude,
-    longitude: b.coordinates.longitude,
-    distanceM: b.distance ?? null,
-    transactions: b.transactions,
-    raw: b,
-    qualification: "review",
-    score: 0,
-    rejectionReasons: [],
-    sourceJobId: ctx.jobId,
-    searchCategory: ctx.searchCategory,
-    searchLocation: ctx.searchLocation,
-  };
 }
 
 const OWNER_FIRST = ["Maria", "James", "Linh", "Robert", "Priya", "Carlos", "Dana", "Marcus", "Elena", "Tom", "Aisha", "Greg"];
@@ -190,9 +125,11 @@ async function countAll(db: Db): Promise<SeedSummary> {
 
 /**
  * Idempotent demo seed: truncates every table, then inserts the default rules
- * row, three completed search jobs with every fixture business (unqualified:
- * qualification 'review', score 0), owners, activities, two call campaigns and
- * one email campaign. Returns row counts per table.
+ * row and runs the three fixture searches through the ingestion engine
+ * (`runSearchJob` in fixture mode, then `requalifyAll`), so every business is
+ * scored and labeled; then owners, activities, two call campaigns and one email
+ * campaign on qualified businesses. Returns row counts per table plus
+ * `businesses_qualified` / `businesses_review` / `businesses_rejected`.
  */
 export async function seed(db: Db, opts: { now?: Date } = {}): Promise<SeedSummary> {
   const now = opts.now ?? new Date();
@@ -203,40 +140,49 @@ export async function seed(db: Db, opts: { now?: Date } = {}): Promise<SeedSumma
 
   await getRules(db);
 
-  // ---- search jobs + businesses ------------------------------------------------
-  const bySearch: Record<string, { ordinary: Business[]; all: Business[] }> = {};
+  // ---- search jobs + businesses through the real ingestion engine ---------------
+  // Same code path as `runSearchJob` in fixture mode: upsert, then qualifyOne with a
+  // context built from the DB, in fixture order; then one requalifyAll so
+  // cross-fixture rules (multi_location) see every business.
+  const client = createFixtureClient({ fixtureDir: FIXTURE_DIR });
+  const runs: { s: (typeof SEED_SEARCHES)[number]; fixture: FixtureFile; jobId: string; startedAt: Date }[] = [];
   for (const [i, s] of SEED_SEARCHES.entries()) {
     const fixture = readFixture(s.file);
-    const n = fixture.businesses.length;
-    const startedAt = daysAgo(now, 7 - i * 2);
-    const [job] = await db
-      .insert(searchJobs)
-      .values({
-        term: s.term,
-        location: s.location,
-        categoryAliases: [s.category],
-        radiusM: 20000,
-        maxResults: 200,
-        status: "completed",
-        fetchedCount: n,
-        qualifiedCount: 0,
-        reviewCount: n,
-        rejectedCount: 0,
-        apiCalls: Math.ceil(n / 50),
-        startedAt,
-        finishedAt: new Date(startedAt.getTime() + 4_000),
-        createdAt: startedAt,
-      })
-      .returning();
+    const job = await createSearchJob(db, {
+      term: s.term,
+      location: s.location,
+      categoryAliases: [s.category],
+      radiusM: 20000,
+      maxResults: 200,
+    });
+    const done = await runSearchJob(db, job.id, client);
+    if (done.status !== "completed") throw new Error(`seed: ingesting ${s.file} failed: ${done.error}`);
+    runs.push({ s, fixture, jobId: job.id, startedAt: daysAgo(now, 7 - i * 2) });
+  }
+  await requalifyAll(db);
 
-    const rows = fixture.businesses.map((b) =>
-      toNewBusiness(b, { jobId: job.id, searchCategory: s.category, searchLocation: s.location }),
-    );
-    const inserted = await db.insert(businesses).values(rows).returning();
+  const bySearch: Record<string, { ordinary: Business[]; all: Business[] }> = {};
+  for (const { s, fixture, jobId, startedAt } of runs) {
+    const order = new Map(fixture.businesses.map((b, i) => [b.id, i]));
+    const rows = (await db.select().from(businesses).where(eq(businesses.sourceJobId, jobId)).orderBy(asc(businesses.createdAt)))
+      .sort((a, b) => (order.get(a.yelpId) ?? 0) - (order.get(b.yelpId) ?? 0));
+    const counts = await countByQualification(db, { sourceJobId: jobId });
+    await updateSearchJob(db, jobId, {
+      qualifiedCount: counts.qualified,
+      reviewCount: counts.review,
+      rejectedCount: counts.rejected,
+      startedAt,
+      finishedAt: new Date(startedAt.getTime() + 4_000),
+    });
+    // updateSearchJob never patches createdAt; backdate it directly so the jobs list reads naturally.
+    await db.update(searchJobs).set({ createdAt: startedAt }).where(eq(searchJobs.id, jobId));
     const trapIds = new Set(fixture._traps.map((t) => t.id));
-    // "Ordinary" = not a trap and not the cross-fixture ABC Plumbing record.
-    const ordinary = inserted.filter((b) => !trapIds.has(b.yelpId) && b.name !== "ABC Plumbing");
-    bySearch[s.category] = { ordinary, all: inserted };
+    // "Ordinary" = qualified, not a trap, and not the cross-fixture ABC Plumbing record,
+    // so owners, call history, the call queue and enrollments only use qualified businesses.
+    const ordinary = rows.filter(
+      (b) => b.qualification === "qualified" && !trapIds.has(b.yelpId) && b.name !== "ABC Plumbing",
+    );
+    bySearch[s.category] = { ordinary, all: rows };
   }
 
   const houston = bySearch.plumbing.ordinary;
@@ -470,5 +416,12 @@ export async function seed(db: Db, opts: { now?: Date } = {}): Promise<SeedSumma
 
   await db.insert(activities).values(activityRows);
 
-  return countAll(db);
+  const summary = await countAll(db);
+  const q = await countByQualification(db);
+  return {
+    ...summary,
+    businesses_qualified: q.qualified,
+    businesses_review: q.review,
+    businesses_rejected: q.rejected,
+  };
 }
