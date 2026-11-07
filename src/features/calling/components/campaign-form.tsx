@@ -36,7 +36,8 @@ export type CampaignFormProps = {
   successMessage?: string;
 };
 
-const COMMON_ZONES = [
+// A fixed list (not Intl.supportedValuesOf) so server and browser render identical options.
+const ZONES = [
   "America/New_York",
   "America/Chicago",
   "America/Denver",
@@ -44,19 +45,27 @@ const COMMON_ZONES = [
   "America/Los_Angeles",
   "America/Anchorage",
   "Pacific/Honolulu",
+  "America/Puerto_Rico",
+  "America/Toronto",
+  "America/Vancouver",
+  "America/Mexico_City",
+  "America/Sao_Paulo",
+  "Europe/London",
+  "Europe/Dublin",
+  "Europe/Paris",
+  "Europe/Berlin",
+  "Europe/Madrid",
+  "Asia/Dubai",
+  "Asia/Kolkata",
+  "Asia/Singapore",
+  "Asia/Tokyo",
+  "Australia/Sydney",
+  "Pacific/Auckland",
+  "UTC",
 ];
 
 function allZones(current: string): string[] {
-  let zones: string[] = [];
-  try {
-    zones = Intl.supportedValuesOf("timeZone");
-  } catch {
-    zones = [];
-  }
-  const rest = zones.filter((z) => !COMMON_ZONES.includes(z));
-  const out = [...COMMON_ZONES, ...rest];
-  if (current && !out.includes(current)) out.unshift(current);
-  return out;
+  return current && !ZONES.includes(current) ? [current, ...ZONES] : ZONES;
 }
 
 const selectClass =
