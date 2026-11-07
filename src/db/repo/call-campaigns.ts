@@ -228,6 +228,27 @@ export async function addBusinessesToCampaign(
   });
 }
 
+/** How many of `businessIds` addBusinessesToCampaign would add (not queued here, not do-not-call, has a phone). */
+export async function countAddable(db: DbOrTx, id: string, businessIds: string[]): Promise<number> {
+  const unique = [...new Set(businessIds)];
+  let n = 0;
+  for (let i = 0; i < unique.length; i += 1000) {
+    const [row] = await db
+      .select({ n: count() })
+      .from(businesses)
+      .where(
+        and(
+          inArray(businesses.id, unique.slice(i, i + 1000)),
+          eq(businesses.doNotCall, false),
+          isNotNull(businesses.phoneDigits),
+          sql`NOT EXISTS (SELECT 1 FROM call_queue_items q WHERE q.campaign_id = ${id} AND q.business_id = ${businesses.id})`,
+        ),
+      );
+    n += Number(row?.n ?? 0);
+  }
+  return n;
+}
+
 async function maxPosition(db: DbOrTx, campaignId: string): Promise<number> {
   const [row] = await db
     .select({ m: sql<number | null>`max(${callQueueItems.position})` })
