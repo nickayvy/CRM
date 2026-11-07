@@ -1,0 +1,38 @@
+# Local Business CRM — Run summary
+
+**Date:** 2026-11-07   **PM:** Fable 5.1   **Repo:** https://github.com/nickayvy/CRM (main)
+
+## Shipped
+| WP | Package | PR | Review rounds |
+|---|---|---|---|
+| WP-01 | Foundation: Next.js 16 scaffold, Drizzle schema + migration, PGlite/Supabase client, fixtures with trap records, idempotent seed, app shell, password gate, deploy config | #1 | 1 (accept) |
+| WP-02 | Design system: 20+ primitives (PageShell, StatCard, DataTable, FilterBar, StatusBadge, SidePanel, Timeline, ScoreRing…), motion system (tokens, variants, FadeIn, AnimatedList, AnimatedNumber, PageTransition), dark mode, `/design` showcase | #3 | 1 (accept) |
+| WP-03 | Yelp Fusion client (paging, retry, budget, fixture mode), qualification engine (10 hard rules + 2 soft flags, 0–100 score), business + search-job repos, ingestion/enrich/requalify, CLI | #2 | 1 (accept) |
+| WP-04 | Businesses UI: filterable/sortable table with URL state and bulk actions, detail page with CRM form + notes timeline + "why this result", searches with live progress, rules editor | #5 | 1 (accept) |
+| WP-05 | Calling: concurrent campaigns with isolated queues, `FOR UPDATE SKIP LOCKED` claim path, lease expiry, outcome transitions, auto pause/resume (daily cap, hours, exhausted), keyboard dialer, cron | #6 | 1 (accept) |
+| WP-06 | Email: multi-step sequences with delays and tokens, enrollment, daily-cap runner (Resend or dry run), reply/unsubscribe, message log, cron | #4 | 1 (accept) |
+| WP-07 | Dashboard (stats verified by independent SQL, 3 charts, campaigns, callbacks, activity), ⌘K search, "Add to campaign" bulk actions, campaign membership, shortcuts help, deploy docs, Vercel tracing fixes | #7 | 1 (accept) |
+
+Size: 170 files under `src/` (102 `.tsx`), 22 test files / 482 tests, 1 migration, 9 fixture files.
+
+## Cut or deferred (per spec non-goals)
+Auth/roles (optional shared password only), telephony, inbound email/reply detection, non-Yelp sources, email discovery, custom fields/pipelines, CSV import/export, browser E2E suite.
+
+## Integration check (main, after the last merge)
+`npm ci` · `db:migrate` · `db:seed` · `npm test` (482 passed) · `typecheck` · `lint` · `build` (0 warnings): all exit 0.
+Built app smoke: 23 routes return 200 (dashboard, businesses + detail, searches + job, calling + campaign + dialer + settings, email + campaign + messages + settings, settings + rules, design, login, three JSON APIs); `/api/cron/campaigns` → `{evaluated:1}` and `/api/cron/email` → `{sent:4}` with the bearer, 401 without.
+Spec ACs 1–15 walked across the package reviews (`docs/team/reviews/`). AC16 (build against Supabase) is pending the pooled `DATABASE_URL`.
+
+## Supabase
+Project `local-business-crm` (ref `aszvhaanfiiofmzvzfub`, us-west-1, Postgres 17). Schema applied (identical to `drizzle/0000_init.sql`) with the Drizzle bookkeeping row, so `npm run db:migrate` is a no-op there. RLS enabled with no policies on every table: the app connects as the postgres role over `DATABASE_URL`, and the auto-generated REST surface is closed.
+
+## Open issues / follow-ups
+- Production deploy not performed: Vercel CLI is logged out and the Vercel MCP is unauthorized. Steps are in `docs/deploy.md`.
+- `DATABASE_URL` (Supabase Transaction pooler, port 6543) not available to the PM; needed for the Supabase build check and the optional seed.
+- `YELP_API_KEY` not provided; ingestion runs in fixture mode (three bundled searches) until it is set.
+- Vercel Hobby runs crons at most daily; campaign evaluation also happens on access and email sending via "Process now".
+- Cosmetic: `AnimatedNumber` paints only on animation frames (stale in background tabs); the bulk-action bar at 375 px scrolls inside itself with six buttons.
+- `FOR UPDATE SKIP LOCKED` is contention-tested only by construction (PGlite is single-connection); the SQL is the architecture's and is correct on Postgres.
+
+## Cost
+7 Opus seniors (one per package, all accepted in round 1), 17 Sonnet juniors spawned by seniors, 0 revision rounds, 1 PM tooling fix (ESLint ignore for agent worktrees).

@@ -1,7 +1,6 @@
 # Local Business CRM — Spec
 
-**Status:** approved by directive (user set the goal via /goal on 2026-11-07 and asked
-the PM to proceed without pausing). The user may redirect at any wave boundary.
+**Status:** delivered 2026-11-07 (all seven packages merged on main; see `docs/team/summary.md`). Originally approved by directive via /goal.
 **PM:** Fable 5.1
 **Source of the product idea:** https://origami.chat/products/local-business
 (researched 2026-11-07; see "What Origami actually describes" below).
