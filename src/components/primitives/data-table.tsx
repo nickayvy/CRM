@@ -107,7 +107,8 @@ export type BulkActionContext<T> = {
 
 export type DataTableProps<T extends RowData> = {
   /**
-   * Column definitions (build them with `dataTableColumnHelper<T>()`). Keep the array stable (module scope or `useMemo`).
+   * Column definitions (build them with `dataTableColumnHelper<T>()` inside a client component: cells are functions,
+   * which cannot cross the server→client boundary). Keep the array stable (module scope or `useMemo`).
    * Set `meta.align: "right"` on numeric columns;
    * set `enableSorting: false` on columns that cannot be sorted.
    */
