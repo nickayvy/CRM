@@ -303,12 +303,9 @@ export function DataTable<T extends RowData>({
   const effectiveFocus = focusedIndex >= rows.length ? rows.length - 1 : focusedIndex;
 
   const selectedIds = Object.keys(selectionValue).filter((id) => selectionValue[id]);
-  const clearSelection = () => {
-    // Reset the ref too: a toggle fired before the next render must resolve against {}, not the old selection.
-    selectionRef.current = {};
-    if (selection === undefined) setInternalSelection({});
-    onSelectionChange?.({});
-  };
+  // Clearing goes through the table so `onRowSelectionChange` also resets
+  // `selectionRef`: a toggle fired before the next render must start from {}.
+  const clearSelection = () => table.setRowSelection({});
 
   function focusRow(i: number) {
     if (rows.length === 0) return;
