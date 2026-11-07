@@ -22,6 +22,7 @@ export type {
   BulkActionBarProps,
   BulkActionContext,
   SortState,
+  RowSelectionState,
 } from "./data-table";
 
 export { FilterBar, FilterSelect, FilterRange } from "./filter-bar";

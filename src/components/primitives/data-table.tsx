@@ -614,3 +614,6 @@ function PaginationFooter({ page, pageSize, total, onPageChange, onPageSizeChang
     </div>
   );
 }
+
+/** Selection map `{ [rowId]: true }` used by `DataTable` `selection`. */
+export type { RowSelectionState } from "@tanstack/react-table";

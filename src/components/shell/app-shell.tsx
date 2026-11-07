@@ -4,8 +4,8 @@ import { CommandPalette } from "@/components/command-palette";
 import { Button } from "@/components/ui/button";
 import { isAuthActive } from "@/lib/auth";
 import { MobileNav } from "./mobile-nav";
-import { NavLinks } from "./nav-links";
 import { ShellGate } from "./shell-gate";
+import { BrandMark, Sidebar } from "./sidebar";
 import { ThemeToggle } from "./theme-toggle";
 
 function LogoutButton() {
@@ -18,19 +18,18 @@ function LogoutButton() {
   );
 }
 
-function Brand() {
+function MobileBrand() {
   return (
-    <Link href="/" className="flex items-center gap-2 font-semibold tracking-tight">
-      <span className="flex size-7 items-center justify-center rounded-md bg-primary text-xs font-bold text-primary-foreground">
-        LB
-      </span>
+    <Link href="/" className="flex min-w-0 items-center gap-2 text-sm font-semibold tracking-tight">
+      <BrandMark />
       <span className="truncate">Local Business CRM</span>
     </Link>
   );
 }
 
 /**
- * Application chrome: sidebar on ≥ md, sheet drawer below; top bar with the
+ * Application chrome: collapsible sidebar on ≥ md (`[` toggles, persisted),
+ * sheet drawer below; top bar with the
  * command palette, theme toggle and (when the password gate is active) logout.
  * /login renders without the chrome.
  */
@@ -39,19 +38,12 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   return (
     <ShellGate bare={children}>
       <div className="flex min-h-svh w-full">
-        <aside className="sticky top-0 hidden h-svh w-60 shrink-0 flex-col border-r bg-sidebar md:flex">
-          <div className="flex h-14 items-center border-b px-4">
-            <Brand />
-          </div>
-          <div className="flex-1 overflow-y-auto p-3">
-            <NavLinks />
-          </div>
-        </aside>
+        <Sidebar />
         <div className="flex min-w-0 flex-1 flex-col">
-          <header className="sticky top-0 z-30 flex h-14 items-center gap-2 border-b bg-background/80 px-4 backdrop-blur">
+          <header className="sticky top-0 z-30 flex h-12 items-center gap-2 border-b bg-background/85 px-3 backdrop-blur md:px-4">
             <MobileNav />
             <div className="min-w-0 md:hidden">
-              <Brand />
+              <MobileBrand />
             </div>
             <div className="ml-auto flex items-center gap-1">
               <CommandPalette />
@@ -59,7 +51,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
               {authActive ? <LogoutButton /> : null}
             </div>
           </header>
-          <main className="min-w-0 flex-1 px-4 py-6 md:px-8">{children}</main>
+          <main className="min-w-0 flex-1 px-4 py-5 md:px-6 lg:px-8">{children}</main>
         </div>
       </div>
     </ShellGate>
