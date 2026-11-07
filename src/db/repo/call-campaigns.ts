@@ -53,8 +53,6 @@ export class QueueItemError extends Error {
   }
 }
 
-const RETRY_OUTCOMES: ReadonlySet<CallOutcome> = new Set(["no_answer", "voicemail", "busy"]);
-
 function rowsOf<T>(res: unknown): T[] {
   if (Array.isArray(res)) return res as T[];
   return ((res as { rows?: T[] }).rows ?? []) as T[];
