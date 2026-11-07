@@ -67,14 +67,14 @@ dependency.
 
 ## 3. Crons
 
-`vercel.json` declares two crons, both hourly (`0 13 * * * (campaigns) / 0 14 * * * (email)`):
+`vercel.json` declares two daily crons (`0 13 * * *` for campaigns, `0 14 * * *` for email, UTC):
 
 | Path | Does |
 |---|---|
 | `/api/cron/campaigns` | Re-evaluates every running or paused call campaign (auto pause, resume, complete). |
 | `/api/cron/email` | Sends every due email step across running campaigns. |
 
-**Hobby plan:** Hobby allows cron jobs only once per day, so the hourly
+**Hobby plan:** Hobby allows cron jobs only once per day, so an hourly
 schedules will fail the deploy. Either upgrade to Pro, or edit both
 `schedule` values in `vercel.json` to a daily expression, for example
 `0 14 * * *`.
