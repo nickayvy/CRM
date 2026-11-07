@@ -29,3 +29,4 @@ Estimated agents: 7 Opus seniors + roughly 1–3 Sonnet juniors each.
 - 2026-11-07 WP-07 delivered (PR #7, 26 files, 482 tests); PM review ACCEPT round 1; merged to main. All seven packages merged; integration check running.
 - 2026-11-07 Integration check on main: 482 tests, 0 build warnings, 23 routes 200, cron auth OK. Run summary written (summary.md). Pending user inputs: DATABASE_URL, YELP_API_KEY, Vercel login.
 - 2026-11-07 Vercel project `local-business-crm` (prj_j994b2QXyhv1gcryUmHlNpc1r8cU, team team_WcqJseRx2mNyLJUfceaQwuXa) created via the Vercel MCP and linked to nickayvy/CRM (production branch main). `DATABASE_URL` to be set by the user in Vercel. This push triggers the first production deployment.
+- 2026-11-07 Deployed to Vercel (production READY). Supabase seeded; live `/api/search` returns Supabase rows. Crons switched to daily for the Hobby plan.

@@ -21,14 +21,19 @@ Auth/roles (optional shared password only), telephony, inbound email/reply detec
 ## Integration check (main, after the last merge)
 `npm ci` · `db:migrate` · `db:seed` · `npm test` (482 passed) · `typecheck` · `lint` · `build` (0 warnings): all exit 0.
 Built app smoke: 23 routes return 200 (dashboard, businesses + detail, searches + job, calling + campaign + dialer + settings, email + campaign + messages + settings, settings + rules, design, login, three JSON APIs); `/api/cron/campaigns` → `{evaluated:1}` and `/api/cron/email` → `{sent:4}` with the bearer, 401 without.
-Spec ACs 1–15 walked across the package reviews (`docs/team/reviews/`). AC16 (build against Supabase) is pending the pooled `DATABASE_URL`.
+Spec ACs 1–16 walked across the package reviews (`docs/team/reviews/`) and the deployment section below.
 
 ## Supabase
 Project `local-business-crm` (ref `aszvhaanfiiofmzvzfub`, us-west-1, Postgres 17). Schema applied (identical to `drizzle/0000_init.sql`) with the Drizzle bookkeeping row, so `npm run db:migrate` is a no-op there. RLS enabled with no policies on every table: the app connects as the postgres role over `DATABASE_URL`, and the auto-generated REST surface is closed.
 
+## Deployment (done)
+Vercel project `local-business-crm` (team `nicks-projects-2e9a7352`), linked to nickayvy/CRM, production branch `main`.
+Production URL: https://local-business-crm-nicks-projects-2e9a7352.vercel.app (Vercel Authentication is on: sign in to Vercel to open it, or disable Deployment Protection and set `APP_PASSWORD` for the app's own gate).
+Env set: `DATABASE_URL` (Supabase Transaction pooler), `APP_SESSION_SECRET`, `CRON_SECRET`, `APP_TIMEZONE`, `YELP_MODE=fixture`. Crons run daily (Hobby limit).
+Supabase seeded from the PM's machine (100 businesses, 2 call campaigns / 25 queue items, 1 email campaign / 8 enrollments); `npm run build` passed with `DATABASE_URL` set (AC16).
+Live check: `/api/search?q=abc` on the production URL returned the three seeded ABC Plumbing rows from Supabase.
+
 ## Open issues / follow-ups
-- Production deploy not performed: Vercel CLI is logged out and the Vercel MCP is unauthorized. Steps are in `docs/deploy.md`.
-- `DATABASE_URL` (Supabase Transaction pooler, port 6543) not available to the PM; needed for the Supabase build check and the optional seed.
 - `YELP_API_KEY` not provided; ingestion runs in fixture mode (three bundled searches) until it is set.
 - Vercel Hobby runs crons at most daily; campaign evaluation also happens on access and email sending via "Process now".
 - Cosmetic: `AnimatedNumber` paints only on animation frames (stale in background tabs); the bulk-action bar at 375 px scrolls inside itself with six buttons.
