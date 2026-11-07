@@ -15,6 +15,11 @@
 
 Size: 170 files under `src/` (102 `.tsx`), 22 test files / 482 tests, 1 migration, 9 fixture files.
 
+### UI system evidence (git ls-files on main)
+- Design primitives, `src/components/primitives/` (16 modules): PageShell, PageHeader, PageSection, StatCard, StatGrid, DataTable (TanStack v9) + BulkActionBar, FilterBar/FilterSelect/FilterRange, StatusBadge, ReasonChip, EmptyState, SidePanel, KeyValueList/KeyValue, Timeline/TimelineItem, Toolbar (+Group/Separator/Spacer), Kbd/KbdGroup, ScoreRing, ProgressBar, ConfirmDialog/useConfirm, ChartCard, tone helpers.
+- Animation system, `src/lib/motion/`: tokens (durations, easings, springs, stagger), variants (fadeIn, fadeInUp, scaleIn, listContainer, listItem, slideInRight, collapse), components (FadeIn, AnimatedList/AnimatedItem, Presence, AnimatedNumber, PageTransition, useReducedMotion), hydration-safe mount, number formatting; wired into `src/app/template.tsx` for route transitions; reduced-motion honoured in every component and via a global CSS fallback.
+- Adoption: 40 app/feature files import the primitives and 10 import the motion system; every screen (dashboard, businesses, searches, calling, dialer, email, settings, design) is composed from them.
+
 ## Cut or deferred (per spec non-goals)
 Auth/roles (optional shared password only), telephony, inbound email/reply detection, non-Yelp sources, email discovery, custom fields/pipelines, CSV import/export, browser E2E suite.
 
