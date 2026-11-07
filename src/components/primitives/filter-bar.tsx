@@ -243,7 +243,7 @@ export type FilterSelectProps = {
   onChange: (value: string[]) => void;
   /** Allow several values. Default true; when false, picking an option replaces the selection and closes the popover. */
   multiple?: boolean;
-  /** Show a type-to-filter box in the popover. Default: when there are more than 7 options. */
+  /** Show the type-to-filter box (it also carries arrow-key navigation). Default true. */
   searchable?: boolean;
 };
 
@@ -253,7 +253,7 @@ export function FilterSelect({ label, options, value, onChange, multiple = true,
   const selected = new Set(value);
   const picked = options.filter((o) => selected.has(o.value));
   const summary = picked.length === 0 ? undefined : picked.length <= 2 ? picked.map((o) => o.label).join(", ") : `${picked.length} selected`;
-  const showSearch = searchable ?? options.length > 7;
+  const showSearch = searchable ?? true;
 
   const toggle = (v: string) => {
     if (!multiple) {

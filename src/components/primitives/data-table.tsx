@@ -239,6 +239,13 @@ export function DataTable<T extends RowData>({
   const sortValue = sort !== undefined ? sort : internalSort;
   const selectionValue = selection ?? internalSelection;
   const sorting = React.useMemo(() => toSorting(sortValue), [sortValue]);
+  // Latest values for resolving TanStack updaters: several changes can fire before the parent re-renders.
+  const sortingRef = React.useRef(sorting);
+  const selectionRef = React.useRef(selectionValue);
+  React.useLayoutEffect(() => {
+    sortingRef.current = sorting;
+    selectionRef.current = selectionValue;
+  }, [sorting, selectionValue]);
 
   const allColumns = React.useMemo(() => {
     if (!enableSelection) return columns;
@@ -275,12 +282,15 @@ export function DataTable<T extends RowData>({
     sortDescFirst: false,
     manualSorting,
     onSortingChange: (updater) => {
-      const next = fromSorting(resolve(updater, sorting));
+      const resolved = resolve(updater, sortingRef.current);
+      sortingRef.current = resolved;
+      const next = fromSorting(resolved);
       if (sort === undefined) setInternalSort(next);
       onSortChange?.(next);
     },
     onRowSelectionChange: (updater) => {
-      const next = resolve(updater, selectionValue);
+      const next = resolve(updater, selectionRef.current);
+      selectionRef.current = next;
       if (selection === undefined) setInternalSelection(next);
       onSelectionChange?.(next);
     },
@@ -306,7 +316,9 @@ export function DataTable<T extends RowData>({
 
   function onBodyKeyDown(e: React.KeyboardEvent<HTMLTableSectionElement>) {
     if (e.metaKey || e.ctrlKey || e.altKey || isTypingTarget(e.target)) return;
-    const current = effectiveFocus < 0 ? -1 : effectiveFocus;
+    // Derive the current row from the DOM so rapid key repeats never act on a stale render.
+    const fromDom = e.target instanceof HTMLElement ? rowRefs.current.findIndex((r) => r?.contains(e.target as Node)) : -1;
+    const current = fromDom >= 0 ? fromDom : effectiveFocus;
     const onRow = e.target instanceof HTMLTableRowElement;
     switch (e.key) {
       case "ArrowDown":

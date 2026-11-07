@@ -111,7 +111,7 @@ export type SampleActivity = {
 };
 
 export const ACTIVITIES: SampleActivity[] = [
-  { id: "a1", type: "call", title: "Call: interested", body: "Owner wants a quote for the website refresh. Call back Tuesday after 2 pm.", agent: "Maya", at: "2026-11-07T15:40:00.000Z" },
+  { id: "a1", type: "call", title: "Call: interested", body: "Owner wants a quote for the website refresh. Call back Tuesday after 2 pm.", agent: "Maya", at: "2026-11-06T22:40:00.000Z" },
   { id: "a2", type: "email", title: "Email sent: Intro (step 1)", agent: "Sequence", at: "2026-11-06T14:00:00.000Z" },
   { id: "a3", type: "status_change", title: "Status: New → Contacted", agent: "Maya", at: "2026-11-05T17:12:00.000Z" },
   { id: "a4", type: "note", title: "Note", body: "Second location opening in Katy next spring.", agent: "Jordan", at: "2026-11-04T19:30:00.000Z" },

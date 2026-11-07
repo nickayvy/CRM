@@ -115,7 +115,7 @@ export function StatCard({ label, value, format, delta, icon, hint, href, loadin
 }
 
 export type StatGridProps = React.ComponentProps<"div"> & {
-  /** Columns at the widest breakpoint (1 on phones, 2 on small screens). Default 4. */
+  /** Columns from the `lg` breakpoint up (always 2 below). Default 4. */
   columns?: 2 | 3 | 4 | 5;
 };
 
@@ -125,7 +125,7 @@ export function StatGrid({ columns = 4, className, ...props }: StatGridProps) {
     <div
       data-slot="stat-grid"
       className={cn(
-        "grid grid-cols-1 gap-3 sm:grid-cols-2",
+        "grid grid-cols-2 gap-3",
         columns === 3 && "lg:grid-cols-3",
         columns === 4 && "lg:grid-cols-4",
         columns === 5 && "lg:grid-cols-5",

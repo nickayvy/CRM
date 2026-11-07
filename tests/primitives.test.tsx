@@ -113,6 +113,18 @@ describe("DataTable selection", () => {
     expect(within(bar).getByRole("button", { name: "Add to campaign (a,c)" })).toBeTruthy();
   });
 
+  it("keeps both selections when two checkboxes are clicked before a re-render", () => {
+    const onSelectionChange = vi.fn();
+    renderTable({ enableSelection: true, onSelectionChange });
+    const boxes = screen.getAllByRole("checkbox", { name: "Select row" });
+    act(() => {
+      boxes[0].click();
+      boxes[1].click();
+    });
+    expect(onSelectionChange).toHaveBeenLastCalledWith({ a: true, b: true });
+    expect(screen.getByRole("region", { name: "Bulk actions" }).textContent).toContain("2 selected");
+  });
+
   it("selects every row with the header checkbox", () => {
     renderTable({ enableSelection: true, bulkActions });
     fireEvent.click(screen.getByRole("checkbox", { name: "Select all rows" }));

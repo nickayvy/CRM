@@ -40,6 +40,12 @@ const FADE_VARIANTS = { fade: fadeIn, up: fadeInUp, scale: scaleIn, right: slide
   Variants
 >;
 
+function withEnterDelay(variants: Variants, delay: number | undefined): Variants {
+  if (!delay) return variants;
+  const visible = variants.visible as Record<string, unknown> & { transition?: Record<string, unknown> };
+  return { ...variants, visible: { ...visible, transition: { ...visible.transition, delay } } };
+}
+
 export type FadeInProps = Omit<HTMLMotionProps<"div">, "variants" | "initial" | "animate" | "exit"> & {
   /** Enter style: `up` (default, fade + 6px rise), `fade`, `scale`, `right` (slide from right). */
   variant?: keyof typeof FADE_VARIANTS;
@@ -52,18 +58,19 @@ export type FadeInProps = Omit<HTMLMotionProps<"div">, "variants" | "initial" | 
  * conditional render). On the server-rendered first paint and under reduced
  * motion it renders static, with no inline opacity/transform.
  */
-export function FadeIn({ variant = "up", delay, transition, ...props }: FadeInProps) {
+export function FadeIn({ variant = "up", delay, ...props }: FadeInProps) {
   const reduced = useReducedMotion();
   const animateIn = useCanAnimateMount() && !reduced;
+  // A variant's own transition outranks the `transition` prop, so the delay goes into the variant.
+  const variants = React.useMemo(() => withEnterDelay(FADE_VARIANTS[variant], delay), [variant, delay]);
   return (
     <StaticWhen reduced={reduced}>
       <motion.div
-        variants={FADE_VARIANTS[variant]}
+        variants={variants}
         // Static branch: no initial and no animate target, so motion writes no inline opacity/transform at all.
         initial={animateIn ? "hidden" : false}
         animate={animateIn ? "visible" : undefined}
         exit="exit"
-        transition={delay ? { delay, ...transition } : transition}
         {...props}
       />
     </StaticWhen>
