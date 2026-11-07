@@ -37,7 +37,9 @@ export function createPgliteDb(client: PGlite): Handle {
 
 /** Connect to a real Postgres (Supabase) via postgres-js. */
 export function createPostgresDb(url: string): Handle {
-  // prepare:false is required behind Supabase's transaction pooler.
+  // prepare:false keeps the client compatible with Supabase's poolers. Use the SESSION
+  // pooler (port 5432): through the transaction pooler (6543) postgres-js never dispatches
+  // queries that queue behind a busy pool, so bursty pages hang (verified 2026-11-07).
   // Serverless hardening: a frozen function instance can thaw holding a socket the
   // pooler already closed, and a query on it hangs until the platform timeout.
   // Closing idle sockets quickly and bounding connect/lifetime avoids reusing dead

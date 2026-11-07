@@ -85,7 +85,7 @@ env var table, cron notes and smoke checklist: **[docs/deploy.md](docs/deploy.md
 
 In short:
 
-1. Create a Supabase project and copy the **Transaction pooler** URI (port
+1. Create a Supabase project and copy the **Session pooler** URI (port
    6543). Run `DATABASE_URL="…" npm run db:migrate` against it. The client
    already sets `prepare: false`, so no extra flags are needed.
 2. Import the repo in Vercel (Next.js preset, `npm run build`, Node 24) and set

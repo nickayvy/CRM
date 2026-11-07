@@ -7,9 +7,9 @@ Project Settings → General → Node.js Version to **24.x**.
 ## 1. Supabase (Postgres)
 
 1. Create a project at https://supabase.com and note the database password.
-2. Project → **Connect** → copy the **Transaction pooler** connection string:
+2. Project → **Connect** → copy the **Session pooler** connection string:
    ```
-   postgresql://postgres.<project-ref>:<password>@aws-0-<region>.pooler.supabase.com:6543/postgres
+   postgresql://postgres.<project-ref>:<password>@aws-0-<region>.pooler.supabase.com:5432/postgres
    ```
    User is `postgres.<project-ref>`, host is `aws-0-<region>.pooler.supabase.com`,
    port is **6543**.
@@ -26,7 +26,7 @@ convention); leave it off.
 
 4. Apply the migrations from your machine (the build does not migrate):
    ```bash
-   DATABASE_URL="postgresql://postgres.<ref>:<password>@aws-0-<region>.pooler.supabase.com:6543/postgres" npm run db:migrate
+   DATABASE_URL="postgresql://postgres.<ref>:<password>@aws-0-<region>.pooler.supabase.com:5432/postgres" npm run db:migrate
    ```
    Pass the variable inline: the scripts run through `tsx` and do not load
    `.env.local`. The script prints `Applying migrations to Postgres
@@ -124,7 +124,7 @@ Replace `<app>` with your deployment URL.
 ## 6. Troubleshooting
 
 - **`prepared statement "..." does not exist` / `already exists`**: the
-  connection is not going through the transaction pooler. Use the port 6543
+  connection is not going through the transaction pooler. Use the port 5432
   `pooler.supabase.com` URI, not the session pooler (port 5432) or a
   non-pooled direct connection.
 - **PGlite errors or filesystem write errors in the Vercel function logs**:
