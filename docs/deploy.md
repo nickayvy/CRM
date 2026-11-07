@@ -67,7 +67,7 @@ dependency.
 
 ## 3. Crons
 
-`vercel.json` declares two crons, both hourly (`0 * * * *`):
+`vercel.json` declares two crons, both hourly (`0 13 * * * (campaigns) / 0 14 * * * (email)`):
 
 | Path | Does |
 |---|---|
