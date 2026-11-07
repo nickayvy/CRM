@@ -191,10 +191,14 @@ export type AnimatedNumberProps = {
   className?: string;
 };
 
+/** Grace period after an `AnimatedNumber` count's duration before the timer fallback writes the final value. */
+const SETTLE_MARGIN_MS = 80;
+
 /**
  * Counts to `value` with the standard easing. On the first SSR paint and
  * under reduced motion the final formatted value is rendered immediately.
- * Always ends on exactly `format(value)`.
+ * Always ends on exactly `format(value)`, even when no animation frames run
+ * (background tab): a timer writes the final value shortly after `duration`.
  */
 export function AnimatedNumber({
   value,
@@ -223,6 +227,17 @@ export function AnimatedNumber({
       shown.current = value;
       return;
     }
+    const settle = () => {
+      shown.current = value;
+      el.textContent = fmt(value);
+    };
+    // Motion only advances on animation frames, which never arrive in a
+    // background tab or hidden webview. If the count has not finished shortly
+    // after its duration, jump to the final value so the text is never stale.
+    const fallback = setTimeout(() => {
+      controls.stop();
+      settle();
+    }, duration * 1000 + SETTLE_MARGIN_MS);
     const controls = animate(start, value, {
       duration,
       ease: easings.standard,
@@ -231,11 +246,12 @@ export function AnimatedNumber({
         el.textContent = fmt(v);
       },
       onComplete: () => {
-        shown.current = value;
-        el.textContent = fmt(value);
+        clearTimeout(fallback);
+        settle();
       },
     });
     return () => {
+      clearTimeout(fallback);
       controls.stop();
     };
     // `canAnimate`/`from` only matter for the first run.
