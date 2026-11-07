@@ -31,7 +31,10 @@ Vercel project `local-business-crm` (team `nicks-projects-2e9a7352`), linked to 
 Production URL: https://local-business-crm-nicks-projects-2e9a7352.vercel.app (Vercel Authentication is on: sign in to Vercel to open it, or disable Deployment Protection and set `APP_PASSWORD` for the app's own gate).
 Env set: `DATABASE_URL` (Supabase Transaction pooler), `APP_SESSION_SECRET`, `CRON_SECRET`, `APP_TIMEZONE`, `YELP_MODE=fixture`. Crons run daily (Hobby limit).
 Supabase seeded from the PM's machine (100 businesses, 2 call campaigns / 25 queue items, 1 email campaign / 8 enrollments); `npm run build` passed with `DATABASE_URL` set (AC16).
-Live check: `/api/search?q=abc` on the production URL returned the three seeded ABC Plumbing rows from Supabase.
+Live check (final, 2026-11-07 19:40 UTC): all 16 routes (dashboard, businesses list/filter/detail, searches, calling list/campaign/dialer, email list/campaign/messages, rules, design, two JSON APIs) return 200 in 0.4–2.0 s through a Vercel share link; six concurrent dashboard loads all 200; `/api/cron/campaigns` → `{evaluated:1}` and `/api/cron/email` → `{sent:0}` with the bearer. Access decision: the user chose to keep Vercel Authentication on (team members sign in to Vercel to open it).
+
+### Production incident found and fixed during close-out
+Pages issuing more concurrent queries than the postgres-js pool size hung until Vercel's 300 s limit through the Supabase **transaction** pooler (6543), while light pages worked. Root cause (isolated with raw probes): postgres-js pipelines queued queries onto busy connections and Supavisor's transaction mode never answers them. Fix: `max_pipeline: 1` in `src/db/client.ts` (plus `max: 3`, `idle_timeout`, `max_lifetime`, `connect_timeout`). The session pooler (5432) avoids the hang but is capped at 15 clients per project and saturated under a few function instances, so it is not used. Documented in `docs/deploy.md` and `.env.example`.
 
 ## Open issues / follow-ups
 - `YELP_API_KEY` not provided; ingestion runs in fixture mode (three bundled searches) until it is set.
