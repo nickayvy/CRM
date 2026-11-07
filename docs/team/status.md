@@ -9,6 +9,7 @@
 | WP-05 | Calling | 3 | senior-wp05 (Opus) | wp-05-calling / PR #6 | merged | reviews/WP-05.md (ACCEPT, round 1) |
 | WP-06 | Email | 3 | senior-wp06 (Opus) | wp-06-email / PR #4 | merged | reviews/WP-06.md (ACCEPT, round 1) |
 | WP-07 | Dashboard and integration | 4 | senior-wp07 (Opus) | wp-07-dashboard / PR #7 | merged | reviews/WP-07.md (ACCEPT, round 1) |
+| WP-08 | UI polish (AnimatedNumber fallback, mobile bulk bar) | 5 | senior-wp08 (Opus) | wp-08-polish | spawned | — |
 
 Estimated agents: 7 Opus seniors + roughly 1–3 Sonnet juniors each.
 
@@ -31,3 +32,4 @@ Estimated agents: 7 Opus seniors + roughly 1–3 Sonnet juniors each.
 - 2026-11-07 Vercel project `local-business-crm` (prj_j994b2QXyhv1gcryUmHlNpc1r8cU, team team_WcqJseRx2mNyLJUfceaQwuXa) created via the Vercel MCP and linked to nickayvy/CRM (production branch main). `DATABASE_URL` to be set by the user in Vercel. This push triggers the first production deployment.
 - 2026-11-07 Deployed to Vercel (production READY). Supabase seeded; live `/api/search` returns Supabase rows. Crons switched to daily for the Hobby plan.
 - 2026-11-07 Hosted app hung on query-heavy pages (postgres-js pipelining vs Supabase transaction pooler). Fixed with max_pipeline:1; verified all routes, a 6-way concurrent burst, and both crons live. User keeps Vercel Authentication on. Run complete.
+- 2026-11-07 WP-08 spawned for the two cosmetic open issues. Yelp live mode and real email delivery remain gated on user-supplied YELP_API_KEY / RESEND_API_KEY.
