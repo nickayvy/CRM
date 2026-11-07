@@ -11,11 +11,14 @@ import {
   listCategories,
   listCities,
 } from "@/db/repo/businesses";
+import { listCallCampaigns } from "@/db/repo/call-campaigns";
+import { listEmailCampaigns } from "@/db/repo/email-campaigns";
 import { getSearchJob } from "@/db/repo/search-jobs";
 import { BusinessesFilters } from "@/features/businesses/components/businesses-filters";
 import { BusinessesTable } from "@/features/businesses/components/businesses-table";
 import { parseBusinessesQuery, patchSearchParams, type RawSearchParams } from "@/features/businesses/search-params";
 import { toBusinessRow } from "@/features/businesses/types";
+import type { CampaignStatus } from "@/db/schema";
 
 export const dynamic = "force-dynamic";
 
@@ -39,14 +42,22 @@ export default async function Page({ searchParams }: Props) {
   // The stat grid counts every qualification within the other active filters.
   const { qualification: _qualification, ...filterWithoutQualification } = filter;
   void _qualification;
-  const [{ rows, total }, qualCounts, statusCounts, cities, categories, job] = await Promise.all([
+  const [{ rows, total }, qualCounts, statusCounts, cities, categories, job, callCampaigns, emailCampaigns] = await Promise.all([
     listBusinesses(db, filter, { sort, limit: pageSize, offset: (page - 1) * pageSize }),
     countByQualification(db, filterWithoutQualification),
     countByStatus(db),
     listCities(db),
     listCategories(db),
     filter.sourceJobId ? getSearchJob(db, filter.sourceJobId) : Promise.resolve(null),
+    listCallCampaigns(db),
+    listEmailCampaigns(db),
   ]);
+  // Targets for the "Add to … campaign" bulk actions: every campaign that is not completed.
+  const toTarget = (c: { id: string; name: string; status: CampaignStatus }) => ({ id: c.id, name: c.name, status: c.status });
+  const campaignTargets = {
+    call: callCampaigns.filter((c) => c.status !== "completed").map(toTarget),
+    email: emailCampaigns.filter((c) => c.status !== "completed").map(toTarget),
+  };
   const all = qualCounts.qualified + qualCounts.review + qualCounts.rejected;
   const qs = toQueryString(sp);
   const qualHref = (q: string | null) => `/businesses${patchSearchParams(qs, { qualification: q })}`;
@@ -87,6 +98,7 @@ export default async function Page({ searchParams }: Props) {
         page={page}
         pageSize={pageSize}
         sort={{ id: sort.field, desc: sort.dir === "desc" }}
+        campaignTargets={campaignTargets}
       />
     </PageShell>
   );

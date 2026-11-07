@@ -125,6 +125,27 @@ describe("DataTable selection", () => {
     expect(screen.getByRole("region", { name: "Bulk actions" }).textContent).toContain("2 selected");
   });
 
+  it("clear() resets the selection used by a toggle fired before the next render", () => {
+    const onSelectionChange = vi.fn();
+    const clearFirst = ({ clear }: { clear: () => void }) => (
+      <button type="button" onClick={clear}>
+        Clear via action
+      </button>
+    );
+    renderTable({ enableSelection: true, onSelectionChange, bulkActions: clearFirst });
+    const boxes = screen.getAllByRole("checkbox", { name: "Select row" });
+    fireEvent.click(boxes[0]);
+    fireEvent.click(boxes[1]);
+    expect(onSelectionChange).toHaveBeenLastCalledWith({ a: true, b: true });
+    const clearButton = screen.getByRole("button", { name: "Clear via action" });
+    act(() => {
+      clearButton.click();
+      boxes[2].click();
+    });
+    expect(onSelectionChange).toHaveBeenLastCalledWith({ c: true });
+    expect(screen.getByRole("region", { name: "Bulk actions" }).textContent).toContain("1 selected");
+  });
+
   it("selects every row with the header checkbox", () => {
     renderTable({ enableSelection: true, bulkActions });
     fireEvent.click(screen.getByRole("checkbox", { name: "Select all rows" }));

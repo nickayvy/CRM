@@ -18,9 +18,11 @@ import { Button } from "@/components/ui/button";
 import { getDb } from "@/db/client";
 import { listActivities } from "@/db/repo/activities";
 import { getBusiness } from "@/db/repo/businesses";
+import { listBusinessMemberships } from "@/db/repo/dashboard";
 import { getSearchJob } from "@/db/repo/search-jobs";
 import type { Activity } from "@/db/schema";
 import { BusinessHeaderActions } from "@/features/businesses/components/business-actions";
+import { CampaignMembership } from "@/features/businesses/components/campaign-membership";
 import { CrmForm } from "@/features/businesses/components/crm-form";
 import { NoteForm } from "@/features/businesses/components/note-form";
 import { ReasonChips, isSoftReason, reasonLabel } from "@/features/businesses/components/reason-chips";
@@ -75,9 +77,10 @@ export default async function Page({ params }: Props) {
   const db = getDb();
   const business = await getBusiness(db, id);
   if (!business) notFound();
-  const [activities, job] = await Promise.all([
+  const [activities, job, memberships] = await Promise.all([
     listActivities(db, id, { limit: 200 }),
     business.sourceJobId ? getSearchJob(db, business.sourceJobId) : Promise.resolve(null),
+    listBusinessMemberships(db, id),
   ]);
 
   const b = business;
@@ -251,6 +254,9 @@ export default async function Page({ params }: Props) {
                 nextFollowUpLocal: toDateTimeLocal(b.nextFollowUpAt, env.APP_TIMEZONE),
               }}
             />
+          </Panel>
+          <Panel title="Campaigns" description="Call queues and email sequences this business is in">
+            <CampaignMembership memberships={memberships} />
           </Panel>
           <Panel title="Activity" description={`${activities.length} entr${activities.length === 1 ? "y" : "ies"}`}>
             <NoteForm businessId={b.id} />
