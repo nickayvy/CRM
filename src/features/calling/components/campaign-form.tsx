@@ -96,7 +96,17 @@ export function CampaignForm({ action, initial = {}, submitLabel, cancelHref, su
   }
 
   return (
-    <form action={formAction} className="grid gap-8" noValidate>
+    <form
+      action={formAction}
+      // Dispatch manually so React does not reset the fields when validation fails.
+      onSubmit={(e) => {
+        e.preventDefault();
+        const fd = new FormData(e.currentTarget);
+        React.startTransition(() => formAction(fd));
+      }}
+      className="grid gap-8"
+      noValidate
+    >
       <FieldSet>
         <FieldLegend>Campaign</FieldLegend>
         <FieldGroup>
