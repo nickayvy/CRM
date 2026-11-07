@@ -12,7 +12,7 @@ import { CampaignControls } from "@/features/email/components/campaign-controls"
 import { type EnrollmentRow, EnrollmentsTable } from "@/features/email/components/enrollments-table";
 import { senderKind } from "@/lib/email/sender";
 import { env } from "@/lib/env";
-import { formatDate, formatRelative } from "@/lib/format";
+import { formatDate } from "@/lib/format";
 import { PAUSE_REASON_LABELS } from "@/lib/labels";
 
 export const dynamic = "force-dynamic";
@@ -59,7 +59,7 @@ export default async function EmailCampaignPage({ params, searchParams }: Props)
       nextSendLabel: waiting
         ? e.nextSendAt! <= now
           ? "Due now"
-          : `${formatRelative(e.nextSendAt!, now)}`
+          : formatDate(e.nextSendAt!, env.APP_TIMEZONE)
         : "—",
       lastSentAt: e.lastSentAt?.toISOString() ?? null,
       lastSentLabel: e.lastSentAt ? formatDate(e.lastSentAt, env.APP_TIMEZONE) : "—",

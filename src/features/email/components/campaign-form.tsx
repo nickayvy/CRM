@@ -27,9 +27,9 @@ export type CampaignFormValues = {
 type StepDraft = { key: number; subject: string; body: string; delayDays: string };
 type FieldKey = "subject" | "body";
 
-let nextKey = 1;
-const toDraft = (s: CampaignFormValues["steps"][number]): StepDraft => ({
-  key: nextKey++,
+// Keys are deterministic (index-based at first render) so server and client markup match.
+const toDraft = (s: CampaignFormValues["steps"][number], key: number): StepDraft => ({
+  key,
   subject: s.subject,
   body: s.body,
   delayDays: String(s.delayDays),
@@ -55,7 +55,8 @@ export function CampaignForm({
   const [fromName, setFromName] = React.useState(initial.fromName);
   const [fromEmail, setFromEmail] = React.useState(initial.fromEmail);
   const [dailyCap, setDailyCap] = React.useState(String(initial.dailyCap));
-  const [steps, setSteps] = React.useState<StepDraft[]>(() => initial.steps.map(toDraft));
+  const [steps, setSteps] = React.useState<StepDraft[]>(() => initial.steps.map((s, i) => toDraft(s, i + 1)));
+  const nextKey = React.useRef(initial.steps.length + 1);
   const [fieldErrors, setFieldErrors] = React.useState<Record<string, string[]>>({});
   const [formError, setFormError] = React.useState<string | null>(null);
   const [previewId, setPreviewId] = React.useState(previewBusinesses[0]?.id ?? "");
@@ -77,7 +78,7 @@ export function CampaignForm({
     });
 
   const addStep = () =>
-    setSteps((prev) => [...prev, toDraft({ subject: "", body: "", delayDays: prev.length === 0 ? 0 : 3 })]);
+    setSteps((prev) => [...prev, toDraft({ subject: "", body: "", delayDays: prev.length === 0 ? 0 : 3 }, nextKey.current++)]);
 
   const removeStep = (key: number) => setSteps((prev) => prev.filter((s) => s.key !== key));
 
