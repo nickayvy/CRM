@@ -22,7 +22,7 @@ prepared statements. `src/db/client.ts` creates the postgres-js client as
 `postgres(url, { prepare: false, max: 5 })`, so prepared statements are off
 and at most 5 connections are opened per server instance. The URL is passed
 through untouched. No `?pgbouncer=true` flag is needed (that is a Prisma
-convention; postgres-js ignores it).
+convention); leave it off.
 
 4. Apply the migrations from your machine (the build does not migrate):
    ```bash
