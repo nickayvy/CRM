@@ -7,9 +7,9 @@ Project Settings → General → Node.js Version to **24.x**.
 ## 1. Supabase (Postgres)
 
 1. Create a project at https://supabase.com and note the database password.
-2. Project → **Connect** → copy the **Session pooler** connection string:
+2. Project → **Connect** → copy the **Transaction pooler** connection string:
    ```
-   postgresql://postgres.<project-ref>:<password>@aws-0-<region>.pooler.supabase.com:5432/postgres
+   postgresql://postgres.<project-ref>:<password>@aws-0-<region>.pooler.supabase.com:6543/postgres
    ```
    User is `postgres.<project-ref>`, host is `aws-0-<region>.pooler.supabase.com`,
    port is **6543**.
@@ -19,14 +19,18 @@ Project Settings → General → Node.js Version to **24.x**.
 
 **Why the session pooler, and no extra flags.** The transaction pooler (6543) hangs any postgres-js query that has to wait for a free pooled connection, so bursty pages never finish; the session pooler does not. It also does not support
 prepared statements. `src/db/client.ts` creates the postgres-js client as
-`postgres(url, { prepare: false, max: 5 })`, so prepared statements are off
-and at most 5 connections are opened per server instance. The URL is passed
+`postgres(url, { prepare: false, max: 3, max_pipeline: 1, idle_timeout: 20, max_lifetime: 300, connect_timeout: 10 })`:
+prepared statements are off, at most 3 connections are opened per server
+instance, and only one query is in flight per connection (postgres-js
+pipelines queued queries by default and the transaction pooler never answers
+them, so bursty pages would hang). The session pooler (5432) is capped at 15
+clients per project and saturates under a few function instances; do not use it. The URL is passed
 through untouched. No `?pgbouncer=true` flag is needed (that is a Prisma
 convention); leave it off.
 
 4. Apply the migrations from your machine (the build does not migrate):
    ```bash
-   DATABASE_URL="postgresql://postgres.<ref>:<password>@aws-0-<region>.pooler.supabase.com:5432/postgres" npm run db:migrate
+   DATABASE_URL="postgresql://postgres.<ref>:<password>@aws-0-<region>.pooler.supabase.com:6543/postgres" npm run db:migrate
    ```
    Pass the variable inline: the scripts run through `tsx` and do not load
    `.env.local`. The script prints `Applying migrations to Postgres
@@ -51,7 +55,7 @@ dependency.
 
 | Variable | Required | Default if unset | Notes |
 |---|---|---|---|
-| `DATABASE_URL` | **Yes, on Vercel** | PGlite on disk | The session pooler URI from step 1 (port 5432, not 6543). PGlite cannot persist on serverless, so leaving it unset breaks the deployment. |
+| `DATABASE_URL` | **Yes, on Vercel** | PGlite on disk | The session pooler URI from step 1 (port 6543, not 6543). PGlite cannot persist on serverless, so leaving it unset breaks the deployment. |
 | `APP_PASSWORD` | Recommended | Gate off, every page is open | Shared workspace password. |
 | `APP_SESSION_SECRET` | Recommended (needed with `APP_PASSWORD`) | Insecure dev default, with a warning in logs | Generate with `openssl rand -hex 32`. Changing it, or `APP_PASSWORD`, logs everyone out. |
 | `CRON_SECRET` | Recommended | `/api/cron/*` are open | Vercel sends it automatically as `Authorization: Bearer <CRON_SECRET>` to declared crons. Use a long random value, e.g. `openssl rand -hex 32`. |
@@ -124,8 +128,8 @@ Replace `<app>` with your deployment URL.
 ## 6. Troubleshooting
 
 - **`prepared statement "..." does not exist` / `already exists`**: the
-  connection is not going through the transaction pooler. Use the port 5432
-  `pooler.supabase.com` URI, not the session pooler (port 5432) or a
+  connection is not going through the transaction pooler. Use the port 6543
+  `pooler.supabase.com` URI, not the session pooler (port 6543) or a
   non-pooled direct connection.
 - **PGlite errors or filesystem write errors in the Vercel function logs**:
   `DATABASE_URL` is unset (or blank) for that environment, so the app fell
