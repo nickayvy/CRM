@@ -1,0 +1,81 @@
+{
+  "id": "V7nZefv8b3jutgmSl3dLpp",
+  "alias": "highland-park-air-conditioning-dallas",
+  "name": "Highland Park Air Conditioning",
+  "image_url": "https://s3-media0.fl.yelpcdn.com/bphoto/95WLx3JOohPRVlF-y8gNe-/o.jpg",
+  "is_closed": false,
+  "url": "https://www.yelp.com/biz/highland-park-air-conditioning-dallas",
+  "review_count": 29,
+  "categories": [
+    {
+      "alias": "hvac",
+      "title": "Heating & Air Conditioning/HVAC"
+    }
+  ],
+  "rating": 5,
+  "coordinates": {
+    "latitude": 32.743871,
+    "longitude": -96.809479
+  },
+  "transactions": [],
+  "price": "$$",
+  "location": {
+    "address1": "19510 Northwest Hwy",
+    "address2": null,
+    "address3": null,
+    "city": "Dallas",
+    "zip_code": "75208",
+    "country": "US",
+    "state": "TX",
+    "display_address": [
+      "19510 Northwest Hwy",
+      "Dallas, TX 75208"
+    ]
+  },
+  "phone": "+12145559251",
+  "display_phone": "(214) 555-9251",
+  "is_claimed": true,
+  "photos": [
+    "https://s3-media0.fl.yelpcdn.com/bphoto/iYD-fNcEDCYknkGNojZAF5/o.jpg",
+    "https://s3-media0.fl.yelpcdn.com/bphoto/d3KLVlcBmwiCW9NnRPPbu_/o.jpg",
+    "https://s3-media0.fl.yelpcdn.com/bphoto/nSFX38hFBkhym8wwJzU3Nv/o.jpg"
+  ],
+  "hours": [
+    {
+      "open": [
+        {
+          "is_overnight": false,
+          "start": "0700",
+          "end": "1800",
+          "day": 0
+        },
+        {
+          "is_overnight": false,
+          "start": "0700",
+          "end": "1800",
+          "day": 1
+        },
+        {
+          "is_overnight": false,
+          "start": "0700",
+          "end": "1800",
+          "day": 2
+        },
+        {
+          "is_overnight": false,
+          "start": "0700",
+          "end": "1800",
+          "day": 3
+        },
+        {
+          "is_overnight": false,
+          "start": "0700",
+          "end": "1800",
+          "day": 4
+        }
+      ],
+      "hours_type": "REGULAR",
+      "is_open_now": true
+    }
+  ]
+}

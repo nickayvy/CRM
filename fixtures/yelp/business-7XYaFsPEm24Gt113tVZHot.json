@@ -1,0 +1,89 @@
+{
+  "id": "7XYaFsPEm24Gt113tVZHot",
+  "alias": "comanche-climate-control-dallas",
+  "name": "Comanche Climate Control",
+  "image_url": "https://s3-media0.fl.yelpcdn.com/bphoto/0q4K3EYZMHL2iddvAIYVz_/o.jpg",
+  "is_closed": false,
+  "url": "https://www.yelp.com/biz/comanche-climate-control-dallas",
+  "review_count": 259,
+  "categories": [
+    {
+      "alias": "hvac",
+      "title": "Heating & Air Conditioning/HVAC"
+    }
+  ],
+  "rating": 4,
+  "coordinates": {
+    "latitude": 32.719441,
+    "longitude": -96.933261
+  },
+  "transactions": [
+    "request_a_quote"
+  ],
+  "location": {
+    "address1": "17621 Greenville Ave",
+    "address2": "Suite 400",
+    "address3": null,
+    "city": "Dallas",
+    "zip_code": "75235",
+    "country": "US",
+    "state": "TX",
+    "display_address": [
+      "17621 Greenville Ave",
+      "Suite 400",
+      "Dallas, TX 75235"
+    ]
+  },
+  "phone": "+12145557305",
+  "display_phone": "(214) 555-7305",
+  "is_claimed": true,
+  "photos": [
+    "https://s3-media0.fl.yelpcdn.com/bphoto/p4D5A9v2jGzdzOPUe9ZPL1/o.jpg",
+    "https://s3-media0.fl.yelpcdn.com/bphoto/urpE2fdydOb--DOjuRfR9-/o.jpg",
+    "https://s3-media0.fl.yelpcdn.com/bphoto/VXZypXKNRE-Ab9JHhvXT48/o.jpg"
+  ],
+  "hours": [
+    {
+      "open": [
+        {
+          "is_overnight": false,
+          "start": "0800",
+          "end": "1700",
+          "day": 0
+        },
+        {
+          "is_overnight": false,
+          "start": "0800",
+          "end": "1700",
+          "day": 1
+        },
+        {
+          "is_overnight": false,
+          "start": "0800",
+          "end": "1700",
+          "day": 2
+        },
+        {
+          "is_overnight": false,
+          "start": "0800",
+          "end": "1700",
+          "day": 3
+        },
+        {
+          "is_overnight": false,
+          "start": "0800",
+          "end": "1700",
+          "day": 4
+        },
+        {
+          "is_overnight": false,
+          "start": "0900",
+          "end": "1300",
+          "day": 5
+        }
+      ],
+      "hours_type": "REGULAR",
+      "is_open_now": true
+    }
+  ]
+}

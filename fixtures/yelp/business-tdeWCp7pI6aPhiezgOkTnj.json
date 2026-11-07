@@ -1,0 +1,85 @@
+{
+  "id": "tdeWCp7pI6aPhiezgOkTnj",
+  "alias": "domain-smiles-dental-austin",
+  "name": "Domain Smiles Dental",
+  "image_url": "https://s3-media0.fl.yelpcdn.com/bphoto/fd8R514qR8_gfCKWZ3JKKN/o.jpg",
+  "is_closed": false,
+  "url": "https://www.yelp.com/biz/domain-smiles-dental-austin",
+  "review_count": 120,
+  "categories": [
+    {
+      "alias": "dentists",
+      "title": "General Dentistry"
+    },
+    {
+      "alias": "pediatric_dentists",
+      "title": "Pediatric Dentists"
+    }
+  ],
+  "rating": 3.5,
+  "coordinates": {
+    "latitude": 30.271165,
+    "longitude": -97.74892
+  },
+  "transactions": [],
+  "price": "$$",
+  "location": {
+    "address1": "10425 Slaughter Ln",
+    "address2": null,
+    "address3": null,
+    "city": "Austin",
+    "zip_code": "78752",
+    "country": "US",
+    "state": "TX",
+    "display_address": [
+      "10425 Slaughter Ln",
+      "Austin, TX 78752"
+    ]
+  },
+  "phone": "+15125552536",
+  "display_phone": "(512) 555-2536",
+  "is_claimed": true,
+  "photos": [
+    "https://s3-media0.fl.yelpcdn.com/bphoto/NOAxxi3rHYR0RroENbnaId/o.jpg",
+    "https://s3-media0.fl.yelpcdn.com/bphoto/_AeB4qPDnjdTSXb1sz3Njs/o.jpg",
+    "https://s3-media0.fl.yelpcdn.com/bphoto/iNNn71zQ_XmqE-OJD7Sti_/o.jpg"
+  ],
+  "hours": [
+    {
+      "open": [
+        {
+          "is_overnight": false,
+          "start": "0800",
+          "end": "1700",
+          "day": 0
+        },
+        {
+          "is_overnight": false,
+          "start": "0800",
+          "end": "1700",
+          "day": 1
+        },
+        {
+          "is_overnight": false,
+          "start": "0800",
+          "end": "1700",
+          "day": 2
+        },
+        {
+          "is_overnight": false,
+          "start": "0800",
+          "end": "1700",
+          "day": 3
+        },
+        {
+          "is_overnight": false,
+          "start": "0800",
+          "end": "1300",
+          "day": 4
+        }
+      ],
+      "hours_type": "REGULAR",
+      "is_open_now": true
+    }
+  ]
+}

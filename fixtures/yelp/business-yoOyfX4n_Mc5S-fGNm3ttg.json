@@ -1,0 +1,82 @@
+{
+  "id": "yoOyfX4n_Mc5S-fGNm3ttg",
+  "alias": "bluebonnet-dental-studio-bee-cave",
+  "name": "Bluebonnet Dental Studio",
+  "image_url": "",
+  "is_closed": false,
+  "url": "https://www.yelp.com/biz/bluebonnet-dental-studio-bee-cave",
+  "review_count": 17,
+  "categories": [
+    {
+      "alias": "dentists",
+      "title": "General Dentistry"
+    }
+  ],
+  "rating": 4.5,
+  "coordinates": {
+    "latitude": 30.202642,
+    "longitude": -97.802327
+  },
+  "transactions": [],
+  "price": "$$",
+  "location": {
+    "address1": "19620 Slaughter Ln",
+    "address2": "Suite 900",
+    "address3": null,
+    "city": "Bee Cave",
+    "zip_code": "78738",
+    "country": "US",
+    "state": "TX",
+    "display_address": [
+      "19620 Slaughter Ln",
+      "Suite 900",
+      "Bee Cave, TX 78738"
+    ]
+  },
+  "phone": "+15125550520",
+  "display_phone": "(512) 555-0520",
+  "is_claimed": false,
+  "photos": [
+    "https://s3-media0.fl.yelpcdn.com/bphoto/GoQ4tv_uwor95FJcJUmVfk/o.jpg",
+    "https://s3-media0.fl.yelpcdn.com/bphoto/dMD9Xd6k6Zfli9Ko7NM0H7/o.jpg",
+    "https://s3-media0.fl.yelpcdn.com/bphoto/AIPGtvX64cd-CYC7ekUnxl/o.jpg"
+  ],
+  "hours": [
+    {
+      "open": [
+        {
+          "is_overnight": false,
+          "start": "0800",
+          "end": "1700",
+          "day": 0
+        },
+        {
+          "is_overnight": false,
+          "start": "0800",
+          "end": "1700",
+          "day": 1
+        },
+        {
+          "is_overnight": false,
+          "start": "0800",
+          "end": "1700",
+          "day": 2
+        },
+        {
+          "is_overnight": false,
+          "start": "0800",
+          "end": "1700",
+          "day": 3
+        },
+        {
+          "is_overnight": false,
+          "start": "0800",
+          "end": "1300",
+          "day": 4
+        }
+      ],
+      "hours_type": "REGULAR",
+      "is_open_now": true
+    }
+  ]
+}
