@@ -304,6 +304,8 @@ export function DataTable<T extends RowData>({
 
   const selectedIds = Object.keys(selectionValue).filter((id) => selectionValue[id]);
   const clearSelection = () => {
+    // Reset the ref too: a toggle fired before the next render must resolve against {}, not the old selection.
+    selectionRef.current = {};
     if (selection === undefined) setInternalSelection({});
     onSelectionChange?.({});
   };
