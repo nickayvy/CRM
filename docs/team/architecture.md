@@ -261,7 +261,7 @@ export async function* searchAll(client: YelpClient, params: YelpSearchParams, m
 export function normalizeYelpBusiness(b: YelpBusiness | YelpBusinessDetails, ctx: { jobId?: string; searchCategory: string; searchLocation: string }): NewBusiness;
 ```
 Fixture adapter: `search()` resolves `fixtures/yelp/search-<slug>.json` where
-slug = `${categories first alias}-${location lowercased, non-alphanumerics → '-', collapsed}` and
+slug = `${categories first alias}-${city}` where city = the part of `location` before the first comma, lowercased, non-alphanumerics → '-', collapsed (so "Houston, TX" → `plumbing-houston`; the adapter also accepts the full-location slug) and
 serves it paged by `limit/offset`; unknown slug → `{ businesses: [], total: 0 }`.
 `details(id)` resolves `fixtures/yelp/business-<id>.json`, else returns the
 search record with `is_claimed: true, photos: [], hours: []`.
@@ -272,7 +272,7 @@ backoff 500 ms × 2^n; other 4xx → `YelpApiError` (no retry); 5xx → retry 3.
 ```ts
 export type QualifyContext = { searchCategory: string; categoryAliases: string[]; radiusM: number; locationState?: string | null;
   sameNameCityCount: number;     // distinct cities in DB with the same nameNormalized, including this business
-  phoneDuplicate: boolean };     // another business (different yelpId) has the same phoneDigits
+  phoneDuplicate: boolean };     // an EARLIER-ingested business (by createdAt, then yelpId; different yelpId) has the same phoneDigits — the first record keeps, later ones are duplicates
 export type QualifyResult = { qualification: 'qualified' | 'review' | 'rejected'; score: number; reasons: ReasonCode[] };
 export type ReasonCode = 'closed' | 'category_mismatch' | 'chain' | 'multi_location' | 'no_phone' | 'out_of_area'
   | 'low_rating' | 'too_few_reviews' | 'too_many_reviews' | 'duplicate_phone' | 'unclaimed' | 'low_score';
@@ -428,7 +428,7 @@ if any applies)
 7. `low_rating`: `rating < minRating` (null rating counts as 0).
 8. `too_few_reviews`: `reviewCount < minReviews`.
 9. `too_many_reviews`: `maxReviews` set and `reviewCount > maxReviews`.
-10. `duplicate_phone`: `ctx.phoneDuplicate`.
+10. `duplicate_phone`: `ctx.phoneDuplicate` (earlier-ingested record wins; see QualifyContext).
 
 Soft flags (never reject): `unclaimed` when `isClaimed === false`;
 `low_score` when no hard rejection and `score < reviewScoreBelow` → the
@@ -447,7 +447,7 @@ proximityPart   = distanceM != null && distanceM <= radiusM / 2 ? +5 : 0
 score           = clamp(round(base + ratingPart + reviewPart + phonePart + claimedPart + categoryPart + proximityPart), 0, 100)
 ```
 Worked examples (unit test must reproduce):
-- rating 4.5, reviews 120, phone yes, isClaimed true, primary category matches, distance 3000 of radius 20000 → 50+15+10+5+10+10+5 = **95**.
+- rating 4.5, reviews 120, phone yes, isClaimed unknown (null), primary category matches, distance 3000 of radius 20000 → 50+15+10+5+0+10+5 = **95**. (With isClaimed true the sum is 105, clamped to **100**.)
 - rating 3.0, reviews 4, phone yes, isClaimed null, secondary category matches, distance 15000/20000 → 50+0+3+5+0+5+0 = **63**.
 - rating null, reviews 0, no phone, isClaimed false, no category match, distance null → 50-20+0-5-10+0+0 = **15**.
 - rating 5.0, reviews 2000, phone yes, claimed true, primary match, distance 100 → 50+20+17+5+10+10+5 = 117 → **100**.
