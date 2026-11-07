@@ -1,10 +1,93 @@
 import type { Metadata } from "next";
-import { PlaceholderPage } from "@/components/shell/placeholder-page";
+import Link from "next/link";
+import { SearchIcon } from "lucide-react";
+import { PageHeader, PageShell, StatCard, StatGrid } from "@/components/primitives";
+import { Button } from "@/components/ui/button";
+import { getDb } from "@/db/client";
+import {
+  countByQualification,
+  countByStatus,
+  listBusinesses,
+  listCategories,
+  listCities,
+} from "@/db/repo/businesses";
+import { getSearchJob } from "@/db/repo/search-jobs";
+import { BusinessesFilters } from "@/features/businesses/components/businesses-filters";
+import { BusinessesTable } from "@/features/businesses/components/businesses-table";
+import { parseBusinessesQuery, patchSearchParams, type RawSearchParams } from "@/features/businesses/search-params";
+import { toBusinessRow } from "@/features/businesses/types";
 
 export const dynamic = "force-dynamic";
 
 export const metadata: Metadata = { title: "Businesses" };
 
-export default function Page() {
-  return <PlaceholderPage title="Businesses" wp="WP-04" />;
+type Props = { searchParams: Promise<Record<string, string | string[] | undefined>> };
+
+function toQueryString(sp: RawSearchParams): string {
+  const u = new URLSearchParams();
+  for (const [k, v] of Object.entries(sp)) {
+    if (Array.isArray(v)) v.forEach((x) => u.append(k, x));
+    else if (v !== undefined) u.set(k, v);
+  }
+  return u.toString();
+}
+
+export default async function Page({ searchParams }: Props) {
+  const sp = await searchParams;
+  const { filter, sort, page, pageSize } = parseBusinessesQuery(sp);
+  const db = getDb();
+  // The stat grid counts every qualification within the other active filters.
+  const { qualification: _qualification, ...filterWithoutQualification } = filter;
+  void _qualification;
+  const [{ rows, total }, qualCounts, statusCounts, cities, categories, job] = await Promise.all([
+    listBusinesses(db, filter, { sort, limit: pageSize, offset: (page - 1) * pageSize }),
+    countByQualification(db, filterWithoutQualification),
+    countByStatus(db),
+    listCities(db),
+    listCategories(db),
+    filter.sourceJobId ? getSearchJob(db, filter.sourceJobId) : Promise.resolve(null),
+  ]);
+  const all = qualCounts.qualified + qualCounts.review + qualCounts.rejected;
+  const qs = toQueryString(sp);
+  const qualHref = (q: string | null) => `/businesses${patchSearchParams(qs, { qualification: q })}`;
+
+  return (
+    <PageShell width="full">
+      <PageHeader
+        title="Businesses"
+        description={
+          job
+            ? `From the search “${job.categoryAliases.join(", ")}” in ${job.location}.`
+            : "Every business pulled from Yelp, qualified by your rules."
+        }
+        actions={
+          <Button asChild size="sm">
+            <Link href="/searches/new">
+              <SearchIcon /> New search
+            </Link>
+          </Button>
+        }
+      />
+      <StatGrid columns={4}>
+        <StatCard label="Total" value={all} href={qualHref(null)} />
+        <StatCard label="Qualified" value={qualCounts.qualified} href={qualHref("qualified")} />
+        <StatCard label="Review" value={qualCounts.review} href={qualHref("review")} />
+        <StatCard label="Rejected" value={qualCounts.rejected} href={qualHref("rejected")} />
+      </StatGrid>
+      <BusinessesFilters
+        filter={filter}
+        cities={cities}
+        categories={categories}
+        qualificationCounts={qualCounts}
+        statusCounts={statusCounts}
+      />
+      <BusinessesTable
+        rows={rows.map(toBusinessRow)}
+        total={total}
+        page={page}
+        pageSize={pageSize}
+        sort={{ id: sort.field, desc: sort.dir === "desc" }}
+      />
+    </PageShell>
+  );
 }
