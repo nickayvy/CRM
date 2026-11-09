@@ -43,7 +43,7 @@ Estimated agents: 7 Opus seniors + roughly 1–3 Sonnet juniors each.
 | WP-11 | Leadwire theme, shell, Supabase Auth | 1 | senior-wp11 (Opus) | wp-11-theme-shell-auth / PR #9 | merged | v2/reviews/WP-11.md (ACCEPT) |
 | WP-12 | Data model v2, repos, test-data removal | 1 | senior-wp12 (Opus) | wp-12-data-v2 / PR #10 | merged | v2/reviews/WP-12.md (ACCEPT) |
 | WP-13 | Trustpilot discovery (Firecrawl) | 2 | senior-wp13 (Opus) | wp-13-discovery / PR #11 | merged | v2/reviews/WP-13.md (ACCEPT) |
-| WP-14 | Lookup UI | 2 | senior-wp14 (Opus) | wp-14-lookup-ui | spawned | — |
+| WP-14 | Lookup UI | 2 | senior-wp14 (Opus) | wp-14-lookup-ui / PR #13 | merged | v2/reviews/WP-14.md (ACCEPT) |
 | WP-15 | Leads UI | 2 | senior-wp15 (Opus) | wp-15-leads-ui / PR #12 | merged | v2/reviews/WP-15.md (ACCEPT) |
 | WP-16 | Restyle + integration | 3 | — | wp-16-restyle | blocked on wave 2 | — |
 
@@ -54,3 +54,4 @@ Estimated agents: 7 Opus seniors + roughly 1–3 Sonnet juniors each.
 - 2026-11-08 Main green after wave 1 (536 tests, 0 warnings). Dev-only auth bypass was proposed and refused by the permission classifier (security weakening); signed-in QA waits for a user-created Supabase test account. Wave 2 spawned: WP-13, WP-14, WP-15 in parallel. Vercel env: NEXT_PUBLIC_SUPABASE_URL/ANON_KEY set.
 - 2026-11-08 WP-13 delivered (PR #11, 13 files, 570 tests); PM review ACCEPT; merged.
 - 2026-11-08 WP-15 delivered (PR #12, 15 files, 642 tests); PM review ACCEPT; merged. Awaiting WP-14.
+- 2026-11-09 WP-14 delivered (PR #13, 31 files); PM review ACCEPT; merged with the discovery bridge wired to WP-13. Wave 2 complete; main 727 tests, 0 warnings.

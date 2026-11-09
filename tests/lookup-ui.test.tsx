@@ -18,7 +18,7 @@ const toasts = vi.hoisted(() => ({ success: vi.fn(), error: vi.fn(), info: vi.fn
 vi.mock("sonner", () => ({ toast: toasts }));
 
 const discovery = vi.hoisted(() => ({ scrapeUrlAction: vi.fn(), seedCategoryAction: vi.fn() }));
-vi.mock("@/features/lookup/discovery-stub-actions", () => discovery);
+vi.mock("@/features/discovery/actions", () => ({ ...discovery, discoveryConfigured: () => true }));
 
 const lookupActions = vi.hoisted(() => ({ addToLeadsAction: vi.fn(), getDossierAction: vi.fn() }));
 vi.mock("@/features/lookup/actions", () => lookupActions);
