@@ -149,7 +149,8 @@ function build(r: Row): YelpBusiness {
   const display = digits.length === 11 ? `(${digits.slice(1, 4)}) ${digits.slice(4, 7)}-${digits.slice(7)}` : "";
   return makeYelpBusiness({
     id,
-    alias: `${name.toLowerCase().replace(/[^a-z0-9]+/g, "-")}-${city.toLowerCase().replace(/\s+/g, "-")}`,
+    // The id suffix keeps aliases unique (the duplicate-phone pair shares name and city).
+    alias: `${name.toLowerCase().replace(/[^a-z0-9]+/g, "-")}-${city.toLowerCase().replace(/\s+/g, "-")}-${id.slice(0, 4).toLowerCase()}`,
     name,
     rating,
     review_count: reviews,

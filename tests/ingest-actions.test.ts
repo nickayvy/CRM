@@ -4,11 +4,19 @@ import type { Db } from "@/db/client";
 import { countByQualification, listBusinesses } from "@/db/repo/businesses";
 import { getRules } from "@/db/repo/rules";
 import { getSearchJob } from "@/db/repo/search-jobs";
+import { count } from "drizzle-orm";
 import { createTestDb } from "@/db/test-utils";
+import { searchJobs } from "@/db/schema";
+import { createTrapYelp } from "./helpers/trap-table";
 
 const pending: (() => unknown)[] = [];
 vi.mock("next/server", () => ({ after: (cb: () => unknown) => void pending.push(cb) }));
 vi.mock("next/cache", () => ({ revalidatePath: () => {} }));
+// Never reach the network: the actions get an in-memory Yelp serving the trap table. Other exports stay real.
+vi.mock("@/lib/yelp", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("@/lib/yelp")>()),
+  createYelpClient: () => createTrapYelp(),
+}));
 
 const { enrichAction, requalifyAllAction, startSearchAction, updateRulesAction } = await import(
   "@/features/ingest/actions"
@@ -21,8 +29,6 @@ beforeAll(async () => {
   ({ db, close } = await createTestDb());
   // Actions call getDb(); point the process-wide handle at the test DB.
   globalThis.__db = { db, driver: "pglite", close };
-  vi.stubEnv("YELP_API_KEY", "");
-  vi.stubEnv("YELP_MODE", "fixture");
 });
 afterAll(async () => {
   globalThis.__db = undefined;
@@ -31,6 +37,7 @@ afterAll(async () => {
 });
 beforeEach(() => {
   pending.length = 0;
+  vi.stubEnv("YELP_API_KEY", "test-key");
 });
 
 function form(fields: Record<string, string>): FormData {
@@ -58,6 +65,15 @@ describe("startSearchAction", () => {
     expect(r2.ok).toBe(false);
     const r3 = await startSearchAction(null, form({ location: "Houston, TX", categoryAliases: "plumbing", maxResults: "0" }));
     expect(r3.ok).toBe(false);
+  });
+
+  it("refuses without YELP_API_KEY and creates no search job", async () => {
+    vi.stubEnv("YELP_API_KEY", "");
+    const r = await startSearchAction(null, form({ location: "Houston, TX", categoryAliases: "plumbing" }));
+    expect(r).toEqual({ ok: false, message: "Yelp search is not configured: set YELP_API_KEY" });
+    expect(pending).toHaveLength(0);
+    const [row] = await db.select({ n: count() }).from(searchJobs);
+    expect(Number(row.n)).toBe(0);
   });
 
   it("creates the job, returns at once, and runs it in after()", async () => {

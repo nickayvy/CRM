@@ -4,10 +4,13 @@ import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { eq, sql } from "drizzle-orm";
 import type { Db } from "@/db/client";
 import { getDashboardStats, sevenDayWindow, type DashboardStats } from "@/db/repo/dashboard";
-import { activities, businesses, callCampaigns, callQueueItems, emailEnrollments, emailMessages } from "@/db/schema";
-import { seed } from "@/db/seed";
+import { logActivity } from "@/db/repo/activities";
+import { addBusinessesToCampaign, createCallCampaign, recordOutcome } from "@/db/repo/call-campaigns";
+import { createEmailCampaign, enrollBusinesses } from "@/db/repo/email-campaigns";
+import { type Business, callQueueItems, emailEnrollments, emailMessages } from "@/db/schema";
 import { createTestDb } from "@/db/test-utils";
 import { env } from "@/lib/env";
+import { insertBusiness } from "./helpers/builders";
 
 const TZ = env.APP_TIMEZONE;
 // 12:30 in Chicago on a Saturday (CST, UTC-6).
@@ -37,44 +40,64 @@ const todayLocal = sql.raw(`(timestamptz '${NOW.toISOString()}' AT TIME ZONE '${
 
 beforeAll(async () => {
   ({ db, close } = await createTestDb());
-  await seed(db, { now: NOW });
 
-  // Extra rows so every number is non-trivial and the window edges are exercised.
-  const [campaign] = await db.select().from(callCampaigns).where(eq(callCampaigns.status, "running"));
-  const pending = await db
-    .select()
-    .from(callQueueItems)
-    .where(sql`${callQueueItems.campaignId} = ${campaign.id} AND ${callQueueItems.state} = 'pending'`)
-    .limit(4);
-  // Two overdue callbacks, one due later today (not overdue), one exactly now (not overdue: strict <).
-  const callbackTimes = [new Date(NOW.getTime() - 2 * HOUR), new Date(NOW.getTime() - 26 * HOUR), new Date(NOW.getTime() + 2 * HOUR), NOW];
-  for (const [i, item] of pending.entries()) {
-    await db
-      .update(callQueueItems)
-      .set({ state: "callback", callbackAt: callbackTimes[i], lastOutcome: "callback", attempts: 1 })
-      .where(eq(callQueueItems.id, item.id));
+  // Nine small, explicit businesses: 6 qualified (the first two with owner emails), 1 review, 2 rejected.
+  const qualified: Business[] = [];
+  for (let i = 1; i <= 6; i++) {
+    qualified.push(
+      await insertBusiness(db, {
+        name: `Qualified ${i} Plumbing`,
+        qualification: "qualified",
+        score: 80,
+        ownerEmail: i <= 2 ? `owner${i}@example.com` : null,
+      }),
+    );
   }
-
-  const [b] = await db.select().from(businesses).where(eq(businesses.qualification, "qualified")).limit(1);
-  const call = (occurredAt: Date, outcome: string) => ({
-    businessId: b.id,
-    type: "call" as const,
-    outcome,
-    body: "",
-    campaignType: "call",
-    campaignId: campaign.id,
-    occurredAt,
+  await insertBusiness(db, { name: "Mr. Rooter Plumbing", qualification: "rejected", rejectionReasons: ["chain"] });
+  await insertBusiness(db, {
+    name: "Roto-Rooter Plumbing",
+    qualification: "rejected",
+    rejectionReasons: ["chain", "closed", "unclaimed"],
   });
-  // Local midnight today in Chicago is 06:00Z.
-  await db.insert(activities).values([
-    call(new Date("2026-11-07T06:00:30Z"), "interested"), // just after local midnight: today
-    call(new Date("2026-11-07T05:59:00Z"), "voicemail"), // just before: yesterday, inside the 7-day window
-    call(new Date("2026-11-01T06:30:00Z"), "busy"), // Nov 1 01:30 CDT (DST ends that day): first day of the window
-    call(new Date("2026-10-31T12:00:00Z"), "interested"), // Oct 31: outside the window
-    call(new Date(NOW.getTime() + HOUR), "interested"), // future: never counted in the rate
-  ]);
+  await insertBusiness(db, { name: "Borderline Plumbing", qualification: "review", rejectionReasons: ["low_score"] });
 
-  // Emails: one dry run today, one failed today (not counted), one sent yesterday local.
+  // Two call campaigns (one running with all six qualified queued, one draft) and one running email campaign.
+  const campaign = await createCallCampaign(db, { name: "Houston plumbers", status: "running" });
+  await createCallCampaign(db, { name: "Draft campaign", status: "draft" });
+  await addBusinessesToCampaign(db, campaign.id, qualified.map((b) => b.id));
+  const queue = await db.select().from(callQueueItems).where(eq(callQueueItems.campaignId, campaign.id));
+  const itemOf = (b: Business) => queue.find((i) => i.businessId === b.id)!.id;
+
+  // Real outcomes through the repo (each logs a call activity at its `now`). Local midnight today in Chicago is 06:00Z.
+  const agent = "ann";
+  await recordOutcome(db, itemOf(qualified[0]), { outcome: "interested", agent }, new Date("2026-11-07T15:00:00Z"));
+  await recordOutcome(db, itemOf(qualified[1]), { outcome: "not_interested", agent }, new Date("2026-11-07T16:00:00Z"));
+  // Callbacks: two overdue, one due later today (not overdue), one exactly now (not overdue: strict <).
+  await recordOutcome(db, itemOf(qualified[2]), { outcome: "callback", agent, callbackAt: new Date(NOW.getTime() - 2 * HOUR) }, new Date("2026-11-07T14:00:00Z"));
+  await recordOutcome(db, itemOf(qualified[3]), { outcome: "callback", agent, callbackAt: new Date(NOW.getTime() - 26 * HOUR) }, new Date("2026-11-06T14:00:00Z"));
+  await recordOutcome(db, itemOf(qualified[4]), { outcome: "callback", agent, callbackAt: new Date(NOW.getTime() + 2 * HOUR) }, new Date("2026-11-07T17:00:00Z"));
+  await recordOutcome(db, itemOf(qualified[5]), { outcome: "callback", agent, callbackAt: NOW }, new Date("2026-11-07T17:30:00Z"));
+
+  // Extra call activities to exercise the window edges.
+  const b = qualified[0];
+  const call = (occurredAt: Date, outcome: string) =>
+    logActivity(db, { businessId: b.id, type: "call", outcome, campaignType: "call", campaignId: campaign.id, occurredAt });
+  await call(new Date("2026-11-07T06:00:30Z"), "interested"); // just after local midnight: today
+  await call(new Date("2026-11-07T05:59:00Z"), "voicemail"); // just before: yesterday, inside the 7-day window
+  await call(new Date("2026-11-01T06:30:00Z"), "busy"); // Nov 1 01:30 CDT (DST ends that day): first day of the window
+  await call(new Date("2026-10-31T12:00:00Z"), "interested"); // Oct 31: outside the window
+  await call(new Date(NOW.getTime() + HOUR), "interested"); // future: never counted in the rate
+
+  // Emails: a running campaign with one step and two enrollments.
+  const email = await createEmailCampaign(db, {
+    name: "Intro",
+    status: "running",
+    fromName: "Alex",
+    fromEmail: "alex@example.com",
+    steps: [{ stepOrder: 1, delayDays: 0, subject: "Hello {{business_name}}", body: "Hi from Alex." }],
+  });
+  expect(await enrollBusinesses(db, email.id, qualified.map((q) => q.id), NOW)).toEqual({ enrolled: 2, skipped: 4 });
+  // Messages: one dry run today, one failed today (not counted), one sent today, one sent yesterday local.
   const [enr] = await db.select().from(emailEnrollments).limit(1);
   const msg = (createdAt: Date, status: "sent" | "dry_run" | "failed") => ({
     enrollmentId: enr.id,
@@ -102,10 +125,13 @@ afterAll(async () => {
   await close();
 });
 
-describe("getDashboardStats on a seeded DB", () => {
+describe("getDashboardStats on built data", () => {
   it("businesses by qualification", async () => {
     const total = await one(sql`SELECT count(*) AS n FROM businesses`);
-    expect(total).toBe(100);
+    expect(total).toBe(9);
+    expect(stats.businessesQualified).toBe(6);
+    expect(stats.businessesReview).toBe(1);
+    expect(stats.businessesRejected).toBe(2);
     expect(stats.businessesTotal).toBe(total);
     expect(stats.businessesQualified).toBe(await one(sql`SELECT count(*) AS n FROM businesses WHERE qualification = 'qualified'`));
     expect(stats.businessesReview).toBe(await one(sql`SELECT count(*) AS n FROM businesses WHERE qualification = 'review'`));
@@ -116,7 +142,8 @@ describe("getDashboardStats on a seeded DB", () => {
     const expected = await one(
       sql`SELECT count(*) AS n FROM activities WHERE type = 'call' AND ${localDate("occurred_at")} = ${todayLocal}`,
     );
-    // Seed: 5 outcomes today; plus the 00:00:30 call and the call one hour from now.
+    // Recorded today: interested, not_interested, three callbacks (the fourth is yesterday), plus the 00:00:30 call
+    // and the call one hour from now.
     expect(expected).toBe(7);
     expect(stats.callsToday).toBe(expected);
   });
@@ -133,6 +160,8 @@ describe("getDashboardStats on a seeded DB", () => {
     expect(total).toBeGreaterThan(0);
     expect(interested).toBeGreaterThan(0);
     expect(stats.interestRate7d).toBeCloseTo(interested / total, 10);
+    // 2 interested of 9 outcomes in the window (the Oct 31 and future calls are excluded).
+    expect([interested, total]).toEqual([2, 9]);
   });
 
   it("emailsSentToday counts sent + dry_run messages created today (local)", async () => {
@@ -164,6 +193,7 @@ describe("getDashboardStats on a seeded DB", () => {
       WHERE r NOT IN ('unclaimed', 'low_score') GROUP BY r`);
     const got = Object.fromEntries(stats.rejectionBreakdown.map((r) => [r.reason, r.count]));
     expect(got).toEqual(Object.fromEntries(expected.map((r) => [r.reason, Number(r.n)])));
+    expect(got).toEqual({ chain: 2, closed: 1 }); // "unclaimed" and "low_score" are soft reasons
     const counts = stats.rejectionBreakdown.map((r) => r.count);
     expect([...counts].sort((a, b) => b - a)).toEqual(counts);
   });
@@ -191,7 +221,9 @@ describe("getDashboardStats on a seeded DB", () => {
     const exp = Object.fromEntries(expected.map((r) => [r.status, Number(r.n)]));
     expect(stats.statusFunnel).toHaveLength(7);
     for (const s of stats.statusFunnel) expect(s.count).toBe(exp[s.status] ?? 0);
-    expect(stats.statusFunnel.reduce((s, x) => s + x.count, 0)).toBe(100);
+    expect(stats.statusFunnel.reduce((s, x) => s + x.count, 0)).toBe(9);
+    const byStatus = Object.fromEntries(stats.statusFunnel.map((x) => [x.status, x.count]));
+    expect(byStatus).toMatchObject({ new: 3, interested: 1, not_interested: 1, callback: 4 });
   });
 });
 

@@ -9,6 +9,7 @@ import { type Business, businesses } from "@/db/schema";
 import { createTestDb } from "@/db/test-utils";
 import { enrichBusiness, requalifyAll, runSearchJob } from "@/features/ingest/run";
 import { createYelpClient } from "@/lib/yelp";
+import { TRAP_SEARCHES, type TrapSearch, createTrapYelp } from "./helpers/trap-table";
 
 let db: Db;
 let close: () => Promise<void>;
@@ -24,23 +25,19 @@ async function reset() {
   await db.execute(sql`TRUNCATE TABLE businesses, search_jobs, activities, qualification_rules RESTART IDENTITY CASCADE`);
 }
 
-type Slug = "plumbing-houston" | "hvac-dallas" | "dentists-austin";
-const SEARCHES: Record<Slug, { location: string; categoryAliases: string[] }> = {
-  "plumbing-houston": { location: "Houston, TX", categoryAliases: ["plumbing"] },
-  "hvac-dallas": { location: "Dallas, TX", categoryAliases: ["hvac"] },
-  "dentists-austin": { location: "Austin, TX", categoryAliases: ["dentists"] },
-};
+type Slug = TrapSearch;
 
 async function ingest(slug: Slug) {
-  const job = await createSearchJob(db, { ...SEARCHES[slug], radiusM: 20000, maxResults: 200 });
-  return runSearchJob(db, job.id, createYelpClient({ mode: "fixture" }));
+  const { location, categoryAliases } = TRAP_SEARCHES[slug];
+  const job = await createSearchJob(db, { location, categoryAliases, radiusM: 20000, maxResults: 200 });
+  return runSearchJob(db, job.id, createTrapYelp());
 }
 
 async function all(): Promise<Business[]> {
   return db.select().from(businesses);
 }
 
-describe("runSearchJob — plumbing-houston fixture traps (AC-03.2)", () => {
+describe("runSearchJob — plumbing-houston trap table (AC-03.2)", () => {
   let rows: Business[];
   beforeAll(async () => {
     await reset();
@@ -151,7 +148,7 @@ describe("multi-location (AC-03.3)", () => {
     expect(abc[0].qualification).toBe("qualified");
   });
 
-  it("after two fixtures it is still not multi_location (threshold 3)", async () => {
+  it("after two searches it is still not multi_location (threshold 3)", async () => {
     await ingest("plumbing-houston");
     await ingest("hvac-dallas");
     await requalifyAll(db);
@@ -160,7 +157,7 @@ describe("multi-location (AC-03.3)", () => {
     expect(abc.every((b) => !b.rejectionReasons.includes("multi_location"))).toBe(true);
   });
 
-  it("after all three fixtures + requalifyAll, every ABC Plumbing row is multi_location", async () => {
+  it("after all three searches + requalifyAll, every ABC Plumbing row is multi_location", async () => {
     const jobs = [await ingest("plumbing-houston"), await ingest("hvac-dallas"), await ingest("dentists-austin")];
     expect(jobs.map((j) => [j.fetchedCount, j.qualifiedCount, j.rejectedCount])).toEqual([
       [40, 31, 9],
@@ -211,12 +208,12 @@ describe("enrichBusiness (AC-03.8)", () => {
     await ingest("plumbing-houston");
   });
 
-  it("is_claimed:false fixture sets hours/photos/isClaimed/enrichedAt, lowers score by 10, adds unclaimed", async () => {
+  it("is_claimed:false details set hours/photos/isClaimed/enrichedAt, lowers score by 10, adds unclaimed", async () => {
     const { rows } = await listBusinesses(db, { q: "Armadillo Plumbers" });
     const before = rows[0];
     expect(before.yelpId).toBe("7iNUtRD6-1_PkjO9UEgQlq");
     expect(before.isClaimed).toBeNull();
-    const after = await enrichBusiness(db, before.id, createYelpClient({ mode: "fixture" }));
+    const after = await enrichBusiness(db, before.id, createTrapYelp());
     expect(after.isClaimed).toBe(false);
     expect(after.photos).toHaveLength(3);
     expect(Array.isArray(after.hours) && after.hours.length).toBeTruthy();
@@ -228,18 +225,18 @@ describe("enrichBusiness (AC-03.8)", () => {
     expect(acts[0].type).toBe("system");
   });
 
-  it("is_claimed:true fixture raises the score by 10", async () => {
+  it("is_claimed:true details raise the score by 10", async () => {
     const { rows } = await listBusinesses(db, { q: "Montrose Plumbing" });
     const before = rows[0];
-    const after = await enrichBusiness(db, before.id, createYelpClient({ mode: "fixture" }));
+    const after = await enrichBusiness(db, before.id, createTrapYelp());
     expect(after.isClaimed).toBe(true);
     expect(after.score).toBe(Math.min(100, before.score + 10));
     expect(after.rejectionReasons).not.toContain("unclaimed");
   });
 
-  it("a business without a detail fixture falls back to the search record (claimed, no photos)", async () => {
+  it("a business without detail overrides falls back to the search record (claimed, no photos)", async () => {
     const { rows } = await listBusinesses(db, { q: "Evergreen Plumbing & Repair" });
-    const after = await enrichBusiness(db, rows[0].id, createYelpClient({ mode: "fixture" }));
+    const after = await enrichBusiness(db, rows[0].id, createTrapYelp());
     expect(after.isClaimed).toBe(true);
     expect(after.photos).toEqual([]);
     expect(after.enrichedAt).toBeInstanceOf(Date);
