@@ -20,7 +20,7 @@ export function Toolbar({ variant = "plain", className, ...props }: ToolbarProps
       data-variant={variant}
       className={cn(
         "flex min-w-0 flex-wrap items-center gap-1.5",
-        variant === "bar" && "rounded-lg border bg-muted/40 px-1.5 py-1",
+        variant === "bar" && "rounded-lg bg-surface px-1.5 py-1 shadow-[var(--shadow-elevated)]",
         className,
       )}
       {...props}
@@ -40,7 +40,7 @@ export function ToolbarSeparator({ className, ...props }: React.ComponentProps<"
       data-slot="toolbar-separator"
       role="separator"
       aria-orientation="vertical"
-      className={cn("mx-0.5 h-4 w-px bg-border", className)}
+      className={cn("mx-0.5 h-4 w-px bg-white/10", className)}
       {...props}
     />
   );

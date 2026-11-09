@@ -49,7 +49,7 @@ export function StatusBadge({ tone, label, children, variant = "soft", className
       data-tone={t}
       data-variant="soft"
       className={cn(
-        "inline-flex h-5 items-center gap-1 rounded-sm px-1.5 text-xs font-medium whitespace-nowrap",
+        "inline-flex w-fit items-center justify-center gap-1 rounded-md px-2 py-0.5 text-xs font-medium whitespace-nowrap transition-colors duration-300 ease-out",
         toneSoft[t],
         className,
       )}
@@ -83,7 +83,7 @@ export function ReasonChip({ code, label, tone = "danger", className, ...props }
           data-tone={tone}
           aria-label={label}
           className={cn(
-            "inline-flex h-5 cursor-default items-center rounded-sm border border-current/20 px-1.5 font-mono text-2xs whitespace-nowrap",
+            "inline-flex w-fit cursor-default items-center rounded-md px-1.5 py-0.5 font-mono text-[10px] whitespace-nowrap",
             toneSoft[tone],
             className,
           )}

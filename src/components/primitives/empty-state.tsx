@@ -33,7 +33,7 @@ export function EmptyState({ icon, title, description, action, size = "default",
       className={cn(
         "flex flex-col items-center justify-center text-center",
         compact ? "gap-2 px-4 py-6" : "gap-3 px-6 py-12",
-        bordered && "rounded-lg border border-dashed",
+        bordered && "rounded-lg border border-dashed border-white/10",
         className,
       )}
     >
@@ -42,7 +42,7 @@ export function EmptyState({ icon, title, description, action, size = "default",
           aria-hidden
           data-slot="empty-state-icon"
           className={cn(
-            "flex shrink-0 items-center justify-center rounded-lg bg-muted text-muted-foreground",
+            "flex shrink-0 items-center justify-center rounded-lg bg-surface-elevated text-primary shadow-[var(--shadow-elevated)]",
             compact ? "size-8 [&_svg]:size-4" : "size-10 [&_svg]:size-5",
           )}
         >
@@ -50,8 +50,8 @@ export function EmptyState({ icon, title, description, action, size = "default",
         </span>
       ) : null}
       <div className="flex max-w-sm flex-col gap-1">
-        <p className="text-sm font-medium text-foreground">{title}</p>
-        {description ? <p className="text-xs text-muted-foreground">{description}</p> : null}
+        <p className={cn("font-serif tracking-tight text-foreground", compact ? "text-base" : "text-xl")}>{title}</p>
+        {description ? <p className="text-sm text-muted-foreground">{description}</p> : null}
       </div>
       {action ? <div className="mt-1 flex flex-wrap items-center justify-center gap-2">{action}</div> : null}
     </div>

@@ -13,7 +13,7 @@ export function Kbd({ children, className }: KbdProps) {
     <kbd
       data-slot="kbd"
       className={cn(
-        "inline-flex h-5 min-w-5 items-center justify-center rounded-sm border bg-muted px-1 font-mono text-2xs text-muted-foreground",
+        "inline-flex h-5 min-w-5 items-center justify-center rounded-sm border border-white/10 bg-surface-elevated px-1 font-mono text-2xs text-muted-foreground shadow-[var(--shadow-inset)]",
         className,
       )}
     >

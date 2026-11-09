@@ -34,7 +34,7 @@ export function ProgressBar({ value, max = 100, tone = "info", label, showValue 
     <div data-slot="progress-bar" data-tone={tone} className={cn("flex w-full flex-col gap-1", className)}>
       {hasLabel || showValue ? (
         <div className="flex items-baseline justify-between gap-2 text-xs">
-          <span className="min-w-0 truncate text-muted-foreground">{label}</span>
+          <span className="min-w-0 truncate text-2xs tracking-wider text-muted-foreground uppercase">{label}</span>
           {showValue ? <span className="shrink-0 font-medium tabular-nums">{Math.round(pct)}%</span> : null}
         </div>
       ) : null}
@@ -44,11 +44,11 @@ export function ProgressBar({ value, max = 100, tone = "info", label, showValue 
         aria-valuemin={0}
         aria-valuemax={safeMax}
         aria-label={typeof label === "string" ? label : undefined}
-        className={cn("w-full overflow-hidden rounded-sm bg-muted", size === "sm" ? "h-1" : "h-2")}
+        className={cn("w-full overflow-hidden rounded-full bg-muted", size === "sm" ? "h-1" : "h-1.5")}
       >
         <div
           data-slot="progress-bar-fill"
-          className={cn("h-full rounded-sm transition-[width] duration-300", toneFill[tone])}
+          className={cn("h-full rounded-full transition-[width] duration-300 ease-out", toneFill[tone])}
           style={{ width: `${pct}%` }}
         />
       </div>

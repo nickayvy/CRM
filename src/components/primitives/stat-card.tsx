@@ -72,21 +72,21 @@ export function StatCard({ label, value, format, delta, icon, hint, href, loadin
   const body = (
     <>
       <div className="flex items-start justify-between gap-2">
-        <span className="text-xs font-medium text-muted-foreground">{label}</span>
+        <span className="text-2xs font-medium tracking-wider text-muted-foreground uppercase">{label}</span>
         {icon ? (
-          <span aria-hidden className="text-muted-foreground [&_svg]:size-4">
+          <span aria-hidden className="text-primary/80 [&_svg]:size-4">
             {icon}
           </span>
         ) : null}
       </div>
       {loading ? (
         <div className="flex flex-col gap-2" data-slot="stat-skeleton" aria-busy="true" aria-label="Loading">
-          <Skeleton className="h-7 w-24" />
+          <Skeleton className="h-9 w-24" />
           <Skeleton className="h-3.5 w-16" />
         </div>
       ) : (
         <div className="flex flex-col gap-1">
-          <div className="text-2xl leading-none font-semibold tracking-tight tabular-nums" data-slot="stat-value">
+          <div className="font-serif text-4xl leading-none tracking-tight tabular-nums" data-slot="stat-value">
             {typeof value === "number" ? <AnimatedNumber value={value} format={format} /> : value}
           </div>
           {delta ? <DeltaLine delta={delta} /> : null}
@@ -96,8 +96,8 @@ export function StatCard({ label, value, format, delta, icon, hint, href, loadin
     </>
   );
   const classes = cn(
-    "flex min-w-0 flex-col gap-3 rounded-lg border bg-card p-4 text-card-foreground",
-    href && "transition-colors hover:border-foreground/20 hover:bg-accent/40",
+    "flex min-w-0 flex-col gap-3 rounded-lg bg-surface px-4 py-4 text-card-foreground shadow-[var(--shadow-elevated)]",
+    href && "card-glow",
     className,
   );
   if (href) {
@@ -125,7 +125,7 @@ export function StatGrid({ columns = 4, className, ...props }: StatGridProps) {
     <div
       data-slot="stat-grid"
       className={cn(
-        "grid grid-cols-2 gap-3",
+        "grid grid-cols-2 gap-4",
         columns === 3 && "lg:grid-cols-3",
         columns === 4 && "lg:grid-cols-4",
         columns === 5 && "lg:grid-cols-5",

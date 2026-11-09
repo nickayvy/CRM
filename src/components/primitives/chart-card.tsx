@@ -22,15 +22,15 @@ export type ChartCardProps = {
 
 /**
  * Thin card wrapper for charts: header, fixed-height plot area, optional
- * footer. Chart colors: use `var(--chart-1)` … `var(--chart-5)`, which have
- * light and dark values.
+ * footer. Chart colors: use `var(--chart-1)` … `var(--chart-5)` (the
+ * Leadwire blue ramp).
  */
 export function ChartCard({ title, description, actions, height = 240, loading, footer, children, className }: ChartCardProps) {
   return (
-    <figure data-slot="chart-card" className={cn("flex min-w-0 flex-col gap-3 rounded-lg border bg-card p-4 text-card-foreground", className)}>
+    <figure data-slot="chart-card" className={cn("flex min-w-0 flex-col gap-4 rounded-lg bg-surface p-5 text-card-foreground shadow-[var(--shadow-elevated)]", className)}>
       <figcaption className="flex items-start justify-between gap-2">
         <div className="flex min-w-0 flex-col gap-0.5">
-          <span className="text-sm font-medium">{title}</span>
+          <span className="text-xs font-medium tracking-wider uppercase">{title}</span>
           {description ? <span className="text-xs text-muted-foreground">{description}</span> : null}
         </div>
         {actions ? <div className="flex shrink-0 items-center gap-1.5">{actions}</div> : null}
@@ -38,7 +38,7 @@ export function ChartCard({ title, description, actions, height = 240, loading, 
       <div className="min-w-0" style={{ height }}>
         {loading ? <Skeleton className="size-full" /> : children}
       </div>
-      {footer ? <div className="border-t pt-3 text-xs text-muted-foreground">{footer}</div> : null}
+      {footer ? <div className="border-t border-white/5 pt-3 text-xs text-muted-foreground">{footer}</div> : null}
     </figure>
   );
 }

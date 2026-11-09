@@ -125,7 +125,7 @@ function SearchBox({ search }: { search: FilterBarSearch }) {
             }
           }
         }}
-        className="peer h-7 pr-12 pl-7 text-dense [&::-webkit-search-cancel-button]:hidden"
+        className="peer h-8 pr-12 pl-7 text-xs [&::-webkit-search-cancel-button]:hidden"
       />
       {draft ? (
         <button
@@ -169,14 +169,14 @@ export function FilterBar({ search, children, activeFilters = [], onClearAll, ac
             <li
               key={f.id}
               data-slot="filter-pill"
-              className="inline-flex h-6 items-center gap-1 rounded-sm border bg-secondary pr-0.5 pl-2 text-xs text-secondary-foreground"
+              className="inline-flex h-6 items-center gap-1 rounded-md bg-primary/10 pr-0.5 pl-2 text-xs text-primary"
             >
               <span className="max-w-60 truncate">{f.label}</span>
               <button
                 type="button"
                 aria-label={`Remove filter ${f.label}`}
                 onClick={f.onRemove}
-                className="flex size-5 items-center justify-center rounded-sm text-muted-foreground hover:bg-muted hover:text-foreground"
+                className="flex size-5 items-center justify-center rounded-sm text-primary/70 transition-colors duration-300 ease-out hover:bg-primary/15 hover:text-primary"
               >
                 <XIcon className="size-3" aria-hidden />
               </button>
@@ -207,9 +207,9 @@ function ChipTrigger({
       data-slot="filter-chip"
       data-active={active || undefined}
       className={cn(
-        "inline-flex h-7 items-center gap-1 rounded-md border px-2 text-dense whitespace-nowrap transition-colors",
-        "hover:bg-muted aria-expanded:bg-muted",
-        active ? "border-primary/40 bg-primary/5 text-foreground" : "border-dashed text-muted-foreground",
+        "inline-flex h-8 items-center gap-1 rounded-md border px-2.5 text-xs whitespace-nowrap transition-colors duration-300 ease-out",
+        "hover:bg-muted/60 aria-expanded:bg-muted/60",
+        active ? "border-primary/30 bg-primary/10 text-primary" : "border-dashed border-white/10 text-muted-foreground hover:text-foreground",
       )}
       {...props}
     >
@@ -385,7 +385,7 @@ export function FilterRange({ label, min, max, step = 1, value, onChange, format
             apply();
           }}
         >
-          <span className="text-xs font-medium">{label}</span>
+          <span className="text-2xs font-medium tracking-wider text-muted-foreground uppercase">{label}</span>
           <Slider
             min={min}
             max={max}

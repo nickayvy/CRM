@@ -54,19 +54,19 @@ export function TimelineItem({ type, time, agent, title, children, icon, classNa
     >
       <span
         aria-hidden
-        className="absolute top-7 bottom-1 left-3 w-px -translate-x-1/2 bg-border group-last/timeline-item:hidden"
+        className="absolute top-7 bottom-1 left-3 w-px -translate-x-1/2 bg-white/10 group-last/timeline-item:hidden"
       />
       <span
         aria-hidden
         data-slot="timeline-icon"
-        className="relative flex size-6 shrink-0 items-center justify-center rounded-md bg-muted text-muted-foreground [&_svg]:size-3.5"
+        className="relative flex size-6 shrink-0 items-center justify-center rounded-md bg-surface-elevated text-primary shadow-[var(--shadow-elevated)] [&_svg]:size-3.5"
       >
         {icon ?? typeIcon[type]}
       </span>
       <div className="flex min-w-0 flex-1 flex-col gap-1">
         <div className="flex flex-wrap items-baseline gap-x-1.5 text-xs">
           {title ? <span className="text-dense font-medium text-foreground">{title}</span> : null}
-          <span className="text-muted-foreground">
+          <span className="text-2xs tracking-wider text-muted-foreground uppercase">
             <time dateTime={iso} title={formatDate(time)} suppressHydrationWarning>
               {formatRelative(time)}
             </time>

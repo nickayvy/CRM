@@ -373,13 +373,13 @@ export function DataTable<T extends RowData>({
   }
 
   const compact = density === "compact";
-  const cellPad = compact ? "px-3 py-1.5" : "px-3 py-2.5";
+  const cellPad = compact ? "px-3 py-2" : "px-4 py-3";
   const skeletonCount = loadingRows ?? (pagination ? Math.min(pagination.pageSize, 10) : 8);
   const colCount = table.getAllLeafColumns().length;
   const showBulk = enableSelection && selectedIds.length > 0;
 
   return (
-    <div data-slot="data-table" className={cn("relative flex min-w-0 flex-col rounded-lg border bg-card", className)}>
+    <div data-slot="data-table" className={cn("relative flex min-w-0 flex-col rounded-lg bg-surface shadow-[var(--shadow-elevated)]", className)}>
       <div className="relative min-w-0 overflow-auto rounded-t-lg" style={{ maxHeight: maxHeight === "none" ? undefined : maxHeight }}>
         <table
           aria-label={ariaLabel}
@@ -400,7 +400,8 @@ export function DataTable<T extends RowData>({
                       aria-sort={dir === "asc" ? "ascending" : dir === "desc" ? "descending" : sortable ? "none" : undefined}
                       style={{ width: meta?.width }}
                       className={cn(
-                        "sticky top-0 z-10 h-8 bg-muted/80 px-3 text-xs font-medium whitespace-nowrap text-muted-foreground shadow-[inset_0_-1px_0_var(--border)] backdrop-blur-sm",
+                        "sticky top-0 z-10 bg-surface/95 text-left align-middle font-medium whitespace-nowrap text-foreground shadow-[inset_0_-1px_0_rgba(255,255,255,0.05)] backdrop-blur-sm",
+                        compact ? "h-10 px-3 text-xs" : "h-12 px-4 text-sm",
                         header.column.id === SELECT_COLUMN_ID && "pr-0",
                         alignClass(meta?.align),
                         meta?.headerClassName,
@@ -439,7 +440,7 @@ export function DataTable<T extends RowData>({
               Array.from({ length: skeletonCount }, (_, i) => (
                 <tr key={`sk-${i}`} data-slot="data-table-skeleton-row">
                   {table.getAllLeafColumns().map((col) => (
-                    <td key={col.id} className={cn(cellPad, "border-b border-border/60")}>
+                    <td key={col.id} className={cn(cellPad, "border-b border-white/5")}>
                       <Skeleton className={cn("h-3.5", col.id === SELECT_COLUMN_ID ? "w-4" : "w-full max-w-40")} />
                     </td>
                   ))}
@@ -472,7 +473,7 @@ export function DataTable<T extends RowData>({
                     }}
                     onClick={(e) => onRowMouseClick(e, row)}
                     className={cn(
-                      "group/row outline-none transition-colors hover:bg-row-hover focus-visible:bg-row-hover",
+                      "group/row outline-none transition-colors duration-300 ease-out hover:bg-row-hover focus-visible:bg-row-hover",
                       "focus-visible:shadow-[inset_2px_0_0_var(--ring)]",
                       onRowClick && "cursor-pointer",
                       selected && "bg-row-selected hover:bg-row-selected",
@@ -487,7 +488,7 @@ export function DataTable<T extends RowData>({
                           key={cell.id}
                           className={cn(
                             cellPad,
-                            "border-b border-border/60 align-middle whitespace-nowrap group-last/row:border-b-0",
+                            "border-b border-white/5 align-middle whitespace-nowrap group-last/row:border-b-0",
                             cell.column.id === SELECT_COLUMN_ID && "pr-0",
                             alignClass(meta?.align),
                             meta?.align === "right" && "tabular-nums",
@@ -623,14 +624,14 @@ export function BulkActionBar({ count, onClear, children, className }: BulkActio
       animate="visible"
       exit="exit"
       className={cn(
-        "flex max-w-full items-center gap-2 overflow-x-auto rounded-lg border bg-popover py-1.5 pr-1.5 pl-3 text-popover-foreground shadow-lg",
+        "flex max-w-full items-center gap-2 overflow-x-auto rounded-lg border border-white/5 bg-surface-elevated py-1.5 pr-1.5 pl-3 text-popover-foreground surface-floating",
         className,
       )}
     >
       <span className="text-dense font-medium whitespace-nowrap tabular-nums" aria-live="polite">
         {`${count} selected`}
       </span>
-      {actions.length > 0 ? <span aria-hidden className="h-4 w-px shrink-0 bg-border" /> : null}
+      {actions.length > 0 ? <span aria-hidden className="h-4 w-px shrink-0 bg-white/10" /> : null}
       <div className="flex items-center gap-1">
         {inline.map((action, i) => (
           <React.Fragment key={i}>{action}</React.Fragment>
@@ -668,7 +669,7 @@ function PaginationFooter({ page, pageSize, total, onPageChange, onPageSizeChang
   return (
     <div
       data-slot="data-table-pagination"
-      className="flex flex-wrap items-center justify-between gap-2 border-t px-3 py-1.5 text-xs text-muted-foreground"
+      className="flex flex-wrap items-center justify-between gap-2 border-t border-white/5 px-4 py-2 text-xs text-muted-foreground"
     >
       <span className="tabular-nums">
         {formatNumber(from)}–{formatNumber(to)} of {formatNumber(total)}

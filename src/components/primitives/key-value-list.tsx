@@ -47,7 +47,7 @@ export function KeyValue({ label, children, hint, mono = false, className }: Key
   const empty = children === null || children === undefined || children === "";
   return (
     <div data-slot="key-value" className={cn("flex min-w-0 items-baseline gap-3", className)}>
-      <dt className="w-28 shrink-0 text-xs text-muted-foreground">{label}</dt>
+      <dt className="w-28 shrink-0 text-2xs tracking-wider text-muted-foreground uppercase">{label}</dt>
       <dd className="m-0 min-w-0 flex-1 text-sm">
         {empty ? (
           <span className="text-muted-foreground" aria-label="No value">
