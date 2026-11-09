@@ -2,15 +2,17 @@
 // Drizzle repos: profile scrape (upsert, snapshot, velocity, relations,
 // qualification), category seed (basic rows), website enrichment, and the
 // time-boxed stale sync. See docs/team/v2/architecture.md §Discovery.
-import { and, count, eq, isNull, lt, or } from "drizzle-orm";
+import { eq } from "drizzle-orm";
 import type { Db } from "@/db/client";
 import { getBusiness } from "@/db/repo/businesses";
 import {
   addRelation,
   addSnapshot,
   getBusinessByTrustpilotId,
+  countStaleBusinesses,
   listSnapshots,
   listStaleBusinesses,
+  markScrapeFailed,
   upsertBusinessByTrustpilotId,
 } from "@/db/repo/discovery";
 import { type Business, type NewBusiness, type ReviewSnapshot, businesses } from "@/db/schema";
@@ -305,7 +307,8 @@ export async function scrapeTrustpilotBusiness(
     email: p.email,
     city: p.locationCity,
     country: p.locationCountry,
-    primaryCategory: p.categories[0],
+    // The alias (slug) is what the category filter matches; the title lives in categories[].title.
+    primaryCategory: p.categories[0] === undefined ? undefined : categoryAlias(p.categories[0]),
     subcategory: p.categories[1],
     categories: p.categories.map((title) => ({ alias: categoryAlias(title), title })),
     rating: p.stars === undefined ? null : p.stars.toFixed(1),
@@ -315,6 +318,9 @@ export async function scrapeTrustpilotBusiness(
     logoUrl: logoUrlForSlug(slug),
     raw: { ...raw },
     lastScrapedAt: now,
+    // A success clears the failure back-off.
+    scrapeFailedAt: null,
+    scrapeAttempts: 0,
     reviewsLast30d,
   };
   const { business } = await upsertBusinessByTrustpilotId(db, row);
@@ -386,7 +392,7 @@ export async function scrapeTrustpilotCategory(
       rating: stars === undefined ? null : stars.toFixed(1),
       reviewCount: reviews !== undefined && reviews >= 0 ? Math.round(reviews) : 0,
       country: str(card.location) ?? null,
-      primaryCategory: label,
+      primaryCategory: categorySlug,
       categories: [{ alias: categorySlug, title: label }],
       logoUrl: logoUrlForSlug(slug),
       raw: { ...card, categorySlug },
@@ -431,25 +437,13 @@ export async function enrichFromWebsite(db: Db, fc: FirecrawlLike, businessId: s
 
 // ------------------------------------------------------------ stale sync
 
-async function countStale(db: Db): Promise<number> {
-  const cutoff = new Date(Date.now() - STALE_AFTER_HOURS * HOUR_MS);
-  const [r] = await db
-    .select({ n: count() })
-    .from(businesses)
-    .where(
-      and(
-        eq(businesses.source, "trustpilot"),
-        or(isNull(businesses.lastScrapedAt), lt(businesses.lastScrapedAt, cutoff)),
-      ),
-    );
-  return Number(r?.n ?? 0);
-}
-
 /**
- * Re-scrapes up to `limit` stale Trustpilot rows (never-scraped first, then
- * oldest). No new scrape starts once `budgetMs` has elapsed. Per-row failures
- * are counted, not thrown; DiscoveryUnavailable propagates. `remaining` = stale
- * Trustpilot rows left afterwards (failed rows included).
+ * Re-scrapes up to `limit` stale Trustpilot rows (order and back-off in
+ * `listStaleBusinesses`). No new scrape starts once `budgetMs` has elapsed.
+ * A per-row failure is counted and recorded (`scrapeFailedAt`, attempts + 1),
+ * not thrown; a success resets both. DiscoveryUnavailable propagates.
+ * `remaining` = stale Trustpilot rows still eligible afterwards (rows inside
+ * their back-off window excluded).
  */
 export async function syncStale(
   db: Db,
@@ -457,10 +451,12 @@ export async function syncStale(
   opts: { limit: number; budgetMs: number; now?: Date },
 ): Promise<{ scraped: number; failed: number; remaining: number }> {
   const start = Date.now();
+  const now = opts.now ?? new Date();
   const rows = await listStaleBusinesses(db, {
     olderThanHours: STALE_AFTER_HOURS,
     limit: opts.limit,
     source: "trustpilot",
+    now,
   });
   let scraped = 0;
   let failed = 0;
@@ -468,13 +464,18 @@ export async function syncStale(
     if (Date.now() - start >= opts.budgetMs) break;
     if (!b.trustpilotId) continue;
     try {
-      await scrapeTrustpilotBusiness(db, fc, trustpilotReviewUrl(b.trustpilotId), opts.now ?? new Date());
+      await scrapeTrustpilotBusiness(db, fc, trustpilotReviewUrl(b.trustpilotId), now);
       scraped++;
     } catch (err) {
       if (err instanceof DiscoveryUnavailable) throw err;
       failed++;
+      await markScrapeFailed(db, b.id, now);
       console.warn(`[discovery] sync ${b.trustpilotId} failed:`, err);
     }
   }
-  return { scraped, failed, remaining: await countStale(db) };
+  return {
+    scraped,
+    failed,
+    remaining: await countStaleBusinesses(db, { olderThanHours: STALE_AFTER_HOURS, source: "trustpilot", now }),
+  };
 }

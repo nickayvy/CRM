@@ -130,7 +130,7 @@ describe("scrapeTrustpilotBusiness", () => {
       email: "hi@acme.com",
       city: "Austin",
       country: "United States",
-      primaryCategory: "Electronics & Technology",
+      primaryCategory: "electronics_technology",
       subcategory: "Computer Store",
       categories: [
         { alias: "electronics_technology", title: "Electronics & Technology" },
@@ -353,7 +353,36 @@ describe("syncStale", () => {
     fc.setProfile("bad.com", new Error("boom"));
     fc.setProfile("good.com", makeTrustpilotProfile());
 
-    expect(await syncStale(db, fc, { limit: 12, budgetMs: 60_000 })).toEqual({ scraped: 1, failed: 1, remaining: 1 });
+    // The failed row enters its back-off window, so it no longer counts as remaining.
+    expect(await syncStale(db, fc, { limit: 12, budgetMs: 60_000 })).toEqual({ scraped: 1, failed: 1, remaining: 0 });
+    const bad = await getBusinessByTrustpilotId(db, "bad.com");
+    expect(bad?.scrapeAttempts).toBe(1);
+    expect(bad?.scrapeFailedAt).toBeInstanceOf(Date);
+  });
+
+  it("WP-16 C: a failure increments attempts and backs off; a later success resets both", async () => {
+    const t0 = new Date("2026-11-01T12:00:00Z");
+    await seedRow("flaky.com", null);
+    const fc = createFakeFirecrawl();
+    fc.setProfile("flaky.com", new Error("boom"));
+    expect(await syncStale(db, fc, { limit: 5, budgetMs: 60_000, now: t0 })).toMatchObject({ scraped: 0, failed: 1 });
+    // Inside the 24 h window: not picked.
+    expect(await syncStale(db, fc, { limit: 5, budgetMs: 60_000, now: new Date(t0.getTime() + 23 * HOUR) })).toEqual({
+      scraped: 0,
+      failed: 0,
+      remaining: 0,
+    });
+    // After 25 h it is retried and fails again: attempts 2 → 48 h window.
+    const t1 = new Date(t0.getTime() + 25 * HOUR);
+    expect(await syncStale(db, fc, { limit: 5, budgetMs: 60_000, now: t1 })).toMatchObject({ failed: 1 });
+    expect((await getBusinessByTrustpilotId(db, "flaky.com"))?.scrapeAttempts).toBe(2);
+    expect(await syncStale(db, fc, { limit: 5, budgetMs: 60_000, now: new Date(t1.getTime() + 47 * HOUR) })).toMatchObject({ failed: 0, scraped: 0 });
+    // Now it succeeds: back-off cleared.
+    fc.setProfile("flaky.com", makeTrustpilotProfile());
+    expect(await syncStale(db, fc, { limit: 5, budgetMs: 60_000, now: new Date(t1.getTime() + 49 * HOUR) })).toMatchObject({ scraped: 1, failed: 0 });
+    const ok = await getBusinessByTrustpilotId(db, "flaky.com");
+    expect(ok?.scrapeAttempts).toBe(0);
+    expect(ok?.scrapeFailedAt).toBeNull();
   });
 });
 

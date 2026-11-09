@@ -33,11 +33,25 @@ async function columns(table: string): Promise<Map<string, Col>> {
 }
 
 describe("migrations", () => {
-  it("ships exactly 0000_init and 0001_v2, and both are applied", async () => {
+  it("ships exactly 0000_init, 0001_v2 and 0002_scrape_backoff, and all are applied", async () => {
     const files = readdirSync(MIGRATIONS_FOLDER).filter((f) => f.endsWith(".sql")).sort();
-    expect(files).toEqual(["0000_init.sql", "0001_v2.sql"]);
+    expect(files).toEqual(["0000_init.sql", "0001_v2.sql", "0002_scrape_backoff.sql"]);
     const applied = await q<{ n: number | string }>(sql`SELECT count(*) AS n FROM drizzle.__drizzle_migrations`);
-    expect(Number(applied[0].n)).toBe(2);
+    expect(Number(applied[0].n)).toBe(3);
+  });
+
+  it("0002_scrape_backoff only adds the two back-off columns", async () => {
+    const text = readFileSync(path.join(MIGRATIONS_FOLDER, "0002_scrape_backoff.sql"), "utf8");
+    const statements = text.split("--> statement-breakpoint").map((x) => x.trim()).filter(Boolean);
+    expect(statements).toEqual([
+      `ALTER TABLE "businesses" ADD COLUMN "scrape_failed_at" timestamp with time zone;`,
+      `ALTER TABLE "businesses" ADD COLUMN "scrape_attempts" integer DEFAULT 0 NOT NULL;`,
+    ]);
+    const cols = await columns("businesses");
+    expect(cols.get("scrape_failed_at")?.is_nullable).toBe("YES");
+    expect(cols.get("scrape_failed_at")?.data_type).toBe("timestamp with time zone");
+    expect(cols.get("scrape_attempts")?.is_nullable).toBe("NO");
+    expect(cols.get("scrape_attempts")?.column_default).toBe("0");
   });
 
   it("0001_v2 relaxes yelp_id in place (no table rebuild)", () => {

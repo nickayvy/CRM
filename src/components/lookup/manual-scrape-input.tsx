@@ -54,8 +54,8 @@ export function ManualScrapeInput({ enabled, onSuccess }: Props) {
     startSeed(async () => {
       const res = await seedCategoryAction(slug);
       if (res.ok) {
-        toast.success(`Seeded ${label}`, {
-          description: `${res.data.inserted} new of ${res.data.seen} businesses found`,
+        toast.success("Seeding started", {
+          description: `${label}: up to 50 businesses land in the next minute. Refresh to see them.`,
         });
         onSuccess?.();
       } else {

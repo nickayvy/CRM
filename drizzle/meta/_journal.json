@@ -15,6 +15,13 @@
       "when": 1794205115635,
       "tag": "0001_v2",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1794208010519,
+      "tag": "0002_scrape_backoff",
+      "breakpoints": true
     }
   ]
 }

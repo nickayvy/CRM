@@ -106,22 +106,64 @@ export async function listSnapshots(db: Db, businessId: string): Promise<ReviewS
     .orderBy(asc(reviewSnapshots.capturedAt), asc(reviewSnapshots.id));
 }
 
+/** Back-off window after a failed scrape: 24 h × min(attempts, 7). */
+export const SCRAPE_BACKOFF_HOURS = 24;
+export const SCRAPE_BACKOFF_MAX_STEPS = 7;
+
+/** SQL: true while a row is inside its failure back-off window at `now`. */
+function backedOff(now: Date) {
+  return sql`(${businesses.scrapeFailedAt} IS NOT NULL AND ${businesses.scrapeFailedAt} > ${now.toISOString()}::timestamptz - make_interval(hours => ${SCRAPE_BACKOFF_HOURS} * least(greatest(${businesses.scrapeAttempts}, 1), ${SCRAPE_BACKOFF_MAX_STEPS})))`;
+}
+
+/** SQL filter shared by listStaleBusinesses and countStaleBusinesses. */
+function staleWhere(opts: { olderThanHours: number; source?: BusinessSource; now?: Date }) {
+  const now = opts.now ?? new Date();
+  const cutoff = new Date(now.getTime() - opts.olderThanHours * 3_600_000);
+  const stale = and(or(isNull(businesses.lastScrapedAt), lt(businesses.lastScrapedAt, cutoff)), sql`NOT ${backedOff(now)}`);
+  return opts.source ? and(stale, eq(businesses.source, opts.source)) : stale;
+}
+
 /**
- * Businesses never scraped or last scraped more than `olderThanHours` ago:
- * never-scraped first, then oldest `lastScrapedAt`. `source` narrows the set.
+ * Businesses never scraped or last scraped more than `olderThanHours` ago,
+ * minus rows inside their failure back-off (failed within the last
+ * 24 h × min(attempts, 7)). Order: never scraped and never failed first, then
+ * oldest `lastScrapedAt`, then never-scraped rows whose back-off has expired
+ * (oldest failure first). `source` narrows the set; `now` defaults to the clock.
  */
 export async function listStaleBusinesses(
   db: Db,
-  opts: { olderThanHours: number; limit: number; source?: BusinessSource },
+  opts: { olderThanHours: number; limit: number; source?: BusinessSource; now?: Date },
 ): Promise<Business[]> {
-  const cutoff = new Date(Date.now() - opts.olderThanHours * 3_600_000);
-  const stale = or(isNull(businesses.lastScrapedAt), lt(businesses.lastScrapedAt, cutoff));
   return db
     .select()
     .from(businesses)
-    .where(opts.source ? and(stale, eq(businesses.source, opts.source)) : stale)
-    .orderBy(sql`${businesses.lastScrapedAt} ASC NULLS FIRST`, asc(businesses.createdAt), asc(businesses.id))
+    .where(staleWhere(opts))
+    .orderBy(
+      sql`(${businesses.lastScrapedAt} IS NULL AND ${businesses.scrapeFailedAt} IS NULL) DESC`,
+      sql`${businesses.lastScrapedAt} ASC NULLS LAST`,
+      sql`${businesses.scrapeFailedAt} ASC NULLS FIRST`,
+      asc(businesses.createdAt),
+      asc(businesses.id),
+    )
     .limit(Math.max(0, opts.limit));
+}
+
+/** How many rows `listStaleBusinesses` would return without a limit. */
+export async function countStaleBusinesses(
+  db: Db,
+  opts: { olderThanHours: number; source?: BusinessSource; now?: Date },
+): Promise<number> {
+  const [r] = await db.select({ n: sql<number>`count(*)::int` }).from(businesses).where(staleWhere(opts));
+  return Number(r?.n ?? 0);
+}
+
+/** Records a failed scrape: stamps `scrapeFailedAt` and increments `scrapeAttempts`. */
+export async function markScrapeFailed(db: Db, id: string, now: Date = new Date()): Promise<void> {
+  if (!UUID_RE.test(id)) return;
+  await db
+    .update(businesses)
+    .set({ scrapeFailedAt: now, scrapeAttempts: sql`${businesses.scrapeAttempts} + 1` })
+    .where(eq(businesses.id, id));
 }
 
 /** Graph nodes for the lookup network, most-reviewed first. */

@@ -204,8 +204,8 @@ describe("ManualScrapeInput", () => {
     expect(onSuccess).not.toHaveBeenCalled();
   });
 
-  it("seeds a category from the 22-item select and toasts the counts", async () => {
-    discovery.seedCategoryAction.mockResolvedValue({ ok: true, data: { inserted: 12, seen: 20 } });
+  it("queues a category seed from the 22-item select and toasts that it started", async () => {
+    discovery.seedCategoryAction.mockResolvedValue({ ok: true, data: { queued: true, category: "home_services" } });
     const onSuccess = vi.fn();
     render(<ManualScrapeInput enabled onSuccess={onSuccess} />);
     await userEvent.click(screen.getByRole("combobox", { name: "Seed category" }));
@@ -213,7 +213,9 @@ describe("ManualScrapeInput", () => {
     await userEvent.click(screen.getByRole("option", { name: "Home Services" }));
     await waitFor(() => expect(onSuccess).toHaveBeenCalledTimes(1));
     expect(discovery.seedCategoryAction).toHaveBeenCalledWith("home_services");
-    expect(toasts.success).toHaveBeenCalledWith("Seeded Home Services", { description: "12 new of 20 businesses found" });
+    expect(toasts.success).toHaveBeenCalledWith("Seeding started", {
+      description: "Home Services: up to 50 businesses land in the next minute. Refresh to see them.",
+    });
   });
 });
 
