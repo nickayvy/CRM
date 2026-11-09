@@ -45,7 +45,7 @@ Estimated agents: 7 Opus seniors + roughly 1–3 Sonnet juniors each.
 | WP-13 | Trustpilot discovery (Firecrawl) | 2 | senior-wp13 (Opus) | wp-13-discovery / PR #11 | merged | v2/reviews/WP-13.md (ACCEPT) |
 | WP-14 | Lookup UI | 2 | senior-wp14 (Opus) | wp-14-lookup-ui / PR #13 | merged | v2/reviews/WP-14.md (ACCEPT) |
 | WP-15 | Leads UI | 2 | senior-wp15 (Opus) | wp-15-leads-ui / PR #12 | merged | v2/reviews/WP-15.md (ACCEPT) |
-| WP-16 | Restyle + integration | 3 | — | wp-16-restyle | blocked on wave 2 | — |
+| WP-16 | Restyle + integration | 3 | senior-wp16 (Opus) | wp-16-restyle | spawned | v2/reviews/WP-16.md |
 
 ## v2 log
 - 2026-11-08 User directive: overhaul to the gtm ("Leadwire") product and UI, remove all test data, defer voice agents. Inventory, spec, architecture delta, and six packages written under docs/team/v2/.
@@ -55,3 +55,4 @@ Estimated agents: 7 Opus seniors + roughly 1–3 Sonnet juniors each.
 - 2026-11-08 WP-13 delivered (PR #11, 13 files, 570 tests); PM review ACCEPT; merged.
 - 2026-11-08 WP-15 delivered (PR #12, 15 files, 642 tests); PM review ACCEPT; merged. Awaiting WP-14.
 - 2026-11-09 WP-14 delivered (PR #13, 31 files); PM review ACCEPT; merged with the discovery bridge wired to WP-13. Wave 2 complete; main 727 tests, 0 warnings.
+- 2026-11-09 Wave 3 spawned: WP-16 (restyle all v1 screens, /overview, category-alias alignment, seed via after(), scrape back-off migration 0002).
