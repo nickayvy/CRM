@@ -1,6 +1,6 @@
 // URL search-param <-> BusinessFilter/sort/paging mapping for /businesses.
 // Pure: used by the server page (parse) and the client table/filters (build).
-import type { BusinessStatus, Qualification } from "@/db/schema";
+import type { BusinessSource, BusinessStatus, Qualification } from "@/db/schema";
 import type { BusinessFilter, BusinessSort } from "@/db/repo/businesses";
 
 export type RawSearchParams = Record<string, string | string[] | undefined>;
@@ -10,6 +10,7 @@ export const DEFAULT_PAGE_SIZE = 25;
 export const DEFAULT_SORT: BusinessSort = { field: "score", dir: "desc" };
 
 const QUALIFICATIONS: readonly Qualification[] = ["qualified", "review", "rejected"];
+export const SOURCES: readonly BusinessSource[] = ["trustpilot", "yelp"];
 const STATUSES: readonly BusinessStatus[] = [
   "new",
   "contacted",
@@ -24,6 +25,7 @@ export const SORT_FIELDS: readonly BusinessSort["field"][] = [
   "score",
   "rating",
   "reviewCount",
+  "reviewsLast30d",
   "city",
   "status",
   "createdAt",
@@ -86,6 +88,8 @@ export function parseBusinessesQuery(sp: RawSearchParams): BusinessesQuery {
   if (hasPhone !== undefined) filter.hasPhone = hasPhone;
   const hasEmail = bool(sp.hasEmail);
   if (hasEmail !== undefined) filter.hasEmail = hasEmail;
+  const source = first(sp.source);
+  if (source && SOURCES.includes(source as BusinessSource)) filter.source = source as BusinessSource;
   const sourceJobId = first(sp.sourceJobId);
   if (sourceJobId) filter.sourceJobId = sourceJobId;
   const tag = first(sp.tag);

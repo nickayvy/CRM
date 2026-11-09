@@ -9,13 +9,13 @@ import {
   Kbd,
   KeyValue,
   KeyValueList,
+  PageSection,
   ScoreRing,
   StatusBadge,
   Timeline,
   TimelineItem,
 } from "@/components/primitives";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
@@ -44,10 +44,15 @@ const PAUSE_SHORT: Record<PauseReason, string> = {
 };
 
 const OUTCOME_BUTTON_TONE: Partial<Record<CallOutcome, string>> = {
-  interested: "border-success/40 hover:bg-success/10",
-  do_not_call: "border-destructive/40 text-destructive hover:bg-destructive/10",
-  callback: "border-info/40 hover:bg-info/10",
+  interested: "hover:border-primary/60 hover:bg-primary/15",
+  do_not_call: "text-destructive hover:border-destructive/40 hover:bg-destructive/10",
+  callback: "hover:border-primary/40 hover:bg-primary/10",
 };
+
+const PANEL = "rounded-lg bg-surface p-4 shadow-[var(--shadow-elevated)]";
+const OUTCOME_BUTTON =
+  "h-auto min-w-0 justify-start gap-2 border border-white/5 bg-surface px-2.5 py-2 text-left shadow-[var(--shadow-elevated)] transition-colors duration-300 ease-out hover:border-primary/40 hover:bg-primary/10";
+const OUTCOME_BUTTON_SELECTED = "border-primary/50 bg-primary/15 text-primary";
 
 function isTyping(el: EventTarget | null): boolean {
   if (!(el instanceof HTMLElement)) return false;
@@ -250,7 +255,7 @@ export function Dialer({ campaign, agent, pollMs = 5000 }: DialerProps) {
   return (
     <div className="grid gap-4" data-testid="dialer">
       {/* Top bar */}
-      <div className="flex flex-wrap items-center gap-x-4 gap-y-2 rounded-lg border bg-card px-3 py-2 text-sm">
+      <div className="flex flex-wrap items-center gap-x-4 gap-y-2 rounded-lg bg-surface-elevated px-3 py-2 text-sm shadow-[var(--shadow-elevated)]">
         <Button size="icon-sm" variant="ghost" asChild>
           <Link href={`/calling/${campaign.id}`} aria-label="Back to campaign">
             <ArrowLeftIcon />
@@ -283,13 +288,13 @@ export function Dialer({ campaign, agent, pollMs = 5000 }: DialerProps) {
           <FadeIn key={call.item.id} className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]">
             {/* Left: business + outcome */}
             <div className="grid min-w-0 content-start gap-4">
-              <Card>
-                <CardHeader className="gap-1">
+              <section className={cn(PANEL, "grid gap-4")}>
+                <div className="grid gap-1">
                   <div className="flex items-start justify-between gap-3">
                     <div className="min-w-0">
-                      <CardTitle className="text-lg" data-testid="dialer-business-name">
+                      <h2 className="font-serif text-2xl tracking-tight" data-testid="dialer-business-name">
                         {b.name}
-                      </CardTitle>
+                      </h2>
                       <p className="text-sm text-muted-foreground">
                         {[b.city, b.state].filter(Boolean).join(", ")}
                         {b.categories?.[0]?.title ? ` · ${b.categories[0].title}` : ""}
@@ -308,8 +313,8 @@ export function Dialer({ campaign, agent, pollMs = 5000 }: DialerProps) {
                   ) : (
                     <p className="mt-2 text-sm text-muted-foreground">No phone number</p>
                   )}
-                </CardHeader>
-                <CardContent className="grid gap-4">
+                </div>
+                <div className="grid gap-4">
                   <KeyValueList>
                     <KeyValue label="Rating">
                       {formatRating(b.rating)} · {b.reviewCount} reviews
@@ -322,7 +327,7 @@ export function Dialer({ campaign, agent, pollMs = 5000 }: DialerProps) {
                   </KeyValueList>
                   {call.history.length ? (
                     <div className="grid gap-1.5">
-                      <p className="text-xs font-medium text-muted-foreground">Previous outcomes in this campaign</p>
+                      <p className="text-[10px] tracking-wider text-muted-foreground uppercase">Previous outcomes in this campaign</p>
                       <div className="flex flex-wrap gap-1.5">
                         {call.history.map((h) => (
                           <StatusBadge
@@ -337,138 +342,130 @@ export function Dialer({ campaign, agent, pollMs = 5000 }: DialerProps) {
                       </div>
                     </div>
                   ) : null}
-                </CardContent>
-              </Card>
+                </div>
+              </section>
 
-              <Card>
-                <CardContent className="@container grid gap-3">
-                  <label htmlFor="dialer-notes" className="flex items-center justify-between text-sm font-medium">
-                    Notes
-                    <span className="text-xs font-normal text-muted-foreground">
-                      <Kbd>E</Kbd> to type · <Kbd>Esc</Kbd> to leave
-                    </span>
-                  </label>
-                  <Textarea
-                    id="dialer-notes"
-                    ref={notesRef}
-                    rows={3}
-                    value={notes}
-                    onChange={(e) => setNotes(e.target.value)}
-                    onKeyDown={(e) => {
-                      if (e.key === "Escape") e.currentTarget.blur();
-                    }}
-                    placeholder="What happened on the call?"
-                  />
-                  <div className="grid grid-cols-2 gap-2 @md:grid-cols-4" role="group" aria-label="Outcomes">
-                    {CALL_OUTCOMES.map((o, i) => (
-                      <Button
-                        key={o}
-                        variant="outline"
-                        disabled={busy}
-                        onClick={() => chooseOutcome(o)}
-                        className={cn("h-auto min-w-0 justify-start gap-2 px-2.5 py-2 text-left", OUTCOME_BUTTON_TONE[o])}
-                        data-outcome={o}
-                      >
-                        <Kbd>{i + 1}</Kbd>
-                        <span className="truncate">{OUTCOME_LABELS[o].label}</span>
-                      </Button>
-                    ))}
-                  </div>
-
-                  <Presence>
-                    {callbackOpen ? (
-                      <FadeIn key="callback">
-                        <form
-                          className="grid gap-2 rounded-md border bg-muted/40 p-3"
-                          onSubmit={(e) => {
-                            e.preventDefault();
-                            if (!callbackValue) {
-                              setCallbackError("Pick a date and time.");
-                              return;
-                            }
-                            submitOutcome("callback", callbackValue);
-                          }}
-                          onKeyDown={(e) => {
-                            if (e.key === "Escape") {
-                              e.stopPropagation();
-                              setCallbackOpen(false);
-                            }
-                          }}
-                        >
-                          <label htmlFor="callback-at" className="text-sm font-medium">
-                            Call back at{" "}
-                            <span className="font-normal text-muted-foreground">({campaign.timezone.replace(/_/g, " ")} time)</span>
-                          </label>
-                          <div className="flex flex-wrap gap-2">
-                            <Input
-                              id="callback-at"
-                              type="datetime-local"
-                              autoFocus
-                              value={callbackValue}
-                              onChange={(e) => setCallbackValue(e.target.value)}
-                              className="w-auto min-w-0 flex-1"
-                              aria-invalid={!!callbackError || undefined}
-                            />
-                            <Button type="submit" disabled={busy}>
-                              Save callback
-                            </Button>
-                            <Button type="button" variant="ghost" onClick={() => setCallbackOpen(false)}>
-                              Cancel
-                            </Button>
-                          </div>
-                          {callbackError ? (
-                            <p role="alert" className="text-sm text-destructive">
-                              {callbackError}
-                            </p>
-                          ) : null}
-                        </form>
-                      </FadeIn>
-                    ) : null}
-                  </Presence>
-
-                  <div className="flex flex-wrap items-center gap-2">
-                    <Button variant="ghost" size="sm" onClick={skip} disabled={busy}>
-                      <SkipForwardIcon aria-hidden /> Skip <Kbd>S</Kbd>
+              <section className={cn(PANEL, "@container grid gap-3")}>
+                <label htmlFor="dialer-notes" className="flex items-center justify-between text-[10px] tracking-wider text-muted-foreground uppercase">
+                  Notes
+                  <span className="text-xs font-normal tracking-normal text-muted-foreground normal-case">
+                    <Kbd>E</Kbd> to type · <Kbd>Esc</Kbd> to leave
+                  </span>
+                </label>
+                <Textarea
+                  id="dialer-notes"
+                  ref={notesRef}
+                  rows={3}
+                  value={notes}
+                  onChange={(e) => setNotes(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === "Escape") e.currentTarget.blur();
+                  }}
+                  placeholder="What happened on the call?"
+                />
+                <div className="grid grid-cols-2 gap-2 @md:grid-cols-4" role="group" aria-label="Outcomes">
+                  {CALL_OUTCOMES.map((o, i) => (
+                    <Button
+                      key={o}
+                      variant="outline"
+                      disabled={busy}
+                      onClick={() => chooseOutcome(o)}
+                      className={cn(
+                        OUTCOME_BUTTON,
+                        OUTCOME_BUTTON_TONE[o],
+                        o === "callback" && callbackOpen && OUTCOME_BUTTON_SELECTED,
+                      )}
+                      data-outcome={o}
+                    >
+                      <Kbd>{i + 1}</Kbd>
+                      <span className="truncate">{OUTCOME_LABELS[o].label}</span>
                     </Button>
-                  </div>
-                </CardContent>
-              </Card>
+                  ))}
+                </div>
+
+                <Presence>
+                  {callbackOpen ? (
+                    <FadeIn key="callback">
+                      <form
+                        className="grid gap-2 rounded-lg bg-surface-elevated p-3 shadow-[var(--shadow-inset)]"
+                        onSubmit={(e) => {
+                          e.preventDefault();
+                          if (!callbackValue) {
+                            setCallbackError("Pick a date and time.");
+                            return;
+                          }
+                          submitOutcome("callback", callbackValue);
+                        }}
+                        onKeyDown={(e) => {
+                          if (e.key === "Escape") {
+                            e.stopPropagation();
+                            setCallbackOpen(false);
+                          }
+                        }}
+                      >
+                        <label htmlFor="callback-at" className="text-sm font-medium">
+                          Call back at{" "}
+                          <span className="font-normal text-muted-foreground">({campaign.timezone.replace(/_/g, " ")} time)</span>
+                        </label>
+                        <div className="flex flex-wrap gap-2">
+                          <Input
+                            id="callback-at"
+                            type="datetime-local"
+                            autoFocus
+                            value={callbackValue}
+                            onChange={(e) => setCallbackValue(e.target.value)}
+                            className="w-auto min-w-0 flex-1"
+                            aria-invalid={!!callbackError || undefined}
+                          />
+                          <Button type="submit" disabled={busy}>
+                            Save callback
+                          </Button>
+                          <Button type="button" variant="ghost" onClick={() => setCallbackOpen(false)}>
+                            Cancel
+                          </Button>
+                        </div>
+                        {callbackError ? (
+                          <p role="alert" className="text-sm text-destructive">
+                            {callbackError}
+                          </p>
+                        ) : null}
+                      </form>
+                    </FadeIn>
+                  ) : null}
+                </Presence>
+
+                <div className="flex flex-wrap items-center gap-2">
+                  <Button variant="ghost" size="sm" onClick={skip} disabled={busy}>
+                    <SkipForwardIcon aria-hidden /> Skip <Kbd>S</Kbd>
+                  </Button>
+                </div>
+              </section>
             </div>
 
             {/* Right: script + history */}
             <div className="grid min-w-0 content-start gap-4">
-              <Card>
-                <CardHeader>
-                  <CardTitle className="text-sm">Script</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <CallScript script={campaign.script} business={b} agent={agent} />
-                </CardContent>
-              </Card>
-              <Card>
-                <CardHeader>
-                  <CardTitle className="text-sm">Recent activity</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  {call.recent.length ? (
-                    <Timeline>
-                      {call.recent.map((a) => (
-                        <TimelineItem
-                          key={a.id}
-                          type={a.type}
-                          time={a.occurredAt}
-                          agent={a.agent}
-                          title={a.outcome && a.outcome in OUTCOME_LABELS ? OUTCOME_LABELS[a.outcome as CallOutcome].label : undefined}
-                        >
-                          {a.body || null}
-                        </TimelineItem>
-                      ))}
-                    </Timeline>
-                  ) : (
-                    <p className="text-sm text-muted-foreground">No activity yet.</p>
-                  )}
-                </CardContent>
-              </Card>
+              <PageSection title="Script" className={cn(PANEL, "gap-4")}>
+                <CallScript script={campaign.script} business={b} agent={agent} />
+              </PageSection>
+              <PageSection title="Recent activity" className={cn(PANEL, "gap-4")}>
+                {call.recent.length ? (
+                  <Timeline>
+                    {call.recent.map((a) => (
+                      <TimelineItem
+                        key={a.id}
+                        type={a.type}
+                        time={a.occurredAt}
+                        agent={a.agent}
+                        title={a.outcome && a.outcome in OUTCOME_LABELS ? OUTCOME_LABELS[a.outcome as CallOutcome].label : undefined}
+                      >
+                        {a.body || null}
+                      </TimelineItem>
+                    ))}
+                  </Timeline>
+                ) : (
+                  <p className="text-sm text-muted-foreground">No activity yet.</p>
+                )}
+              </PageSection>
             </div>
           </FadeIn>
         ) : (

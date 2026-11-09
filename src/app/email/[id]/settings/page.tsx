@@ -6,6 +6,7 @@ import { getEmailCampaign } from "@/db/repo/email-campaigns";
 import { CampaignStatusBadge } from "@/features/email/components/badges";
 import { CampaignForm } from "@/features/email/components/campaign-form";
 import { loadPreviewBusinesses } from "@/features/email/preview-businesses";
+import { requireUser } from "@/lib/supabase/server";
 
 export const dynamic = "force-dynamic";
 
@@ -14,6 +15,7 @@ export const metadata: Metadata = { title: "Campaign settings" };
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 export default async function EmailCampaignSettingsPage({ params }: { params: Promise<{ id: string }> }) {
+  await requireUser();
   const { id } = await params;
   if (!UUID_RE.test(id)) notFound();
   const db = getDb();

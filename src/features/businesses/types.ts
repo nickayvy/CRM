@@ -4,6 +4,7 @@ import type { Business } from "@/db/schema";
 export type BusinessRow = Pick<
   Business,
   | "id"
+  | "source"
   | "name"
   | "score"
   | "qualification"
@@ -15,6 +16,7 @@ export type BusinessRow = Pick<
   | "state"
   | "rating"
   | "reviewCount"
+  | "reviewsLast30d"
   | "phone"
   | "displayPhone"
   | "lastContactedAt"
@@ -25,6 +27,7 @@ export type BusinessRow = Pick<
 export function toBusinessRow(b: Business): BusinessRow {
   return {
     id: b.id,
+    source: b.source,
     name: b.name,
     score: b.score,
     qualification: b.qualification,
@@ -36,6 +39,7 @@ export function toBusinessRow(b: Business): BusinessRow {
     state: b.state,
     rating: b.rating,
     reviewCount: b.reviewCount,
+    reviewsLast30d: b.reviewsLast30d,
     phone: b.phone,
     displayPhone: b.displayPhone,
     lastContactedAt: b.lastContactedAt,

@@ -9,7 +9,9 @@ import {
   listGraphNodes,
   listRelations,
   listSnapshots,
+  countStaleBusinesses,
   listStaleBusinesses,
+  markScrapeFailed,
   relatedBusinesses,
   upsertBusinessByTrustpilotId,
 } from "@/db/repo/discovery";
@@ -164,6 +166,44 @@ describe("listStaleBusinesses", () => {
       "Never",
       "Older",
     ]);
+  });
+});
+
+describe("listStaleBusinesses back-off (WP-16 C)", () => {
+  const NOW = new Date("2026-11-08T12:00:00Z");
+  const ago = (h: number) => new Date(NOW.getTime() - h * HOUR);
+  async function row(name: string, lastScrapedAt: Date | null, failedAt: Date | null = null, attempts = 0) {
+    const { business } = await upsertBusinessByTrustpilotId(db, makeTrustpilotRow({ name, lastScrapedAt }));
+    if (failedAt || attempts) {
+      await db.update(businesses).set({ scrapeFailedAt: failedAt, scrapeAttempts: attempts }).where(eq(businesses.id, business.id));
+    }
+    return business;
+  }
+
+  it("orders never-scraped-never-failed first, then oldest scrape, then expired failures; excludes rows in back-off", async () => {
+    await row("Old", ago(48));
+    await row("Oldest", ago(96));
+    await row("Never", null);
+    await row("Failed 1h ago x1", null, ago(1), 1); // window 24 h → excluded
+    await row("Failed 30h ago x1", null, ago(30), 1); // window 24 h → eligible, after scraped rows
+    await row("Failed 30h ago x2", ago(72), ago(30), 2); // window 48 h → excluded
+    await row("Failed 100h ago x2", ago(120), ago(100), 2); // window 48 h → eligible, by lastScrapedAt
+    await row("Failed 160h ago x9", null, ago(160), 9); // capped at 7 → 168 h window → excluded
+    await row("Failed 170h ago x9", null, ago(170), 9); // capped window expired → eligible
+
+    const names = (await listStaleBusinesses(db, { olderThanHours: 24, limit: 20, source: "trustpilot", now: NOW })).map((b) => b.name);
+    expect(names).toEqual(["Never", "Failed 100h ago x2", "Oldest", "Old", "Failed 170h ago x9", "Failed 30h ago x1"]);
+    expect(await countStaleBusinesses(db, { olderThanHours: 24, source: "trustpilot", now: NOW })).toBe(6);
+  });
+
+  it("markScrapeFailed stamps the time and increments attempts", async () => {
+    const b = await row("Flaky", null);
+    await markScrapeFailed(db, b.id, ago(2));
+    await markScrapeFailed(db, b.id, ago(1));
+    const [r] = await db.select().from(businesses).where(eq(businesses.id, b.id));
+    expect(r.scrapeAttempts).toBe(2);
+    expect(r.scrapeFailedAt?.toISOString()).toBe(ago(1).toISOString());
+    expect((await listStaleBusinesses(db, { olderThanHours: 24, limit: 5, now: NOW })).map((x) => x.name)).not.toContain("Flaky");
   });
 });
 

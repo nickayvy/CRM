@@ -19,16 +19,21 @@ export const SHORT_REASON_LABELS: Record<string, string> = {
   duplicate_phone: "Duplicate phone",
 };
 
-/** Fixed color per outcome so a series keeps its color whichever outcomes are present. */
+/**
+ * Fixed color per outcome so a series keeps its color whichever outcomes are
+ * present. Leadwire blue ramp only (`--chart-1..5`): the five most telling
+ * outcomes take a ramp step each, the three "no contact" outcomes share
+ * translucent steps.
+ */
 export const OUTCOME_COLORS: Record<CallOutcome, string> = {
-  interested: "var(--tone-success)",
-  callback: "var(--tone-info)",
-  not_interested: "var(--tone-warning)",
-  do_not_call: "var(--tone-danger)",
+  interested: "var(--chart-1)",
+  callback: "var(--chart-2)",
+  not_interested: "var(--chart-3)",
   wrong_number: "var(--chart-4)",
-  voicemail: "var(--chart-1)",
-  busy: "var(--chart-3)",
-  no_answer: "var(--chart-5)",
+  do_not_call: "var(--chart-5)",
+  voicemail: "color-mix(in oklab, var(--chart-1) 45%, transparent)",
+  busy: "color-mix(in oklab, var(--chart-3) 45%, transparent)",
+  no_answer: "color-mix(in oklab, var(--chart-5) 55%, transparent)",
 };
 
 export function rejectionRows(stats: DashboardStats): CategoryDatum[] {

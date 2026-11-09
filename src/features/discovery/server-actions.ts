@@ -4,6 +4,7 @@
 // also exports the synchronous discoveryConfigured() (a "use server" module may
 // only export async functions).
 import { revalidatePath } from "next/cache";
+import { after } from "next/server";
 import { z } from "zod";
 import type { Business } from "@/db/schema";
 import { getDb } from "@/db/client";
@@ -43,17 +44,28 @@ export async function scrapeUrlAction(url: string): Promise<ActionResult<{ busin
   }
 }
 
-/** Seeds up to 50 new basic rows from one of the 22 Trustpilot categories. */
-export async function seedCategoryAction(slug: string): Promise<ActionResult<{ inserted: number; seen: number }>> {
+/** Result of `seedCategoryAction`: the seed was accepted and runs after the response. */
+export type SeedQueued = { queued: true; category: string };
+
+/**
+ * Seeds up to 50 new basic rows from one of the 22 Trustpilot categories.
+ * Validation (key, slug) answers inline; the scrape itself (tens of seconds:
+ * 3 pages, 1.5 s apart) runs behind `after()` so the request returns at once.
+ * Rows appear in Lookup as they land; failures are logged, not returned.
+ */
+export async function seedCategoryAction(slug: string): Promise<ActionResult<SeedQueued>> {
   if (!env.FIRECRAWL_API_KEY) return fail(DISCOVERY_NOT_CONFIGURED);
   if (!TRUSTPILOT_CATEGORIES.some((c) => c.slug === slug)) return fail(`Unknown Trustpilot category: ${String(slug)}`);
-  try {
-    const res = await scrapeTrustpilotCategory(getDb(), createFirecrawl(env.FIRECRAWL_API_KEY), slug, { max: SEED_MAX });
-    revalidatePath("/lookup");
-    return ok(res);
-  } catch (err) {
-    return errorResult("Category seed failed", err);
-  }
+  const key = env.FIRECRAWL_API_KEY;
+  after(async () => {
+    try {
+      const res = await scrapeTrustpilotCategory(getDb(), createFirecrawl(key), slug, { max: SEED_MAX });
+      console.info(`[discovery] seeded ${slug}: ${res.inserted} new of ${res.seen}`);
+    } catch (err) {
+      console.error(`[discovery] Category seed failed for ${slug}`, err);
+    }
+  });
+  return ok({ queued: true, category: slug });
 }
 
 /** Fills missing phone/email and social links from the business's own website. */

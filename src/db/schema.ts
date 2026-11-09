@@ -116,6 +116,10 @@ export const businesses = pgTable(
     hasMetaAds: boolean("has_meta_ads").notNull().default(false),
     subcategory: text("subcategory"),
     lastScrapedAt: ts("last_scraped_at"),
+    /** Last failed discovery scrape (back-off for permanently failing rows); null after a success. */
+    scrapeFailedAt: ts("scrape_failed_at"),
+    /** Consecutive failed discovery scrapes; reset to 0 on success. */
+    scrapeAttempts: integer("scrape_attempts").notNull().default(0),
     yelpAlias: text("yelp_alias"),
     name: text("name").notNull(),
     nameNormalized: text("name_normalized").notNull(),

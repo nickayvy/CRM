@@ -9,6 +9,15 @@ import { type FakeFirecrawl, createFakeFirecrawl, makeCategoryCard } from "./hel
 
 let fake: FakeFirecrawl = createFakeFirecrawl();
 vi.mock("next/cache", () => ({ revalidatePath: () => {} }));
+// after() needs a request scope; collect the callbacks and run them explicitly.
+const afterQueue = vi.hoisted(() => [] as (() => Promise<unknown> | unknown)[]);
+vi.mock("next/server", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("next/server")>()),
+  after: (fn: () => Promise<unknown> | unknown) => void afterQueue.push(fn),
+}));
+async function drainAfter() {
+  while (afterQueue.length) await afterQueue.shift()!();
+}
 // Never reach the network: with a key, every entry point gets the in-memory fake;
 // without one, the real factory's DiscoveryUnavailable behaviour is kept.
 vi.mock("@/lib/firecrawl/client", async (importOriginal) => {
@@ -83,11 +92,27 @@ describe("discovery actions with a key", () => {
     });
   });
 
-  it("seedCategoryAction seeds a known category and rejects unknown slugs", async () => {
+  it("seedCategoryAction queues the scrape behind after() and rejects unknown slugs inline", async () => {
     fake.setCategoryPage("sports", 1, [makeCategoryCard("a.com"), makeCategoryCard("b.com")]);
     fake.setCategoryPage("sports", 2, []);
-    expect(await seedCategoryAction("sports")).toEqual({ ok: true, data: { inserted: 2, seen: 2 } });
+    expect(await seedCategoryAction("sports")).toEqual({ ok: true, data: { queued: true, category: "sports" } });
+    // Nothing scraped until the response is done.
+    expect(fake.calls).toEqual([]);
+    expect(afterQueue).toHaveLength(1);
+    await drainAfter();
+    expect(await getBusinessByTrustpilotId(db, "a.com")).not.toBeNull();
+    expect(await getBusinessByTrustpilotId(db, "b.com")).not.toBeNull();
     expect(await seedCategoryAction("nope")).toMatchObject({ ok: false });
+    expect(afterQueue).toHaveLength(0);
+  });
+
+  it("a failing queued seed is logged, not thrown", async () => {
+    const err = vi.spyOn(console, "error").mockImplementation(() => {});
+    fake.setCategoryPage("sports", 1, [makeCategoryCard("a.com")]);
+    vi.spyOn(fake, "scrapeJson").mockRejectedValue(new Error("Firecrawl 502"));
+    expect(await seedCategoryAction("sports")).toMatchObject({ ok: true });
+    await expect(drainAfter()).resolves.toBeUndefined();
+    err.mockRestore();
   });
 
   it("enrichTrustpilotAction enriches from the website and validates the id", async () => {

@@ -10,7 +10,10 @@ import { createEmailCampaign, enrollBusinesses } from "@/db/repo/email-campaigns
 import { type Business, callQueueItems, emailEnrollments, emailMessages } from "@/db/schema";
 import { createTestDb } from "@/db/test-utils";
 import { env } from "@/lib/env";
-import { insertBusiness } from "./helpers/builders";
+import { addLeads, updateLead, listLeads } from "@/db/repo/leads";
+import { upsertBusinessByTrustpilotId } from "@/db/repo/discovery";
+import { getOverviewTiles } from "@/features/dashboard/data";
+import { insertBusiness, makeTrustpilotRow } from "./helpers/builders";
 
 const TZ = env.APP_TIMEZONE;
 // 12:30 in Chicago on a Saturday (CST, UTC-6).
@@ -240,5 +243,40 @@ describe("edge cases", () => {
     expect(w.days).toEqual(["2026-11-01", "2026-11-02", "2026-11-03", "2026-11-04", "2026-11-05", "2026-11-06", "2026-11-07"]);
     expect(w.start.toISOString()).toBe("2026-11-01T05:00:00.000Z"); // midnight CDT
     expect(w.end.toISOString()).toBe("2026-11-08T06:00:00.000Z"); // midnight CST
+  });
+});
+
+describe("overview tiles (WP-16, AC-16.5)", () => {
+  const ANN = "11111111-1111-4111-8111-111111111111";
+  const BEN = "22222222-2222-4222-8222-222222222222";
+
+  it("leads by status (all users) and businesses by source equal independent SQL", async () => {
+    // Two Trustpilot rows next to the nine Yelp rows; leads for two users over the same businesses.
+    const tp1 = (await upsertBusinessByTrustpilotId(db, makeTrustpilotRow({ name: "Acme Gadgets" }))).business;
+    const tp2 = (await upsertBusinessByTrustpilotId(db, makeTrustpilotRow({ name: "Beta Travel" }))).business;
+    const yelp = await q<{ id: string }>(sql`SELECT id FROM businesses WHERE source = 'yelp' ORDER BY name LIMIT 3`);
+    await addLeads(db, ANN, [tp1.id, tp2.id, ...yelp.map((r) => r.id)]);
+    await addLeads(db, BEN, [tp1.id, yelp[0].id]);
+    const annLeads = await listLeads(db, ANN);
+    await updateLead(db, ANN, annLeads[0].id, { status: "success" });
+    await updateLead(db, ANN, annLeads[1].id, { status: "failed" });
+    const benLeads = await listLeads(db, BEN);
+    await updateLead(db, BEN, benLeads[0].id, { status: "success" });
+
+    const tiles = await getOverviewTiles(db);
+
+    const byStatus = await q<{ status: string; n: string | number }>(sql`SELECT status, count(*) AS n FROM leads GROUP BY status`);
+    const expStatus = Object.fromEntries(byStatus.map((r) => [r.status, Number(r.n)]));
+    expect(tiles.leadsByStatus.map((r) => r.status)).toEqual(["queued", "contacted", "callback", "success", "failed", "skipped"]);
+    for (const r of tiles.leadsByStatus) expect(r.count, r.status).toBe(expStatus[r.status] ?? 0);
+    expect(tiles.leadsTotal).toBe(await one(sql`SELECT count(*) AS n FROM leads`));
+    expect(tiles.leadsTotal).toBe(7);
+    expect(Object.fromEntries(tiles.leadsByStatus.map((r) => [r.status, r.count]))).toMatchObject({ success: 2, failed: 1 });
+
+    const bySource = await q<{ source: string; n: string | number }>(sql`SELECT source, count(*) AS n FROM businesses GROUP BY source`);
+    const expSource = Object.fromEntries(bySource.map((r) => [r.source, Number(r.n)]));
+    expect(tiles.businessesBySource.map((r) => r.source)).toEqual(["trustpilot", "yelp"]);
+    for (const r of tiles.businessesBySource) expect(r.count, r.source).toBe(expSource[r.source] ?? 0);
+    expect(Object.fromEntries(tiles.businessesBySource.map((r) => [r.source, r.count]))).toEqual({ trustpilot: 2, yelp: 9 });
   });
 });

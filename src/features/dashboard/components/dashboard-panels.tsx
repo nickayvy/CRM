@@ -16,9 +16,60 @@ import { AnimatedItem, AnimatedList, FadeIn } from "@/lib/motion";
 import { formatDate, formatPhone } from "@/lib/format";
 import { CAMPAIGN_STATUS_LABELS, OUTCOME_LABELS } from "@/lib/labels";
 
-/** Card-styled PageSection used by every dashboard panel. */
+/** Leadwire surface panel (PageSection with the primary-dot micro-label) used by every overview panel. */
 export function Panel({ className, ...props }: React.ComponentProps<typeof PageSection>) {
-  return <PageSection className={`rounded-lg border bg-card p-4 text-card-foreground ${className ?? ""}`} {...props} />;
+  return <PageSection className={`rounded-lg bg-surface p-5 shadow-[var(--shadow-elevated)] ${className ?? ""}`} {...props} />;
+}
+
+/**
+ * Breakdown tile: a titled surface with one serif numeral per key and a thin
+ * share bar on the blue ramp. Used for "Leads by status" and "Businesses by source".
+ */
+export function BreakdownTile({
+  title,
+  description,
+  items,
+  testId,
+  href,
+}: {
+  title: string;
+  description?: string;
+  items: { key: string; label: string; count: number }[];
+  testId: string;
+  href?: string;
+}) {
+  const total = items.reduce((n, i) => n + i.count, 0);
+  return (
+    <Panel
+      title={title}
+      description={description}
+      data-testid={testId}
+      actions={
+        href ? (
+          <Button asChild size="sm" variant="ghost">
+            <Link href={href}>Open</Link>
+          </Button>
+        ) : undefined
+      }
+    >
+      <dl className="grid grid-cols-2 gap-3 sm:grid-cols-3">
+        {items.map((i, idx) => (
+          <div key={i.key} data-key={i.key} className="flex min-w-0 flex-col gap-1 rounded-lg bg-surface-elevated px-3 py-3">
+            <dt className="truncate text-[10px] tracking-wider text-muted-foreground uppercase">{i.label}</dt>
+            <dd className="font-serif text-3xl leading-none tracking-tight tabular-nums" data-slot="tile-value">
+              {i.count}
+            </dd>
+            <div className="h-1 overflow-hidden rounded-full bg-muted" aria-hidden>
+              <div
+                className="h-full rounded-full transition-all duration-300 ease-out"
+                style={{ width: `${total ? Math.round((i.count / total) * 100) : 0}%`, backgroundColor: `var(--chart-${(idx % 5) + 1})` }}
+              />
+            </div>
+          </div>
+        ))}
+      </dl>
+    </Panel>
+  );
 }
 
 type RunningCall = CallCampaign & CampaignStats;
@@ -35,7 +86,7 @@ export function RunningCampaignsPanel({ calls, emails }: { calls: RunningCall[];
           description="Start a call or email campaign to see it here."
         />
       ) : (
-        <AnimatedList as="ul" className="flex flex-col divide-y">
+        <AnimatedList as="ul" className="flex flex-col divide-y divide-white/5">
           {calls.map((c) => {
             const total = c.pending + c.claimed + c.completed + c.skipped + c.callback;
             const done = c.completed + c.skipped;
@@ -133,7 +184,7 @@ export function DueCallbacksPanel({ items, now, tz }: { items: DueCallback[]; no
       {items.length === 0 ? (
         <EmptyState size="compact" icon={<PhoneCallIcon />} title="No callbacks due" description="Scheduled callbacks show up here on their day." />
       ) : (
-        <AnimatedList as="ul" className="flex flex-col divide-y">
+        <AnimatedList as="ul" className="flex flex-col divide-y divide-white/5">
           {items.map((i) => {
             const overdue = i.callbackAt !== null && i.callbackAt < now;
             return (

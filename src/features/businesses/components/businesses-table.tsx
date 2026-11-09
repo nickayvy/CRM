@@ -33,6 +33,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Field, FieldError, FieldLabel } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
+import { SourceChip, VelocityBadge } from "@/components/lookup/badges";
 import type { BusinessStatus, CampaignStatus } from "@/db/schema";
 import { formatPhone, formatRating, formatRelative } from "@/lib/format";
 import { CAMPAIGN_STATUS_LABELS, QUALIFICATION_LABELS, STATUS_LABELS } from "@/lib/labels";
@@ -83,10 +84,18 @@ function useColumns() {
           header: "Name",
           meta: { className: "min-w-48" },
           cell: (c) => (
-            <Link href={`/businesses/${c.row.original.id}`} className="font-medium text-foreground hover:underline">
+            <Link
+              href={`/businesses/${c.row.original.id}`}
+              className="font-medium text-foreground transition-colors duration-300 ease-out hover:text-primary"
+            >
               {c.getValue()}
             </Link>
           ),
+        }),
+        col.accessor("source", {
+          header: "Source",
+          enableSorting: false,
+          cell: (c) => <SourceChip source={c.getValue()} />,
         }),
         col.accessor("score", {
           header: "Score",
@@ -129,6 +138,16 @@ function useColumns() {
           cell: (c) => (
             <span className="whitespace-nowrap">
               {formatRating(c.getValue())} <span className="text-muted-foreground">· {c.row.original.reviewCount}</span>
+            </span>
+          ),
+        }),
+        col.accessor("reviewsLast30d", {
+          header: "L30D",
+          meta: { align: "right" },
+          cell: (c) => (
+            <span className="inline-flex items-center justify-end gap-1.5 whitespace-nowrap tabular-nums" data-testid="l30d-cell">
+              {c.getValue()}
+              <VelocityBadge l30d={c.getValue()} />
             </span>
           ),
         }),

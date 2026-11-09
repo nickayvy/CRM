@@ -4,8 +4,10 @@ import { useCallback, useEffect, useRef, useState, useSyncExternalStore } from "
 import { useRouter } from "next/navigation";
 import {
   BuildingIcon,
+  GitBranchIcon,
   KeyboardIcon,
   LayoutDashboardIcon,
+  LayoutGridIcon,
   LoaderIcon,
   MailIcon,
   PaletteIcon,
@@ -27,12 +29,12 @@ import {
 import { modKey, ShortcutsDialog } from "@/components/shell/shortcuts-dialog";
 import type { SearchHit, SearchResponse } from "@/app/api/search/route";
 
-const PAGES: { href: string; label: string; icon: LucideIcon }[] = [
-  { href: "/", label: "Dashboard", icon: LayoutDashboardIcon },
-  { href: "/businesses", label: "Businesses", icon: BuildingIcon },
-  { href: "/searches", label: "Searches", icon: SearchIcon },
+export const PAGES: { href: string; label: string; icon: LucideIcon }[] = [
+  { href: "/lookup", label: "Lookup", icon: LayoutGridIcon },
+  { href: "/leads", label: "Leads", icon: GitBranchIcon },
   { href: "/calling", label: "Calling", icon: PhoneIcon },
   { href: "/email", label: "Email", icon: MailIcon },
+  { href: "/overview", label: "Overview", icon: LayoutDashboardIcon },
   { href: "/settings", label: "Settings", icon: SettingsIcon },
   { href: "/design", label: "Design", icon: PaletteIcon },
 ];

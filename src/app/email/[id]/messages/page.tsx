@@ -9,6 +9,7 @@ import { type MessageRow, MessagesTable } from "@/features/email/components/mess
 import { senderKind } from "@/lib/email/sender";
 import { env } from "@/lib/env";
 import { formatDate } from "@/lib/format";
+import { requireUser } from "@/lib/supabase/server";
 
 export const dynamic = "force-dynamic";
 
@@ -23,6 +24,7 @@ type Props = {
 };
 
 export default async function EmailMessagesPage({ params, searchParams }: Props) {
+  await requireUser();
   const { id } = await params;
   const sp = await searchParams;
   if (!UUID_RE.test(id)) notFound();

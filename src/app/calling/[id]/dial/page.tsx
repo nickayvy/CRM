@@ -6,6 +6,7 @@ import { evaluateCampaign, getCallCampaign } from "@/db/repo/call-campaigns";
 import { AgentNameForm } from "@/features/calling/components/agent-name-form";
 import { Dialer } from "@/features/calling/components/dialer";
 import { getAgentName } from "@/lib/agent-cookie";
+import { requireUser } from "@/lib/supabase/server";
 
 export const dynamic = "force-dynamic";
 
@@ -20,6 +21,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 }
 
 export default async function DialPage({ params }: Props) {
+  await requireUser();
   const { id } = await params;
   if (!UUID_RE.test(id)) notFound();
   const db = getDb();

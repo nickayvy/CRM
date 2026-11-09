@@ -2,7 +2,7 @@ import { GitBranchIcon, LayoutDashboardIcon, LayoutGridIcon, MailIcon, PhoneIcon
 
 export type NavItem = { href: string; label: string; icon: LucideIcon };
 
-/** Top-bar navigation, in order. `/overview` lands in WP-16 (404 until then). */
+/** Top-bar navigation, in order. */
 export const NAV_ITEMS: NavItem[] = [
   { href: "/lookup", label: "LOOKUP", icon: LayoutGridIcon },
   { href: "/leads", label: "LEADS", icon: GitBranchIcon },

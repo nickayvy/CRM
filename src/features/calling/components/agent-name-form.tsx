@@ -3,7 +3,6 @@
 import * as React from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Field, FieldError, FieldLabel } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
 import { setAgentAction } from "../actions";
@@ -17,33 +16,31 @@ export function AgentNameForm({ campaignName, initialName }: { campaignName: str
   }, [state, router]);
   const err = state && !state.ok ? state.fieldErrors?.name : undefined;
   return (
-    <Card className="mx-auto w-full max-w-sm">
-      <CardHeader>
-        <CardTitle>Who is calling?</CardTitle>
-        <CardDescription>
+    <div className="mx-auto flex w-full max-w-sm flex-col gap-4 rounded-lg bg-surface p-4 shadow-[var(--shadow-elevated)]">
+      <div className="flex flex-col gap-1">
+        <h2 className="font-serif text-xl tracking-tight">Who is calling?</h2>
+        <p className="text-sm text-muted-foreground">
           Your name is saved on this browser and recorded with every call in {campaignName}.
-        </CardDescription>
-      </CardHeader>
-      <CardContent>
-        <form action={formAction} className="grid gap-4">
-          <Field data-invalid={!!err || undefined}>
-            <FieldLabel htmlFor="agent-name">Your name</FieldLabel>
-            <Input
-              id="agent-name"
-              name="name"
-              autoFocus
-              autoComplete="name"
-              defaultValue={initialName}
-              maxLength={60}
-              aria-invalid={!!err || undefined}
-            />
-            <FieldError errors={err?.map((message) => ({ message }))} />
-          </Field>
-          <Button type="submit" disabled={pending}>
-            {pending ? "Saving…" : "Start dialing"}
-          </Button>
-        </form>
-      </CardContent>
-    </Card>
+        </p>
+      </div>
+      <form action={formAction} className="grid gap-4">
+        <Field data-invalid={!!err || undefined}>
+          <FieldLabel htmlFor="agent-name">Your name</FieldLabel>
+          <Input
+            id="agent-name"
+            name="name"
+            autoFocus
+            autoComplete="name"
+            defaultValue={initialName}
+            maxLength={60}
+            aria-invalid={!!err || undefined}
+          />
+          <FieldError errors={err?.map((message) => ({ message }))} />
+        </Field>
+        <Button type="submit" disabled={pending}>
+          {pending ? "Saving…" : "Start dialing"}
+        </Button>
+      </form>
+    </div>
   );
 }

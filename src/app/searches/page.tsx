@@ -7,27 +7,35 @@ import { getDb } from "@/db/client";
 import { listSearchJobs } from "@/db/repo/search-jobs";
 import { SearchesTable } from "@/features/searches/components/searches-table";
 import { toJobJson } from "@/features/searches/format";
+import { env } from "@/lib/env";
+import { requireUser } from "@/lib/supabase/server";
+import { YelpNotConfigured } from "@/features/searches/components/yelp-not-configured";
 
 export const dynamic = "force-dynamic";
 
 export const metadata: Metadata = { title: "Searches" };
 
 export default async function Page() {
+  await requireUser();
   const jobs = await listSearchJobs(getDb(), 200);
+  const configured = !!env.YELP_API_KEY;
   return (
     <PageShell width="full">
       <PageHeader
         title="Searches"
-        description="Yelp search jobs and what each one brought in."
+        description="Yelp search jobs and what each one brought in. Trustpilot discovery lives in Lookup."
         actions={
-          <Button asChild size="sm">
-            <Link href="/searches/new">
-              <PlusIcon /> New search
-            </Link>
-          </Button>
+          configured ? (
+            <Button asChild size="sm">
+              <Link href="/searches/new">
+                <PlusIcon /> New search
+              </Link>
+            </Button>
+          ) : undefined
         }
       />
-      <SearchesTable jobs={jobs.map(toJobJson)} />
+      {!configured ? <YelpNotConfigured /> : null}
+      {configured || jobs.length > 0 ? <SearchesTable jobs={jobs.map(toJobJson)} /> : null}
     </PageShell>
   );
 }
