@@ -1,14 +1,16 @@
-import { describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import {
   createYelpClient,
-  fixtureSlugs,
   normalizeYelpBusiness,
   searchAll,
   YelpApiError,
   YelpBudgetError,
+  YelpUnavailable,
   type YelpBusiness,
   type YelpBusinessDetails,
 } from "@/lib/yelp";
+import { makeYelpBusiness } from "./helpers/builders";
+import { createFakeYelp } from "./helpers/fake-yelp";
 
 type Call = { url: string; init?: RequestInit };
 
@@ -236,64 +238,47 @@ describe("maxCalls budget", () => {
   });
 });
 
-describe("fixture mode", () => {
-  it("serves a full page from the search fixture", async () => {
-    const client = createYelpClient({ mode: "fixture" });
-    expect(client.mode).toBe("fixture");
-    const res = await client.search({ location: "Houston, TX", categories: "plumbing", limit: 50, offset: 0 });
-    expect(res.businesses).toHaveLength(40);
-    expect(res.total).toBe(40);
-    expect(client.callCount).toBe(1);
+describe("without an API key", () => {
+  afterEach(() => {
+    vi.unstubAllEnvs();
   });
 
-  it("honours limit and offset", async () => {
-    const client = createYelpClient({ mode: "fixture" });
-    const res = await client.search({ location: "Houston, TX", categories: "plumbing", limit: 10, offset: 35 });
-    expect(res.businesses).toHaveLength(5);
+  function keyless() {
+    vi.stubEnv("YELP_API_KEY", "");
+    const fetch = vi.fn(async () => new Response("{}", { status: 200 }));
+    // Constructing the client must not throw, and must not touch the network.
+    const client = createYelpClient({ fetch: fetch as unknown as typeof globalThis.fetch });
+    return { client, fetch };
+  }
+
+  it("search rejects with YelpUnavailable and never calls fetch", async () => {
+    const { client, fetch } = keyless();
+    const err = await client.search(SEARCH).catch((e: unknown) => e);
+    expect(err).toBeInstanceOf(YelpUnavailable);
+    expect((err as Error).message).toBe("YELP_API_KEY is not set");
+    expect(fetch).not.toHaveBeenCalled();
   });
 
-  it("returns an empty result for an unknown slug", async () => {
-    const client = createYelpClient({ mode: "fixture" });
-    const res = await client.search({ location: "Nowhere, ZZ", categories: "unicorns", limit: 50, offset: 0 });
-    expect(res).toEqual({ businesses: [], total: 0 });
+  it("details rejects with YelpUnavailable and never calls fetch", async () => {
+    const { client, fetch } = keyless();
+    const err = await client.details("any-id").catch((e: unknown) => e);
+    expect(err).toBeInstanceOf(YelpUnavailable);
+    expect((err as Error).message).toBe("YELP_API_KEY is not set");
+    expect(fetch).not.toHaveBeenCalled();
   });
 
-  it("returns the details fixture for a known business", async () => {
-    const client = createYelpClient({ mode: "fixture" });
-    const d = await client.details("7iNUtRD6-1_PkjO9UEgQlq");
-    expect(d.is_claimed).toBe(false);
-    expect(d.photos).toHaveLength(3);
+  it("constructing the client does not throw", () => {
+    expect(() => keyless()).not.toThrow();
   });
+});
 
-  it("falls back to the search record for a search-only id", async () => {
-    const client = createYelpClient({ mode: "fixture" });
-    const d = await client.details("CfQwacWaJKWTi-Ull7BeXj");
-    expect(d.id).toBe("CfQwacWaJKWTi-Ull7BeXj");
-    expect(d.is_claimed).toBe(true);
-    expect(d.photos).toEqual([]);
-    expect(d.hours).toEqual([]);
-  });
-
-  it("increments callCount once per call", async () => {
-    const client = createYelpClient({ mode: "fixture" });
-    expect(client.callCount).toBe(0);
-    await client.search({ location: "Houston, TX", categories: "plumbing" });
-    await client.details("7iNUtRD6-1_PkjO9UEgQlq");
-    await client.search({ location: "Nowhere, ZZ", categories: "unicorns" });
-    expect(client.callCount).toBe(3);
-  });
-
-  it("fixtureSlugs lists the full slug, then the city-only slug", () => {
-    expect(fixtureSlugs({ categories: "plumbing", location: "Houston, TX" })).toEqual([
-      "plumbing-houston-tx",
-      "plumbing-houston",
-    ]);
-  });
-
-  it("searchAll pages through the fixture client", async () => {
-    const client = createYelpClient({ mode: "fixture" });
+describe("searchAll with an in-memory client", () => {
+  it("pages through a fake client serving 40 built records in one call", async () => {
+    const records = Array.from({ length: 40 }, () => makeYelpBusiness());
+    const client = createFakeYelp({ results: records });
     const results = await collect(searchAll(client, SEARCH, 200));
     expect(results).toHaveLength(40);
+    expect(results.map((r) => r.id)).toEqual(records.map((r) => r.id));
     expect(client.callCount).toBe(1);
   });
 });
@@ -313,6 +298,7 @@ describe("normalizeYelpBusiness", () => {
       ],
     });
     const row = normalizeYelpBusiness(b, ctx);
+    expect(row.source).toBe("yelp");
     expect(row.yelpId).toBe("biz-1");
     expect(row.phone).toBeNull();
     expect(row.phoneDigits).toBeNull();

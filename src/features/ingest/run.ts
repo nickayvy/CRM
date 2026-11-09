@@ -12,7 +12,7 @@ import { getSearchJob, updateSearchJob } from "@/db/repo/search-jobs";
 import { type Business, type Qualification, type QualificationRules, type SearchJob, businesses } from "@/db/schema";
 import { type QualifyResult, qualify } from "@/lib/qualify";
 import { type YelpClient, normalizeYelpBusiness, searchAll } from "@/lib/yelp";
-import { buildContext, buildContextIndex } from "./context";
+import { ORDER_KEY, buildContext, buildContextIndex } from "./context";
 
 /** Job counters are persisted after every this-many fetched businesses (one Yelp page). */
 const PROGRESS_EVERY = 50;
@@ -31,7 +31,7 @@ export async function qualifyOne(db: Db, business: Business, rules?: Qualificati
 }
 
 /**
- * Runs a search job: pages Yelp (or fixtures), upserts every business by
+ * Runs a search job: pages Yelp, upserts every business by
  * Yelp id, qualifies each one with a fresh context, and persists counters
  * after every page. Status goes running → completed, or failed with `error`.
  * Never throws for Yelp/DB failures during the run; returns the final job.
@@ -100,6 +100,7 @@ export async function runSearchJob(
 export async function enrichBusiness(db: Db, id: string, client: YelpClient): Promise<Business> {
   const b = await getBusiness(db, id);
   if (!b) throw new Error(`Business not found: ${id}`);
+  if (!b.yelpId) throw new Error("Only Yelp businesses can be enriched from Yelp.");
   const d = await client.details(b.yelpId);
   const now = new Date();
   const photos = Array.isArray(d.photos) ? d.photos : [];
@@ -133,7 +134,7 @@ export async function enrichBusiness(db: Db, id: string, client: YelpClient): Pr
  */
 export async function requalifyAll(db: Db): Promise<Record<Qualification, number>> {
   const rules = await getRules(db);
-  const rows = await db.select().from(businesses).orderBy(asc(businesses.createdAt), asc(businesses.yelpId));
+  const rows = await db.select().from(businesses).orderBy(asc(businesses.createdAt), asc(ORDER_KEY));
   const index = await buildContextIndex(db, rows);
   const results = rows.map((b) => ({ id: b.id, r: qualify(b, index.contextFor(b), rules) }));
 

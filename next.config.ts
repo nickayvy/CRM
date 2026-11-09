@@ -12,12 +12,6 @@ const projectRoot = path.resolve(import.meta.dirname ?? process.cwd());
 const nextConfig: NextConfig = {
   serverExternalPackages: ["@electric-sql/pglite", "postgres"],
   outputFileTracingRoot: projectRoot,
-  // Yelp fixtures are read with fs at runtime (fixture mode, no YELP_API_KEY).
-  // Any route or server action can start a search, so ship them with every
-  // server function.
-  outputFileTracingIncludes: {
-    "/**": ["./fixtures/yelp/**/*.json"],
-  },
   turbopack: {
     root: projectRoot,
     rules: {

@@ -12,9 +12,13 @@ type JobLike = Pick<SearchJob, "categoryAliases" | "radiusM" | "location">;
 
 /** The search-dependent part of the context: from the business's source job, else its own searchCategory/searchLocation. */
 export function searchContext(
-  b: Pick<Business, "searchCategory" | "searchLocation" | "primaryCategory">,
+  b: Pick<Business, "searchCategory" | "searchLocation" | "primaryCategory"> & { source?: Business["source"] },
   job: JobLike | null,
 ): Pick<QualifyContext, "searchCategory" | "categoryAliases" | "radiusM" | "locationState"> {
+  // Trustpilot rows have no Yelp category aliases and no search area: no category or area rules apply.
+  if (b.source === "trustpilot") {
+    return { searchCategory: b.primaryCategory ?? "", categoryAliases: [], radiusM: FALLBACK_RADIUS_M, locationState: null };
+  }
   if (job) {
     const aliases = job.categoryAliases.length ? job.categoryAliases : b.searchCategory ? [b.searchCategory] : [];
     return {
@@ -45,28 +49,33 @@ export async function sameNameCityCount(db: Db, nameNormalized: string): Promise
 }
 
 /**
- * True when an earlier-ingested business with a different yelpId has the same
- * phoneDigits. "Earlier" = (createdAt, yelpId) ordering compared in SQL at full
+ * Stable per-row ordering key for the duplicate-phone tie-break: the Yelp id,
+ * else the Trustpilot slug, else the row id (yelpId is null on Trustpilot rows).
+ */
+export const ORDER_KEY = sql`coalesce(${businesses.yelpId}, ${businesses.trustpilotId}, ${businesses.id}::text)`;
+
+/**
+ * True when an earlier-ingested other business has the same phoneDigits.
+ * "Earlier" = (createdAt, ORDER_KEY) ordering compared in SQL at full
  * precision, so the first record of a duplicate pair stays clean and
  * re-qualification never flips it.
  */
-export async function hasEarlierPhoneDuplicate(
-  db: Db,
-  b: Pick<Business, "id" | "phoneDigits" | "yelpId">,
-): Promise<boolean> {
+export async function hasEarlierPhoneDuplicate(db: Db, b: Pick<Business, "id" | "phoneDigits">): Promise<boolean> {
   if (!b.phoneDigits) return false;
   const self = db
-    .select({ createdAt: businesses.createdAt })
+    .select({ createdAt: businesses.createdAt, key: sql<string>`${ORDER_KEY}`.as("key") })
     .from(businesses)
-    .where(eq(businesses.id, b.id));
+    .where(eq(businesses.id, b.id))
+    .as("self");
   const [row] = await db
     .select({ id: businesses.id })
     .from(businesses)
+    .innerJoin(self, sql`true`)
     .where(
       and(
         eq(businesses.phoneDigits, b.phoneDigits),
-        sql`${businesses.yelpId} <> ${b.yelpId}`,
-        sql`(${businesses.createdAt}, ${businesses.yelpId}) < ((${self}), ${b.yelpId})`,
+        sql`${businesses.id} <> ${b.id}`,
+        sql`(${businesses.createdAt}, ${ORDER_KEY}) < (${self.createdAt}, ${self.key})`,
       ),
     )
     .limit(1);
@@ -98,7 +107,7 @@ export async function buildContextIndex(db: Db, rows: Pick<Business, "sourceJobI
 
   // Earliest (createdAt, yelpId) per phone stays clean; every later one is a duplicate.
   const dupRows = await db.execute<{ id: string }>(
-    sql`SELECT id FROM (SELECT ${businesses.id} AS id, row_number() OVER (PARTITION BY ${businesses.phoneDigits} ORDER BY ${businesses.createdAt}, ${businesses.yelpId}) AS rn FROM ${businesses} WHERE ${businesses.phoneDigits} IS NOT NULL) t WHERE rn > 1`,
+    sql`SELECT id FROM (SELECT ${businesses.id} AS id, row_number() OVER (PARTITION BY ${businesses.phoneDigits} ORDER BY ${businesses.createdAt}, ${ORDER_KEY}) AS rn FROM ${businesses} WHERE ${businesses.phoneDigits} IS NOT NULL) t WHERE rn > 1`,
   );
   const duplicateIds = new Set(rowsOf<{ id: string }>(dupRows).map((r) => r.id));
 

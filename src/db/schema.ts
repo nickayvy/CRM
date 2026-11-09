@@ -52,6 +52,8 @@ export const enrollmentStateEnum = pgEnum("enrollment_state", [
   "paused",
 ]);
 export const messageStatusEnum = pgEnum("message_status", ["queued", "sent", "failed", "dry_run"]);
+export const businessSourceEnum = pgEnum("business_source", ["yelp", "trustpilot"]);
+export const leadStatusEnum = pgEnum("lead_status", ["queued", "contacted", "callback", "success", "failed", "skipped"]);
 
 export type Qualification = (typeof qualificationEnum.enumValues)[number];
 export type BusinessStatus = (typeof businessStatusEnum.enumValues)[number];
@@ -63,6 +65,8 @@ export type QueueState = (typeof queueStateEnum.enumValues)[number];
 export type CallOutcome = (typeof callOutcomeEnum.enumValues)[number];
 export type EnrollmentState = (typeof enrollmentStateEnum.enumValues)[number];
 export type MessageStatus = (typeof messageStatusEnum.enumValues)[number];
+export type BusinessSource = (typeof businessSourceEnum.enumValues)[number];
+export type LeadStatus = (typeof leadStatusEnum.enumValues)[number];
 
 const ts = (name: string) => timestamp(name, { withTimezone: true });
 const createdAt = () => ts("created_at").notNull().defaultNow();
@@ -95,7 +99,23 @@ export const businesses = pgTable(
   "businesses",
   {
     id: uuid("id").primaryKey().defaultRandom(),
-    yelpId: text("yelp_id").notNull().unique(),
+    /** Null for Trustpilot rows. */
+    yelpId: text("yelp_id").unique(),
+    source: businessSourceEnum("source").notNull().default("yelp"),
+    /** Trustpilot slug (e.g. "acme.com"); null for Yelp rows. */
+    trustpilotId: text("trustpilot_id").unique(),
+    /** Domain-like slug used for favicon/Trustpilot links. */
+    slug: text("slug"),
+    email: text("email"),
+    logoUrl: text("logo_url"),
+    socialLinks: jsonb("social_links").$type<Record<string, string>>().notNull().default({}),
+    /** Review velocity: reviews in the last 30 days. */
+    reviewsLast30d: integer("reviews_last_30d").notNull().default(0),
+    trustScore: numeric("trust_score", { precision: 3, scale: 1 }),
+    aiSummary: text("ai_summary"),
+    hasMetaAds: boolean("has_meta_ads").notNull().default(false),
+    subcategory: text("subcategory"),
+    lastScrapedAt: ts("last_scraped_at"),
     yelpAlias: text("yelp_alias"),
     name: text("name").notNull(),
     nameNormalized: text("name_normalized").notNull(),
@@ -152,6 +172,8 @@ export const businesses = pgTable(
     index("businesses_status_idx").on(t.status),
     index("businesses_qualification_idx").on(t.qualification),
     index("businesses_source_job_idx").on(t.sourceJobId),
+    index("businesses_source_idx").on(t.source),
+    index("businesses_reviews_last_30d_idx").on(t.reviewsLast30d),
   ],
 );
 
@@ -315,6 +337,62 @@ export const emailMessages = pgTable("email_messages", {
   createdAt: createdAt(),
 });
 
+// ---------------------------------------------------------------- discovery (v2)
+
+export const businessRelations = pgTable(
+  "business_relations",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    sourceBusinessId: uuid("source_business_id")
+      .notNull()
+      .references(() => businesses.id, { onDelete: "cascade" }),
+    targetBusinessId: uuid("target_business_id")
+      .notNull()
+      .references(() => businesses.id, { onDelete: "cascade" }),
+    relationType: text("relation_type").notNull().default("similar"),
+    createdAt: createdAt(),
+  },
+  (t) => [
+    unique("business_relations_source_target_uq").on(t.sourceBusinessId, t.targetBusinessId),
+    index("business_relations_target_idx").on(t.targetBusinessId),
+  ],
+);
+
+export const reviewSnapshots = pgTable(
+  "review_snapshots",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    businessId: uuid("business_id")
+      .notNull()
+      .references(() => businesses.id, { onDelete: "cascade" }),
+    totalReviews: integer("total_reviews").notNull().default(0),
+    capturedAt: ts("captured_at").notNull().defaultNow(),
+  },
+  (t) => [index("review_snapshots_business_captured_idx").on(t.businessId, t.capturedAt.desc())],
+);
+
+// ---------------------------------------------------------------- leads (v2)
+
+export const leads = pgTable(
+  "leads",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    /** Supabase auth user id. No FK: the auth schema is not ours. */
+    userId: uuid("user_id").notNull(),
+    businessId: uuid("business_id")
+      .notNull()
+      .references(() => businesses.id, { onDelete: "cascade" }),
+    status: leadStatusEnum("status").notNull().default("queued"),
+    notes: text("notes"),
+    createdAt: createdAt(),
+    updatedAt: updatedAt(),
+  },
+  (t) => [
+    unique("leads_user_business_uq").on(t.userId, t.businessId),
+    index("leads_user_status_idx").on(t.userId, t.status),
+  ],
+);
+
 // ---------------------------------------------------------------- row types
 
 export type SearchJob = typeof searchJobs.$inferSelect;
@@ -336,3 +414,7 @@ export type EmailEnrollment = typeof emailEnrollments.$inferSelect;
 export type NewEmailEnrollment = typeof emailEnrollments.$inferInsert;
 export type EmailMessage = typeof emailMessages.$inferSelect;
 export type NewEmailMessage = typeof emailMessages.$inferInsert;
+export type BusinessRelation = typeof businessRelations.$inferSelect;
+export type ReviewSnapshot = typeof reviewSnapshots.$inferSelect;
+export type Lead = typeof leads.$inferSelect;
+export type NewLead = typeof leads.$inferInsert;

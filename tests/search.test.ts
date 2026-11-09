@@ -2,16 +2,47 @@ import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { ilike, or, sql } from "drizzle-orm";
 import type { Db } from "@/db/client";
 import { searchAll } from "@/db/repo/search";
-import { seed } from "@/db/seed";
+import { createCallCampaign } from "@/db/repo/call-campaigns";
+import { createEmailCampaign } from "@/db/repo/email-campaigns";
 import { businesses } from "@/db/schema";
 import { createTestDb } from "@/db/test-utils";
+import { insertBusiness } from "./helpers/builders";
 
 let db: Db;
 let close: () => Promise<void>;
 
 beforeAll(async () => {
   ({ db, close } = await createTestDb());
-  await seed(db);
+
+  // Three ABC Plumbing locations (713555 phones), ten other Houston plumbers with distinct scores,
+  // and one dentist whose phone, name and city match none of the queries below.
+  const abc = [
+    { city: "Houston", phone: "+17135550101", score: 70 },
+    { city: "Dallas", phone: "+17135550102", score: 75 },
+    { city: "Austin", phone: "+17135550103", score: 65 },
+  ];
+  for (const a of abc) await insertBusiness(db, { name: "ABC Plumbing", ...a, state: "TX" });
+  for (let i = 1; i <= 10; i++) {
+    await insertBusiness(db, { name: `Bayou Plumbing ${i}`, city: "Houston", state: "TX", score: 50 + i * 3 });
+  }
+  await insertBusiness(db, {
+    name: "Lone Star Dental",
+    city: "Dallas",
+    state: "TX",
+    phone: "+12145550199",
+    categories: [{ alias: "dentists", title: "Dentists" }],
+    primaryCategory: "dentists",
+  });
+
+  await createCallCampaign(db, { name: "Houston plumbers — Q4 outreach", status: "running" });
+  await createCallCampaign(db, { name: "Dallas HVAC — spring tune-ups", status: "draft" });
+  await createEmailCampaign(db, {
+    name: "Owner intro sequence",
+    status: "running",
+    fromName: "Alex",
+    fromEmail: "alex@example.com",
+    steps: [{ stepOrder: 1, delayDays: 0, subject: "Hello", body: "Hi." }],
+  });
 });
 afterAll(async () => {
   await close();
@@ -35,8 +66,8 @@ async function countByNameOrCity(s: string): Promise<number> {
 describe("searchAll: business matching", () => {
   it("'abc' returns every ABC Plumbing business, and each hit matches by name, city or phone", async () => {
     const expected = await idsByName("ABC Plumbing");
-    // Seed sanity: the same name exists in several cities.
-    expect(expected.length).toBeGreaterThanOrEqual(3);
+    // Built data: the same name exists in three cities.
+    expect(expected).toHaveLength(3);
 
     const res = await searchAll(db, "abc");
     const got = res.businesses.map((b) => b.id);
@@ -60,16 +91,17 @@ describe("searchAll: business matching", () => {
 
   it("matches by city, case-insensitively", async () => {
     const res = await searchAll(db, "hOuStOn", 50);
-    expect(res.businesses.length).toBeGreaterThan(0);
+    expect(res.businesses).toHaveLength(11); // 1 ABC Plumbing + 10 Bayou Plumbing in Houston
     for (const b of res.businesses) {
       expect(`${b.name} ${b.city}`.toLowerCase()).toContain("houston");
     }
   });
 
   it("'713555' matches by phone digits", async () => {
-    const res = await searchAll(db, "713555");
-    expect(res.businesses.length).toBeGreaterThan(0);
+    const res = await searchAll(db, "713555", 50);
+    expect(res.businesses).toHaveLength(13); // 3 ABC Plumbing + 10 Bayou Plumbing, all 713555; the dentist is 214555
     for (const b of res.businesses) expect(b.phoneDigits).toContain("713555");
+    expect(res.businesses.map((b) => b.name)).not.toContain("Lone Star Dental");
   });
 
   it("a formatted query '(713) 555' matches the same way", async () => {
@@ -123,7 +155,7 @@ describe("searchAll: limits", () => {
   });
 
   it("applies the limit to campaign groups too", async () => {
-    // "e" matches every seeded campaign name; with limit 1 each group is capped at 1.
+    // "e" matches every campaign name; with limit 1 each group is capped at 1.
     const all = await searchAll(db, "e", 50);
     expect(all.callCampaigns.length).toBeGreaterThan(1);
     const res = await searchAll(db, "e", 1);

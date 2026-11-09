@@ -9,6 +9,7 @@ import { updateRules } from "@/db/repo/rules";
 import { createSearchJob } from "@/db/repo/search-jobs";
 import type { Business, Qualification, QualificationRules } from "@/db/schema";
 import { type ActionResult, fail, ok } from "@/lib/action-result";
+import { env } from "@/lib/env";
 import { createYelpClient } from "@/lib/yelp";
 import { enrichBusiness, requalifyAll, runSearchJob } from "./run";
 
@@ -59,8 +60,10 @@ const searchSchema = z.object({
   maxResults: intField(1, 1000, "Max results", 200),
 });
 
+const YELP_NOT_CONFIGURED = "Yelp search is not configured: set YELP_API_KEY";
+
 /**
- * Form action: validates, creates the search job, and runs it after the
+ * Form action: validates, refuses when YELP_API_KEY is missing, creates the search job, and runs it after the
  * response is sent. Fields: term?, location, categoryAliases (comma-separated),
  * radiusM (500–40000, default 20000; `radius` also accepted), maxResults (1–1000, default 200).
  */
@@ -76,6 +79,7 @@ export async function startSearchAction(
     maxResults: formData.get("maxResults") ?? undefined,
   });
   if (!parsed.success) return fail("Please fix the highlighted fields.", fieldErrors(parsed.error));
+  if (!env.YELP_API_KEY) return fail(YELP_NOT_CONFIGURED);
   try {
     const db = getDb();
     const job = await createSearchJob(db, parsed.data);

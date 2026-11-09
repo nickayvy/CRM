@@ -5,12 +5,13 @@ import type { Business, QualificationRules } from "@/db/schema";
 
 export type QualifyContext = {
   searchCategory: string;
+  /** Target category aliases; empty → `category_mismatch` is skipped (Trustpilot rows). */
   categoryAliases: string[];
   radiusM: number;
   locationState?: string | null;
   /** Distinct cities in DB with the same nameNormalized, including this business. */
   sameNameCityCount: number;
-  /** Another business (different yelpId) has the same phoneDigits. */
+  /** Another, earlier-ingested business has the same phoneDigits. */
   phoneDuplicate: boolean;
 };
 
@@ -118,7 +119,9 @@ export function qualify(b: BusinessLike, ctx: QualifyContext, rules: Qualificati
   const minRating = Number(rules.minRating);
 
   if (b.isClosed && rules.rejectClosed) hard.add("closed");
-  if (rules.categoryStrict && !aliasesOf(b).some((a) => targets.has(a))) hard.add("category_mismatch");
+  // No target categories (e.g. Trustpilot rows) → nothing to mismatch against.
+  if (rules.categoryStrict && targets.size > 0 && !aliasesOf(b).some((a) => targets.has(a)))
+    hard.add("category_mismatch");
   if (rules.rejectChains && isChain(b.name, rules.chainPatterns ?? [])) hard.add("chain");
   if (rules.rejectChains && ctx.sameNameCityCount >= rules.multiLocationThreshold) hard.add("multi_location");
   if (rules.requirePhone && !b.phoneDigits) hard.add("no_phone");

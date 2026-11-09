@@ -21,6 +21,7 @@ import type { QualifyResult } from "@/lib/qualify";
 import type { Db } from "../client";
 import {
   type Business,
+  type BusinessSource,
   type BusinessStatus,
   type NewBusiness,
   type Qualification,
@@ -45,15 +46,31 @@ export type BusinessFilter = {
   sourceJobId?: string;
   ids?: string[];
   tag?: string;
+  source?: BusinessSource;
+  minReviews?: number;
+  maxReviews?: number;
+  /** Bounds on `reviewsLast30d` (review velocity). */
+  minL30d?: number;
+  maxL30d?: number;
+  minRating?: number;
 };
 
 export type BusinessSort = {
-  field: "name" | "score" | "rating" | "reviewCount" | "city" | "status" | "createdAt" | "lastContactedAt";
+  field:
+    | "name"
+    | "score"
+    | "rating"
+    | "reviewCount"
+    | "reviewsLast30d"
+    | "city"
+    | "status"
+    | "createdAt"
+    | "lastContactedAt";
   dir: "asc" | "desc";
 };
 
-/** CRM-owned columns that a Yelp upsert must never write on conflict. */
-const CRM_FIELDS = [
+/** CRM-owned columns that a Yelp or Trustpilot upsert must never write on conflict. */
+export const CRM_FIELDS = [
   "status",
   "ownerName",
   "ownerEmail",
@@ -76,9 +93,12 @@ function buildWhere(f: BusinessFilter = {}): SQL | undefined {
   const q = f.q?.trim();
   if (q) {
     const digits = q.replace(/\D/g, "");
+    const like = `%${escapeLike(q)}%`;
     c.push(
       or(
-        ilike(businesses.name, `%${escapeLike(q)}%`),
+        ilike(businesses.name, like),
+        ilike(businesses.slug, like),
+        ilike(businesses.website, like),
         digits.length >= 3 ? sql`${businesses.phoneDigits} LIKE ${`%${digits}%`}` : undefined,
       ),
     );
@@ -103,6 +123,12 @@ function buildWhere(f: BusinessFilter = {}): SQL | undefined {
     c.push(ids.length ? inArray(businesses.id, ids) : sql`false`);
   }
   if (f.tag?.trim()) c.push(sql`${f.tag.trim()} = ANY(${businesses.tags})`);
+  if (f.source) c.push(eq(businesses.source, f.source));
+  if (f.minReviews !== undefined) c.push(gte(businesses.reviewCount, f.minReviews));
+  if (f.maxReviews !== undefined) c.push(lte(businesses.reviewCount, f.maxReviews));
+  if (f.minL30d !== undefined) c.push(gte(businesses.reviewsLast30d, f.minL30d));
+  if (f.maxL30d !== undefined) c.push(lte(businesses.reviewsLast30d, f.maxL30d));
+  if (f.minRating !== undefined) c.push(sql`${businesses.rating} >= ${String(f.minRating)}::numeric`);
   const parts = c.filter((x): x is SQL => x !== undefined);
   return parts.length ? and(...parts) : undefined;
 }
@@ -112,6 +138,7 @@ const SORT_COLUMNS: Record<BusinessSort["field"], AnyColumn> = {
   score: businesses.score,
   rating: businesses.rating,
   reviewCount: businesses.reviewCount,
+  reviewsLast30d: businesses.reviewsLast30d,
   city: businesses.city,
   status: businesses.status,
   createdAt: businesses.createdAt,

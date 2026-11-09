@@ -317,3 +317,22 @@ describe("REASON_LABELS", () => {
     expect(REASON_LABELS.chain).toBe("Matches a known chain or franchise name");
   });
 });
+
+describe("category_mismatch without target aliases (v2)", () => {
+  it("is skipped when ctx.categoryAliases is empty, whatever the categories", () => {
+    for (const categories of [[], [{ alias: "travel_vacation", title: "Travel" }], [{ alias: "plumbing", title: "Plumbing" }]]) {
+      const r = qualify(biz({ categories }), ctx({ categoryAliases: [], searchCategory: "" }), RULES);
+      expect(r.reasons).not.toContain("category_mismatch");
+    }
+  });
+
+  it("still applies when aliases are given", () => {
+    const r = qualify(biz({ categories: [{ alias: "landscaping", title: "Landscaping" }] }), CTX, RULES);
+    expect(r.reasons).toContain("category_mismatch");
+  });
+
+  it("out_of_area is skipped without a distance and a location state", () => {
+    const r = qualify(biz({ distanceM: null, state: null }), ctx({ categoryAliases: [], locationState: null }), RULES);
+    expect(r.reasons).not.toContain("out_of_area");
+  });
+});

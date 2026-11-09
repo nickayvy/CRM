@@ -1,11 +1,11 @@
 import { env } from "@/lib/env";
-import { createFixtureClient } from "./fixture";
 import {
   YELP_MAX_RADIUS,
   YELP_MAX_WINDOW,
   YELP_PAGE_LIMIT,
   YelpApiError,
   YelpBudgetError,
+  YelpUnavailable,
   type YelpBusiness,
   type YelpBusinessDetails,
   type YelpClient,
@@ -21,10 +21,9 @@ export const YELP_BACKOFF_BASE_MS = 500;
 export const YELP_DEFAULT_MAX_CALLS = 100;
 
 export type CreateYelpClientOptions = {
+  /** Defaults to `env.YELP_API_KEY`. */
   apiKey?: string;
-  mode?: "live" | "fixture";
   fetch?: typeof fetch;
-  fixtureDir?: string;
   /** Injected sleep for backoff (tests pass a no-op). */
   sleep?: (ms: number) => Promise<void>;
   /** Maximum HTTP requests this client may make; exceeding it throws `YelpBudgetError`. */
@@ -42,7 +41,7 @@ function toQuery(params: YelpSearchParams): string {
   return q.toString();
 }
 
-function createLiveClient(opts: CreateYelpClientOptions & { apiKey: string }): YelpClient {
+function createLiveClient(opts: CreateYelpClientOptions & { apiKey: string | undefined }): YelpClient {
   const doFetch = opts.fetch ?? globalThis.fetch;
   const sleep = opts.sleep ?? defaultSleep;
   const maxCalls = opts.maxCalls ?? YELP_DEFAULT_MAX_CALLS;
@@ -50,6 +49,7 @@ function createLiveClient(opts: CreateYelpClientOptions & { apiKey: string }): Y
 
   async function request<T>(pathAndQuery: string): Promise<T> {
     let attempt = 0;
+    if (!opts.apiKey) throw new YelpUnavailable("YELP_API_KEY is not set");
     for (;;) {
       if (calls >= maxCalls) throw new YelpBudgetError(maxCalls);
       calls++;
@@ -79,7 +79,6 @@ function createLiveClient(opts: CreateYelpClientOptions & { apiKey: string }): Y
   }
 
   return {
-    mode: "live",
     get callCount() {
       return calls;
     },
@@ -93,15 +92,12 @@ function createLiveClient(opts: CreateYelpClientOptions & { apiKey: string }): Y
 }
 
 /**
- * Live client when an API key is available (or `mode: 'live'`), else the
- * fixture adapter. Defaults come from `env` (YELP_API_KEY, YELP_MODE).
+ * Yelp Fusion client (live only). The key defaults to `env.YELP_API_KEY`; when
+ * it is missing, construction succeeds and the first request throws
+ * `YelpUnavailable('YELP_API_KEY is not set')`.
  */
 export function createYelpClient(opts: CreateYelpClientOptions = {}): YelpClient {
-  const apiKey = opts.apiKey ?? env.YELP_API_KEY;
-  const mode = opts.mode ?? (opts.apiKey ? "live" : env.YELP_MODE);
-  if (mode === "fixture") return createFixtureClient({ fixtureDir: opts.fixtureDir });
-  if (!apiKey) throw new YelpApiError("YELP_API_KEY is required for live mode", 0);
-  return createLiveClient({ ...opts, apiKey });
+  return createLiveClient({ ...opts, apiKey: opts.apiKey ?? env.YELP_API_KEY });
 }
 
 /**
