@@ -1,4 +1,4 @@
-// Ingestion CLI: search job → Yelp (or fixtures) → upsert → qualify.
+// Ingestion CLI: search job → Yelp → upsert → qualify. Requires YELP_API_KEY.
 //   npm run ingest -- --location "Houston, TX" --categories plumbing --radius 20000 --max 200 [--term plumber]
 import { parseArgs } from "node:util";
 import { closeDb, getDb } from "@/db/client";
@@ -50,11 +50,15 @@ async function main() {
   const radiusM = intArg(values.radius, "radius", 500, 40000, 20000);
   const maxResults = intArg(values.max, "max", 1, 1000, 200);
 
+  if (!env.YELP_API_KEY) {
+    console.error("Yelp search is not configured: set YELP_API_KEY");
+    process.exit(2);
+  }
   const db = getDb();
   await runMigrations(db);
   const client = createYelpClient();
   const target = env.DATABASE_URL ? "Postgres (DATABASE_URL)" : `PGlite at ${env.PGLITE_DATA_DIR}`;
-  console.log(`Yelp mode: ${client.mode} · database: ${target}`);
+  console.log(`Database: ${target}`);
   console.log(
     `Searching ${categoryAliases.join(",")} in "${location}" (radius ${radiusM} m, max ${maxResults}${values.term ? `, term "${values.term}"` : ""})…`,
   );

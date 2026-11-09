@@ -1,5 +1,15 @@
 import { createHmac, timingSafeEqual } from "node:crypto";
-import { env } from "@/lib/env";
+
+// WP-12 bridge: env.ts no longer exposes the v1 gate variables. WP-11 deletes
+// this module (and the gate) in the same wave; until then read them directly.
+const env = {
+  get APP_PASSWORD() {
+    return process.env.APP_PASSWORD?.trim() || undefined;
+  },
+  get APP_SESSION_SECRET() {
+    return process.env.APP_SESSION_SECRET?.trim() || "dev-insecure-session-secret-change-me";
+  },
+};
 
 /** Cookie holding HMAC-SHA256(APP_SESSION_SECRET, APP_PASSWORD). */
 export const SESSION_COOKIE = "crm_session";

@@ -4,6 +4,7 @@ import { and, asc, count, desc, eq, gt, gte, inArray, isNotNull, lt, lte, ne, sq
 import type { PgDatabase, PgQueryResultHKT } from "drizzle-orm/pg-core";
 import { isWithinHours, localDayBounds } from "@/features/calling/time";
 import type { Schema } from "../client";
+import { syncLeadStatusFromOutcome } from "./leads";
 import {
   type Business,
   type CallCampaign,
@@ -596,6 +597,9 @@ export async function recordOutcome(
       campaignId: item.campaignId,
       occurredAt: now,
     });
+
+    // v2: mirror the outcome onto every user's lead for this business (no-op when there are none).
+    await syncLeadStatusFromOutcome(tx, item.businessId, input.outcome);
 
     return updated;
   });

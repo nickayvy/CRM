@@ -17,6 +17,7 @@ export function normalizeYelpBusiness(
   const categories = Array.isArray(b.categories) ? b.categories.map((c) => ({ alias: c.alias, title: c.title })) : [];
   const rating = typeof b.rating === "number" && Number.isFinite(b.rating) ? b.rating.toFixed(1) : null;
   const row: NewBusiness = {
+    source: "yelp",
     yelpId: b.id,
     yelpAlias: b.alias ?? null,
     name: b.name,

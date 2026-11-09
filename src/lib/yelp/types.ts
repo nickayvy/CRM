@@ -45,8 +45,7 @@ export type YelpSearchResponse = { businesses: YelpBusiness[]; total: number; re
 export interface YelpClient {
   search(params: YelpSearchParams): Promise<YelpSearchResponse>;
   details(idOrAlias: string): Promise<YelpBusinessDetails>;
-  readonly mode: "live" | "fixture";
-  /** Number of API requests made so far (live: every HTTP request including retries; fixture: every call). */
+  /** Number of API requests made so far (every HTTP request, including retries). */
   readonly callCount: number;
 }
 
@@ -71,5 +70,13 @@ export class YelpBudgetError extends YelpApiError {
   constructor(maxCalls: number) {
     super(`Yelp request budget of ${maxCalls} calls exhausted`, 0);
     this.name = "YelpBudgetError";
+  }
+}
+
+/** Thrown on first use when Yelp is not configured (no YELP_API_KEY). */
+export class YelpUnavailable extends Error {
+  constructor(message = "YELP_API_KEY is not set") {
+    super(message);
+    this.name = "YelpUnavailable";
   }
 }

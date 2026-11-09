@@ -1,6 +1,5 @@
 import { type NextRequest, NextResponse } from "next/server";
 import { SESSION_COOKIE, SESSION_MAX_AGE_S, checkPassword, isAuthActive, safeNextPath, sessionToken } from "@/lib/auth";
-import { env } from "@/lib/env";
 
 export const dynamic = "force-dynamic";
 
@@ -20,7 +19,7 @@ export async function POST(request: NextRequest) {
   }
 
   const res = NextResponse.redirect(new URL(next, request.url), 303);
-  res.cookies.set(SESSION_COOKIE, sessionToken(env.APP_PASSWORD!), {
+  res.cookies.set(SESSION_COOKIE, sessionToken(process.env.APP_PASSWORD!.trim()), {
     httpOnly: true,
     sameSite: "lax",
     secure: process.env.NODE_ENV === "production",

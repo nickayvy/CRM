@@ -4,6 +4,7 @@ import type {
   CampaignStatus,
   EnrollmentState,
   JobStatus,
+  LeadStatus,
   MessageStatus,
   PauseReason,
   Qualification,
@@ -84,4 +85,13 @@ export const MESSAGE_STATUS_LABELS: Record<MessageStatus, Label> = {
   sent: { label: "Sent", tone: "success" },
   failed: { label: "Failed", tone: "danger" },
   dry_run: { label: "Dry run", tone: "info" },
+};
+
+export const LEAD_STATUS_LABELS: Record<LeadStatus, Label> = {
+  queued: { label: "Queued", tone: "neutral" },
+  contacted: { label: "Contacted", tone: "info" },
+  callback: { label: "Callback", tone: "warning" },
+  success: { label: "Success", tone: "success" },
+  failed: { label: "Failed", tone: "danger" },
+  skipped: { label: "Skipped", tone: "neutral" },
 };
