@@ -7,6 +7,7 @@ import { JobProgress } from "@/features/searches/components/job-progress";
 import { toJobJson } from "@/features/searches/format";
 import { env } from "@/lib/env";
 import { formatDate } from "@/lib/format";
+import { requireUser } from "@/lib/supabase/server";
 
 export const dynamic = "force-dynamic";
 
@@ -15,6 +16,7 @@ export const metadata: Metadata = { title: "Search" };
 type Props = { params: Promise<{ id: string }> };
 
 export default async function Page({ params }: Props) {
+  await requireUser();
   const { id } = await params;
   const job = await getSearchJob(getDb(), id);
   if (!job) notFound();
@@ -25,7 +27,7 @@ export default async function Page({ params }: Props) {
         title={`${job.categoryAliases.join(", ")} in ${job.location}`}
         description={`Started ${formatDate(job.createdAt, env.APP_TIMEZONE)}`}
       />
-      <PageSection className="rounded-xl border bg-card p-4 text-card-foreground" title="Progress">
+      <PageSection className="rounded-lg bg-surface p-5 shadow-[var(--shadow-elevated)]" title="Progress">
         <JobProgress initial={toJobJson(job)} />
       </PageSection>
     </PageShell>

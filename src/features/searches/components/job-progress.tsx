@@ -13,9 +13,9 @@ import { useJobPolling } from "../use-job-polling";
 
 function Count({ label, value, tone }: { label: string; value: number; tone?: Tone }) {
   return (
-    <div className="flex flex-col gap-0.5 rounded-lg border bg-card p-3">
-      <span className="text-xs text-muted-foreground">{label}</span>
-      <AnimatedNumber value={value} className={`text-2xl font-semibold tabular-nums ${tone ? toneText[tone] : ""}`} />
+    <div className="flex flex-col gap-0.5 rounded-lg bg-surface-elevated px-3 py-3">
+      <span className="text-[10px] tracking-wider text-muted-foreground uppercase">{label}</span>
+      <AnimatedNumber value={value} className={`font-serif text-3xl tracking-tight tabular-nums ${tone ? toneText[tone] : ""}`} />
     </div>
   );
 }
@@ -58,7 +58,7 @@ export function JobProgress({ initial }: { initial: SearchJobJson }) {
         <Count label="Rejected" value={job.rejectedCount} tone="danger" />
       </div>
       {job.status === "failed" && job.error ? (
-        <div role="alert" className="flex items-start gap-2 rounded-lg border border-destructive/40 bg-destructive/5 p-3 text-sm text-destructive">
+        <div role="alert" className="flex items-start gap-2 rounded-lg bg-destructive/10 p-3 text-sm text-destructive">
           <AlertTriangleIcon className="mt-0.5 size-4 shrink-0" aria-hidden />
           <span className="break-words">{job.error}</span>
         </div>

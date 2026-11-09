@@ -20,7 +20,10 @@ import { listActivities } from "@/db/repo/activities";
 import { getBusiness } from "@/db/repo/businesses";
 import { listBusinessMemberships } from "@/db/repo/dashboard";
 import { getSearchJob } from "@/db/repo/search-jobs";
-import type { Activity } from "@/db/schema";
+import type { Activity, Business } from "@/db/schema";
+import { SourceChip, VelocityBadge } from "@/components/lookup/badges";
+import { requireUser } from "@/lib/supabase/server";
+import { trustpilotReviewUrl } from "@/lib/trustpilot-categories";
 import { BusinessHeaderActions } from "@/features/businesses/components/business-actions";
 import { CampaignMembership } from "@/features/businesses/components/campaign-membership";
 import { CrmForm } from "@/features/businesses/components/crm-form";
@@ -59,20 +62,128 @@ function activityTitle(a: Activity): string {
   return base;
 }
 
-function Panel({ title, description, actions, children }: React.ComponentProps<typeof PageSection>) {
+function Panel({ title, description, actions, children, ...rest }: React.ComponentProps<typeof PageSection>) {
   return (
     <PageSection
       title={title}
       description={description}
       actions={actions}
-      className="rounded-xl border bg-card p-4 text-card-foreground"
+      className="rounded-lg bg-surface p-5 shadow-[var(--shadow-elevated)]"
+      {...rest}
     >
       {children}
     </PageSection>
   );
 }
 
+const SOCIAL_LABELS: Record<string, string> = {
+  facebook: "Facebook",
+  twitter: "X / Twitter",
+  linkedin: "LinkedIn",
+  instagram: "Instagram",
+};
+
+function TrustpilotPanel({ b }: { b: Business }) {
+  const socials = Object.entries(b.socialLinks ?? {}).filter(([, url]) => !!url);
+  const tpUrl = b.trustpilotId ? trustpilotReviewUrl(b.trustpilotId) : null;
+  return (
+    <Panel
+      title="Trustpilot data"
+      description={b.lastScrapedAt ? `Last scraped ${formatDate(b.lastScrapedAt, env.APP_TIMEZONE)}` : "Not scraped yet: the daily sync picks it up."}
+      data-testid="trustpilot-panel"
+    >
+      <div className="flex items-center gap-4">
+        <div className="flex size-14 shrink-0 items-center justify-center overflow-hidden rounded-lg bg-surface-elevated shadow-[var(--shadow-inset)]">
+          {b.logoUrl ? (
+            // eslint-disable-next-line @next/next/no-img-element -- remote favicon service, no image config
+            <img src={b.logoUrl} alt={`${b.name} logo`} className="size-10 object-contain" loading="lazy" data-testid="trustpilot-logo" />
+          ) : (
+            <span className="font-serif text-2xl text-muted-foreground">{b.name.slice(0, 1).toUpperCase()}</span>
+          )}
+        </div>
+        <dl className="grid flex-1 grid-cols-3 gap-3">
+          <div className="flex min-w-0 flex-col gap-0.5">
+            <dt className="text-[10px] tracking-wider text-muted-foreground uppercase">TrustScore</dt>
+            <dd className="font-serif text-2xl leading-none tracking-tight tabular-nums" data-testid="trust-score">
+              {b.trustScore ?? "—"}
+            </dd>
+          </div>
+          <div className="flex min-w-0 flex-col gap-0.5">
+            <dt className="text-[10px] tracking-wider text-muted-foreground uppercase">Rating</dt>
+            <dd className="font-serif text-2xl leading-none tracking-tight tabular-nums">{formatRating(b.rating)}</dd>
+          </div>
+          <div className="flex min-w-0 flex-col gap-0.5">
+            <dt className="text-[10px] tracking-wider text-muted-foreground uppercase">L30D</dt>
+            <dd className="flex items-center gap-1.5 font-serif text-2xl leading-none tracking-tight tabular-nums">
+              {b.reviewsLast30d}
+              <VelocityBadge l30d={b.reviewsLast30d} />
+            </dd>
+          </div>
+        </dl>
+      </div>
+      <KeyValueList>
+        <KeyValue label="Reviews">{b.reviewCount}</KeyValue>
+        <KeyValue label="Categories">{[b.categories[0]?.title ?? b.primaryCategory, b.subcategory].filter(Boolean).join(" / ")}</KeyValue>
+        <KeyValue label="Profile">
+          {tpUrl ? (
+            <a href={tpUrl} target="_blank" rel="noreferrer" className="break-all text-primary hover:underline">
+              {b.trustpilotId}
+            </a>
+          ) : null}
+        </KeyValue>
+        <KeyValue label="Website">
+          {b.website ? (
+            <a href={b.website} target="_blank" rel="noreferrer" className="break-all hover:underline">
+              {b.website}
+            </a>
+          ) : null}
+        </KeyValue>
+        <KeyValue label="Email">
+          {b.email ? (
+            <a href={`mailto:${b.email}`} className="break-all hover:underline">
+              {b.email}
+            </a>
+          ) : null}
+        </KeyValue>
+        <KeyValue label="Phone" mono>
+          {b.phone ? (
+            <a href={`tel:${b.phone}`} className="hover:underline">
+              {formatPhone(b.phone)}
+            </a>
+          ) : null}
+        </KeyValue>
+        <KeyValue label="Location">{[b.city, b.country].filter(Boolean).join(", ")}</KeyValue>
+        <KeyValue label="Socials">
+          {socials.length ? (
+            <span className="flex flex-wrap gap-x-3 gap-y-1" data-testid="trustpilot-socials">
+              {socials.map(([k, url]) => (
+                <a key={k} href={url} target="_blank" rel="noreferrer" className="text-primary hover:underline">
+                  {SOCIAL_LABELS[k] ?? k}
+                </a>
+              ))}
+            </span>
+          ) : null}
+        </KeyValue>
+        <KeyValue label="Last scraped">
+          {b.lastScrapedAt ? (
+            <time dateTime={b.lastScrapedAt.toISOString()} suppressHydrationWarning>
+              {formatDate(b.lastScrapedAt, env.APP_TIMEZONE)}
+            </time>
+          ) : null}
+        </KeyValue>
+      </KeyValueList>
+      {b.aiSummary ? (
+        <div className="flex flex-col gap-1.5">
+          <h3 className="text-[10px] tracking-wider text-primary uppercase">Intel brief // automated assessment</h3>
+          <p className="text-sm leading-relaxed text-muted-foreground">{b.aiSummary}</p>
+        </div>
+      ) : null}
+    </Panel>
+  );
+}
+
 export default async function Page({ params }: Props) {
+  await requireUser();
   const { id } = await params;
   const db = getDb();
   const business = await getBusiness(db, id);
@@ -100,6 +211,7 @@ export default async function Page({ params }: Props) {
         title={b.name}
         meta={
           <>
+            <SourceChip source={b.source} />
             <StatusBadge label={QUALIFICATION_LABELS[b.qualification]} />
             <StatusBadge variant="dot" label={STATUS_LABELS[b.status]} />
             {b.doNotCall ? <StatusBadge tone="danger">Do not call</StatusBadge> : null}
@@ -159,84 +271,88 @@ export default async function Page({ params }: Props) {
             ) : null}
           </Panel>
 
-          <Panel title="Yelp data" description={b.enrichedAt ? `Enriched ${formatDate(b.enrichedAt, env.APP_TIMEZONE)}` : "Not enriched yet: Enrich adds hours, photos and claim status."}>
-            <KeyValueList>
-              <KeyValue label="Categories">{b.categories.map((c) => c.title).join(", ")}</KeyValue>
-              <KeyValue label="Rating">
-                {formatRating(b.rating)} · {b.reviewCount} review{b.reviewCount === 1 ? "" : "s"}
-              </KeyValue>
-              <KeyValue label="Price">{b.price}</KeyValue>
-              <KeyValue label="Address">
-                {address ? (
-                  map ? (
-                    <a href={map} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1 hover:underline">
-                      <MapPinIcon className="size-3.5" aria-hidden /> {address}
+          {b.source === "trustpilot" || b.trustpilotId ? <TrustpilotPanel b={b} /> : null}
+
+          {b.yelpId ? (
+            <Panel data-testid="yelp-panel" title="Yelp data" description={b.enrichedAt ? `Enriched ${formatDate(b.enrichedAt, env.APP_TIMEZONE)}` : "Not enriched yet: Enrich adds hours, photos and claim status."}>
+              <KeyValueList>
+                <KeyValue label="Categories">{b.categories.map((c) => c.title).join(", ")}</KeyValue>
+                <KeyValue label="Rating">
+                  {formatRating(b.rating)} · {b.reviewCount} review{b.reviewCount === 1 ? "" : "s"}
+                </KeyValue>
+                <KeyValue label="Price">{b.price}</KeyValue>
+                <KeyValue label="Address">
+                  {address ? (
+                    map ? (
+                      <a href={map} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1 hover:underline">
+                        <MapPinIcon className="size-3.5" aria-hidden /> {address}
+                      </a>
+                    ) : (
+                      address
+                    )
+                  ) : null}
+                </KeyValue>
+                <KeyValue label="Phone" mono>
+                  {b.phone ? (
+                    <a href={`tel:${b.phone}`} className="hover:underline">
+                      {formatPhone(b.phone)}
                     </a>
-                  ) : (
-                    address
-                  )
-                ) : null}
-              </KeyValue>
-              <KeyValue label="Phone" mono>
-                {b.phone ? (
-                  <a href={`tel:${b.phone}`} className="hover:underline">
-                    {formatPhone(b.phone)}
-                  </a>
-                ) : null}
-              </KeyValue>
-              <KeyValue label="Website">
-                {b.website ? (
-                  <a href={b.website} target="_blank" rel="noreferrer" className="break-all hover:underline">
-                    {b.website}
-                  </a>
-                ) : null}
-              </KeyValue>
-              <KeyValue label="Claimed">
-                {b.isClaimed === null ? "Unknown" : b.isClaimed ? "Yes" : "No"}
-              </KeyValue>
-              <KeyValue label="Status">{b.isClosed ? "Closed" : openNow === null ? "Open" : openNow ? "Open now" : "Closed now"}</KeyValue>
-              <KeyValue label="Transactions">{transactions.map(transactionLabel).join(", ")}</KeyValue>
-              <KeyValue label="Source search">
-                {job ? (
-                  <Link href={`/searches/${job.id}`} className="hover:underline">
-                    {job.categoryAliases.join(", ")} in {job.location}
-                  </Link>
-                ) : null}
-              </KeyValue>
-            </KeyValueList>
-            <div className="flex flex-col gap-2">
-              <h3 className="text-xs font-medium text-muted-foreground">Hours</h3>
-              {hours ? (
-                <table className="w-full max-w-sm text-sm" aria-label="Opening hours">
-                  <tbody>
-                    {hours.map((h) => (
-                      <tr key={h.day} className="border-b last:border-0">
-                        <th scope="row" className="py-1 pr-4 text-left font-normal text-muted-foreground">
-                          {h.day}
-                        </th>
-                        <td className="py-1 tabular-nums">{h.text}</td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              ) : (
-                <p className="text-sm text-muted-foreground">No hours yet.</p>
-              )}
-            </div>
-            {photos.length > 0 ? (
+                  ) : null}
+                </KeyValue>
+                <KeyValue label="Website">
+                  {b.website ? (
+                    <a href={b.website} target="_blank" rel="noreferrer" className="break-all hover:underline">
+                      {b.website}
+                    </a>
+                  ) : null}
+                </KeyValue>
+                <KeyValue label="Claimed">
+                  {b.isClaimed === null ? "Unknown" : b.isClaimed ? "Yes" : "No"}
+                </KeyValue>
+                <KeyValue label="Status">{b.isClosed ? "Closed" : openNow === null ? "Open" : openNow ? "Open now" : "Closed now"}</KeyValue>
+                <KeyValue label="Transactions">{transactions.map(transactionLabel).join(", ")}</KeyValue>
+                <KeyValue label="Source search">
+                  {job ? (
+                    <Link href={`/searches/${job.id}`} className="hover:underline">
+                      {job.categoryAliases.join(", ")} in {job.location}
+                    </Link>
+                  ) : null}
+                </KeyValue>
+              </KeyValueList>
               <div className="flex flex-col gap-2">
-                <h3 className="text-xs font-medium text-muted-foreground">Photos</h3>
-                <div className="flex gap-2 overflow-x-auto pb-1" aria-label="Photos">
-                  {photos.map((src) => (
-                    <a key={src} href={src} target="_blank" rel="noreferrer" className="shrink-0">
-                      {/* eslint-disable-next-line @next/next/no-img-element -- remote Yelp CDN, no image config */}
-                      <img src={src} alt="" className="size-24 rounded-md border object-cover" loading="lazy" />
-                    </a>
-                  ))}
-                </div>
+                <h3 className="text-[10px] tracking-wider text-muted-foreground uppercase">Hours</h3>
+                {hours ? (
+                  <table className="w-full max-w-sm text-sm" aria-label="Opening hours">
+                    <tbody>
+                      {hours.map((h) => (
+                        <tr key={h.day} className="border-b border-white/5 last:border-0">
+                          <th scope="row" className="py-1 pr-4 text-left font-normal text-muted-foreground">
+                            {h.day}
+                          </th>
+                          <td className="py-1 tabular-nums">{h.text}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                ) : (
+                  <p className="text-sm text-muted-foreground">No hours yet.</p>
+                )}
               </div>
-            ) : null}
-          </Panel>
+              {photos.length > 0 ? (
+                <div className="flex flex-col gap-2">
+                  <h3 className="text-[10px] tracking-wider text-muted-foreground uppercase">Photos</h3>
+                  <div className="flex gap-2 overflow-x-auto pb-1" aria-label="Photos">
+                    {photos.map((src) => (
+                      <a key={src} href={src} target="_blank" rel="noreferrer" className="shrink-0">
+                        {/* eslint-disable-next-line @next/next/no-img-element -- remote Yelp CDN, no image config */}
+                        <img src={src} alt="" className="size-24 rounded-lg object-cover shadow-[var(--shadow-elevated)]" loading="lazy" />
+                      </a>
+                    ))}
+                  </div>
+                </div>
+              ) : null}
+            </Panel>
+          ) : null}
         </div>
 
         <div className="flex min-w-0 flex-col gap-6">

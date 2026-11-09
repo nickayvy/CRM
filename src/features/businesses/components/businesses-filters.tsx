@@ -4,9 +4,11 @@ import * as React from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { FilterBar, FilterRange, FilterSelect, type ActiveFilter, type RangeValue } from "@/components/primitives";
 import type { BusinessFilter } from "@/db/repo/businesses";
-import type { BusinessStatus, Qualification } from "@/db/schema";
+import type { BusinessSource, BusinessStatus, Qualification } from "@/db/schema";
 import { QUALIFICATION_LABELS, STATUS_LABELS } from "@/lib/labels";
-import { patchSearchParams } from "../search-params";
+import { SOURCES, patchSearchParams } from "../search-params";
+
+const SOURCE_LABELS: Record<BusinessSource, string> = { trustpilot: "Trustpilot", yelp: "Yelp" };
 
 export type BusinessesFiltersProps = {
   filter: BusinessFilter;
@@ -14,6 +16,10 @@ export type BusinessesFiltersProps = {
   categories: { alias: string; count: number }[];
   qualificationCounts: Record<Qualification, number>;
   statusCounts: Record<BusinessStatus, number>;
+  /** Rows per source (unfiltered), for the Source options. */
+  sourceCounts?: Partial<Record<BusinessSource, number>>;
+  /** Category alias → display title. */
+  categoryTitles?: Record<string, string>;
   /** Right-aligned slot. */
   actions?: React.ReactNode;
 };
@@ -28,7 +34,16 @@ function boolValue(v: boolean | undefined): string[] {
 }
 
 /** Filter bar for /businesses: every change is written to the URL (and resets to page 1). */
-export function BusinessesFilters({ filter, cities, categories, qualificationCounts, statusCounts, actions }: BusinessesFiltersProps) {
+export function BusinessesFilters({
+  filter,
+  cities,
+  categories,
+  qualificationCounts,
+  statusCounts,
+  sourceCounts,
+  categoryTitles,
+  actions,
+}: BusinessesFiltersProps) {
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
@@ -45,6 +60,9 @@ export function BusinessesFilters({ filter, cities, categories, qualificationCou
   const score: RangeValue = [filter.minScore ?? null, filter.maxScore ?? null];
 
   const active: ActiveFilter[] = [
+    ...(filter.source
+      ? [{ id: "source", label: `Source: ${SOURCE_LABELS[filter.source]}`, onRemove: () => set({ source: null }) }]
+      : []),
     ...(filter.qualification ?? []).map((q) => ({
       id: `qualification:${q}`,
       label: `Qualification: ${QUALIFICATION_LABELS[q].label}`,
@@ -58,7 +76,7 @@ export function BusinessesFilters({ filter, cities, categories, qualificationCou
     ...(filter.city ? [{ id: "city", label: `City: ${filter.city}`, onRemove: () => set({ city: null }) }] : []),
     ...(filter.state ? [{ id: "state", label: `State: ${filter.state}`, onRemove: () => set({ state: null }) }] : []),
     ...(filter.category
-      ? [{ id: "category", label: `Category: ${filter.category}`, onRemove: () => set({ category: null }) }]
+      ? [{ id: "category", label: `Category: ${categoryTitles?.[filter.category] ?? filter.category}`, onRemove: () => set({ category: null }) }]
       : []),
     ...(filter.minScore !== undefined || filter.maxScore !== undefined
       ? [
@@ -86,13 +104,14 @@ export function BusinessesFilters({ filter, cities, categories, qualificationCou
       search={{
         value: filter.q ?? "",
         onChange: (v) => set({ q: v.trim() || null }),
-        placeholder: "Search name or phone…",
+        placeholder: "Search name, phone or domain…",
         "aria-label": "Search businesses",
       }}
       activeFilters={active}
       onClearAll={() =>
         set({
           q: null,
+          source: null,
           qualification: null,
           status: null,
           city: null,
@@ -108,6 +127,13 @@ export function BusinessesFilters({ filter, cities, categories, qualificationCou
       }
       actions={actions}
     >
+      <FilterSelect
+        label="Source"
+        multiple={false}
+        options={SOURCES.map((s) => ({ value: s, label: SOURCE_LABELS[s], count: sourceCounts?.[s] }))}
+        value={filter.source ? [filter.source] : []}
+        onChange={(v) => set({ source: v[0] ?? null })}
+      />
       <FilterSelect
         label="Qualification"
         options={(Object.keys(QUALIFICATION_LABELS) as Qualification[]).map((q) => ({
@@ -140,7 +166,7 @@ export function BusinessesFilters({ filter, cities, categories, qualificationCou
         label="Category"
         multiple={false}
         searchable
-        options={categories.map((c) => ({ value: c.alias, label: c.alias, count: c.count }))}
+        options={categories.map((c) => ({ value: c.alias, label: categoryTitles?.[c.alias] ?? c.alias, count: c.count }))}
         value={filter.category ? [filter.category] : []}
         onChange={(v) => set({ category: v[0] ?? null })}
       />

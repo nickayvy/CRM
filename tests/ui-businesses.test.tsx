@@ -53,6 +53,7 @@ const ID_SOFT = "33333333-3333-4333-8333-333333333333";
 function makeRow(overrides: Partial<BusinessRow>): BusinessRow {
   return {
     id: ID_QUALIFIED,
+    source: "yelp",
     name: "Row",
     score: 50,
     qualification: "qualified",
@@ -64,6 +65,7 @@ function makeRow(overrides: Partial<BusinessRow>): BusinessRow {
     state: "TX",
     rating: "4.5",
     reviewCount: 42,
+    reviewsLast30d: 0,
     phone: "+17135550123",
     displayPhone: "(713) 555-0123",
     lastContactedAt: null,
