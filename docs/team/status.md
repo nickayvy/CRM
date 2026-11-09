@@ -42,12 +42,13 @@ Estimated agents: 7 Opus seniors + roughly 1–3 Sonnet juniors each.
 |---|---|---|---|---|---|---|
 | WP-11 | Leadwire theme, shell, Supabase Auth | 1 | senior-wp11 (Opus) | wp-11-theme-shell-auth / PR #9 | merged | v2/reviews/WP-11.md (ACCEPT) |
 | WP-12 | Data model v2, repos, test-data removal | 1 | senior-wp12 (Opus) | wp-12-data-v2 / PR #10 | merged | v2/reviews/WP-12.md (ACCEPT) |
-| WP-13 | Trustpilot discovery (Firecrawl) | 2 | — | wp-13-discovery | blocked on wave 1 | — |
-| WP-14 | Lookup UI | 2 | — | wp-14-lookup-ui | blocked on wave 1 | — |
-| WP-15 | Leads UI | 2 | — | wp-15-leads-ui | blocked on wave 1 | — |
+| WP-13 | Trustpilot discovery (Firecrawl) | 2 | senior-wp13 (Opus) | wp-13-discovery | spawned | — |
+| WP-14 | Lookup UI | 2 | senior-wp14 (Opus) | wp-14-lookup-ui | spawned | — |
+| WP-15 | Leads UI | 2 | senior-wp15 (Opus) | wp-15-leads-ui | spawned | — |
 | WP-16 | Restyle + integration | 3 | — | wp-16-restyle | blocked on wave 2 | — |
 
 ## v2 log
 - 2026-11-08 User directive: overhaul to the gtm ("Leadwire") product and UI, remove all test data, defer voice agents. Inventory, spec, architecture delta, and six packages written under docs/team/v2/.
 - 2026-11-08 v2 wave 1 spawned: WP-11 (theme/shell/auth), WP-12 (data v2 + test-data removal) in parallel.
 - 2026-11-08 v2 wave 1 merged (WP-11 PR #9, WP-12 PR #10). Supabase: demo rows deleted, migration 0001 applied with RLS on the new tables. Signed-in shell check pending a test user.
+- 2026-11-08 Main green after wave 1 (536 tests, 0 warnings). Dev-only auth bypass was proposed and refused by the permission classifier (security weakening); signed-in QA waits for a user-created Supabase test account. Wave 2 spawned: WP-13, WP-14, WP-15 in parallel. Vercel env: NEXT_PUBLIC_SUPABASE_URL/ANON_KEY set.
