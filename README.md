@@ -1,11 +1,6 @@
 # Leadwire
 
-Leadwire (formerly Local Business CRM) is a dark, signal-first prospecting CRM
-for selling to small local businesses. `/` redirects to `/lookup`. It discovers
-businesses on Trustpilot (via Firecrawl) and, when a key is set, Yelp Fusion;
-qualifies them with an explicit rule engine; and gives each signed-in user a
-lead list that feeds calling campaigns and email sequences. `/overview` shows
-discovery yield, leads, calls and email at a glance.
+Test demo built for localairegistry
 
 Stack: Next.js 16 (App Router, Turbopack), React 19, TypeScript strict,
 Tailwind CSS v4, shadcn/ui, `motion`, Drizzle ORM, PGlite (local and tests)
