@@ -37,6 +37,8 @@ import {
   toBusinessFilter,
   toCampaignColumns,
 } from "./schema";
+import { createElevenLabsCaller, missingElevenLabsConfig } from "@/lib/elevenlabs/client";
+import { dispatchAiCalls } from "./ai";
 import { parseLocalDateTime } from "./time";
 import type { DialerCampaign, DialerClaim } from "./types";
 
@@ -294,5 +296,34 @@ export async function skipAction(itemId: string): Promise<ActionResult> {
   } catch (err) {
     console.error("[calling] skipAction failed", err);
     return fail("Could not skip.");
+  }
+}
+
+// ------------------------------------------------------------------ AI calling
+
+const DISPATCH_STOP_MESSAGES: Record<string, string> = {
+  at_capacity: "All AI call slots are busy.",
+  empty: "Nothing in the queue is ready to call.",
+  not_running: "The campaign is not running (draft, paused, outside calling hours or at its daily cap).",
+  not_ai: "This campaign is not an AI campaign.",
+};
+
+/**
+ * Fills the campaign's free AI call slots now. Further calls are placed
+ * automatically as each call's webhook arrives.
+ */
+export async function placeAiCallsAction(campaignId: string): Promise<ActionResult<{ placed: number; message: string }>> {
+  if (!UUID_RE.test(campaignId)) return fail("Campaign not found.");
+  const missing = missingElevenLabsConfig();
+  if (missing.length) return fail(`AI calling is not configured. Missing: ${missing.join(", ")}.`);
+  try {
+    const r = await dispatchAiCalls(getDb(), campaignId, createElevenLabsCaller());
+    revalidateCampaign(campaignId);
+    if (r.stopped === "error") return fail(r.placed ? `Placed ${r.placed}, then: ${r.error}` : (r.error ?? "The call could not be placed."));
+    if (r.placed === 0) return fail(DISPATCH_STOP_MESSAGES[r.stopped]);
+    return ok({ placed: r.placed, message: `Placed ${r.placed} AI call${r.placed === 1 ? "" : "s"}.` });
+  } catch (err) {
+    console.error("[calling] placeAiCallsAction failed", err);
+    return fail("Could not place AI calls.");
   }
 }

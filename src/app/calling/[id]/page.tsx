@@ -26,6 +26,9 @@ import {
   listQueue,
   listUpcomingCallbacks,
 } from "@/db/repo/call-campaigns";
+import { listAiCalls } from "@/db/repo/ai-calls";
+import { AiCallsList, PlaceAiCallsButton } from "@/features/calling/components/ai-calls-panel";
+import { missingElevenLabsConfig } from "@/lib/elevenlabs/client";
 import { AddBusinessesPanel } from "@/features/calling/components/add-businesses-panel";
 import { CampaignControls } from "@/features/calling/components/campaign-controls";
 import { CampaignLive } from "@/features/calling/components/campaign-live";
@@ -59,7 +62,8 @@ export default async function CallCampaignPage({ params }: Props) {
 
   const now = new Date();
   const campaign = await evaluateCampaign(db, id, now);
-  const [stats, queue, due, upcoming, outcomes, cities, categories] = await Promise.all([
+  const isAi = campaign.mode === "ai";
+  const [stats, queue, due, upcoming, outcomes, cities, categories, aiCalls] = await Promise.all([
     getCampaignStats(db, id, now),
     listQueue(db, id, { limit: QUEUE_LIMIT }),
     listDueCallbacks(db, now, { campaignId: id }),
@@ -67,7 +71,9 @@ export default async function CallCampaignPage({ params }: Props) {
     countCampaignOutcomes(db, id),
     listCities(db),
     listCategories(db),
+    isAi ? listAiCalls(db, id, 30) : Promise.resolve([]),
   ]);
+  const missingConfig = isAi ? missingElevenLabsConfig() : [];
 
   const rows: QueueTableRow[] = queue.rows.map((r) => ({
     id: r.id,
@@ -104,11 +110,15 @@ export default async function CallCampaignPage({ params }: Props) {
                 <SettingsIcon aria-hidden /> Settings
               </Link>
             </Button>
-            <Button size="sm" asChild>
-              <Link href={`/calling/${id}/dial`}>
-                <PhoneIcon aria-hidden /> Open dialer
-              </Link>
-            </Button>
+            {isAi ? (
+              <PlaceAiCallsButton campaignId={id} missingConfig={missingConfig} />
+            ) : (
+              <Button size="sm" asChild>
+                <Link href={`/calling/${id}/dial`}>
+                  <PhoneIcon aria-hidden /> Open dialer
+                </Link>
+              </Button>
+            )}
           </>
         }
       />
@@ -138,6 +148,33 @@ export default async function CallCampaignPage({ params }: Props) {
         </PageSection>
 
         <div className="grid min-w-0 content-start gap-6">
+          {isAi ? (
+            <PageSection
+              title="AI calls"
+              description={
+                missingConfig.length
+                  ? `AI calling is off until ${missingConfig.join(", ")} ${missingConfig.length === 1 ? "is" : "are"} set.`
+                  : `Up to ${campaign.maxConcurrentAgents} at once. The next call starts when one finishes.`
+              }
+              className="rounded-lg bg-surface p-4 shadow-[var(--shadow-elevated)]"
+            >
+              <AiCallsList
+                timezone={tz}
+                calls={aiCalls.map((c) => ({
+                  id: c.id,
+                  businessName: c.businessName,
+                  toNumber: c.toNumber,
+                  status: c.status,
+                  outcome: c.outcome,
+                  summary: c.summary,
+                  error: c.error,
+                  durationSecs: c.durationSecs,
+                  startedAt: c.startedAt,
+                  transcript: c.transcript,
+                }))}
+              />
+            </PageSection>
+          ) : null}
           <PageSection title="Due callbacks" className="rounded-lg bg-surface p-4 shadow-[var(--shadow-elevated)]">
             {due.length === 0 ? (
               <EmptyState size="compact" title="No callbacks due" description="Due callbacks are dialed before the rest of the queue." />
@@ -186,10 +223,11 @@ export default async function CallCampaignPage({ params }: Props) {
 
           <PageSection title="Settings" className="rounded-lg bg-surface p-4 shadow-[var(--shadow-elevated)]">
             <KeyValueList>
+              <KeyValue label="Calls placed by">{isAi ? "AI agent" : "People (dialer)"}</KeyValue>
               <KeyValue label="Daily cap">{campaign.dailyCap ?? "No cap"}</KeyValue>
               <KeyValue label="Calling hours">{hours}</KeyValue>
               <KeyValue label="Time zone">{tz.replace(/_/g, " ")}</KeyValue>
-              <KeyValue label="Max agents">{campaign.maxConcurrentAgents}</KeyValue>
+              <KeyValue label={isAi ? "Concurrent AI calls" : "Max agents"}>{campaign.maxConcurrentAgents}</KeyValue>
               <KeyValue label="Max attempts">{campaign.maxAttempts}</KeyValue>
               <KeyValue label="Auto-resume">{campaign.autoResume ? "On" : "Off"}</KeyValue>
             </KeyValueList>

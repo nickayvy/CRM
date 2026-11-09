@@ -11,7 +11,7 @@ export function supabaseConfigured(): boolean {
 /** Pages reachable without a session; a signed-in user is bounced away from them. */
 export const AUTH_PAGES = ["/login", "/signup"] as const;
 /** Route prefixes reachable without a session. Cron routes do their own CRON_SECRET check. */
-export const PUBLIC_PREFIXES = ["/api/auth/", "/api/cron/"] as const;
+export const PUBLIC_PREFIXES = ["/api/auth/", "/api/cron/", "/api/webhooks/"] as const;
 export const HOME_PATH = "/lookup";
 
 export function isPublicPath(pathname: string): boolean {

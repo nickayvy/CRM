@@ -22,6 +22,13 @@
       "when": 1794208010519,
       "tag": "0002_scrape_backoff",
       "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1794214277057,
+      "tag": "0003_ai_calls",
+      "breakpoints": true
     }
   ]
 }
