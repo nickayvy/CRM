@@ -7,9 +7,12 @@
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  --font-sans: var(--font-sans);
-  --font-mono: var(--font-geist-mono);
-  --font-heading: var(--font-sans);
+  --font-sans: var(--font-space-grotesk), "Space Grotesk", ui-sans-serif, system-ui, sans-serif;
+  --font-serif: var(--font-serif-display), "Source Serif 4", Georgia, serif;
+  --font-heading: var(--font-serif-display), "Source Serif 4", Georgia, serif;
+  --font-mono: ui-monospace, SFMono-Regular, Menlo, monospace;
+  --color-surface: var(--surface);
+  --color-surface-elevated: var(--surface-elevated);
   --color-sidebar-ring: var(--sidebar-ring);
   --color-sidebar-border: var(--sidebar-border);
   --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
@@ -39,13 +42,13 @@
   --color-popover: var(--popover);
   --color-card-foreground: var(--card-foreground);
   --color-card: var(--card);
-  --radius-sm: calc(var(--radius) * 0.6);
-  --radius-md: calc(var(--radius) * 0.8);
+  --radius-sm: calc(var(--radius) - 4px);
+  --radius-md: calc(var(--radius) - 2px);
   --radius-lg: var(--radius);
-  --radius-xl: calc(var(--radius) * 1.4);
-  --radius-2xl: calc(var(--radius) * 1.8);
-  --radius-3xl: calc(var(--radius) * 2.2);
-  --radius-4xl: calc(var(--radius) * 2.6);
+  --radius-xl: calc(var(--radius) + 4px);
+  --radius-2xl: calc(var(--radius) + 8px);
+  --radius-3xl: calc(var(--radius) + 12px);
+  --radius-4xl: calc(var(--radius) + 16px);
 
   /* Semantic tones (StatusBadge, deltas, progress, score ring). */
   --color-tone-neutral: var(--tone-neutral);
@@ -61,7 +64,7 @@
   --color-row-hover: var(--row-hover);
   --color-row-selected: var(--row-selected);
 
-  /* Type scale: 14px body, 13px dense tables/controls. */
+  /* Type scale: dense micro-labels and table controls. */
   --text-2xs: 0.6875rem;
   --text-2xs--line-height: 1rem;
   --text-dense: 0.8125rem;
@@ -69,114 +72,146 @@
 }
 
 /*
- * Design tokens. Neutral palette (zinc-ish, slightly cool) with one accent
- * (indigo, used for primary actions, focus rings, selection and the active
- * nav item). 4px radius scale. Semantic tones are separate from the accent.
+ * Leadwire design tokens (ported from the gtm app's globals.css). Dark only:
+ * :root and .dark are identical so the look never depends on the class.
  */
 :root {
-  --radius: 0.25rem;
+  --radius: 0.625rem;
 
-  --background: oklch(0.995 0 0);
-  --foreground: oklch(0.21 0.006 286);
-  --card: oklch(1 0 0);
-  --card-foreground: oklch(0.21 0.006 286);
-  --popover: oklch(1 0 0);
-  --popover-foreground: oklch(0.21 0.006 286);
+  --background: #0a0a0a;
+  --foreground: #f5f5f5;
+  --card: #141414;
+  --card-foreground: #f5f5f5;
+  --popover: #141414;
+  --popover-foreground: #f5f5f5;
 
-  --primary: oklch(0.51 0.2 272);
-  --primary-foreground: oklch(0.985 0 0);
-  --secondary: oklch(0.965 0.002 286);
-  --secondary-foreground: oklch(0.21 0.006 286);
-  --muted: oklch(0.965 0.002 286);
-  --muted-foreground: oklch(0.5 0.012 286);
-  --accent: oklch(0.955 0.004 286);
-  --accent-foreground: oklch(0.21 0.006 286);
-  --destructive: oklch(0.577 0.215 27);
+  --primary: #5a8fc9;
+  --primary-foreground: #ffffff;
+  --secondary: #1a1a1a;
+  --secondary-foreground: #f5f5f5;
+  --muted: #1a1a1a;
+  --muted-foreground: #9ca3af;
+  --accent: #262626;
+  --accent-foreground: #f5f5f5;
+  --destructive: #ef4444;
 
-  --border: oklch(0.915 0.004 286);
-  --input: oklch(0.89 0.004 286);
-  --ring: oklch(0.51 0.2 272);
+  --border: #2a2a2a;
+  --input: #2a2a2a;
+  --ring: #5a8fc9;
 
-  --row-hover: oklch(0.975 0.002 286);
-  --row-selected: oklch(0.955 0.025 272);
+  --chart-1: #5a8fc9;
+  --chart-2: #4a7eb8;
+  --chart-3: #3a6da7;
+  --chart-4: #2a5c96;
+  --chart-5: #1a4b85;
 
-  --tone-neutral: oklch(0.45 0.012 286);
-  --tone-neutral-soft: oklch(0.955 0.003 286);
-  --tone-info: oklch(0.5 0.15 245);
-  --tone-info-soft: oklch(0.95 0.03 245);
-  --tone-success: oklch(0.5 0.13 155);
-  --tone-success-soft: oklch(0.95 0.04 155);
-  --tone-warning: oklch(0.55 0.13 65);
-  --tone-warning-soft: oklch(0.95 0.05 80);
-  --tone-danger: oklch(0.53 0.19 27);
-  --tone-danger-soft: oklch(0.95 0.03 27);
+  --sidebar: #0f0f0f;
+  --sidebar-foreground: #f5f5f5;
+  --sidebar-primary: #5a8fc9;
+  --sidebar-primary-foreground: #ffffff;
+  --sidebar-accent: #1a1a1a;
+  --sidebar-accent-foreground: #f5f5f5;
+  --sidebar-border: #2a2a2a;
+  --sidebar-ring: #5a8fc9;
 
-  --chart-1: oklch(0.51 0.2 272);
-  --chart-2: oklch(0.6 0.13 190);
-  --chart-3: oklch(0.7 0.14 70);
-  --chart-4: oklch(0.6 0.17 330);
-  --chart-5: oklch(0.55 0.012 286);
+  --dossier-accent: var(--primary);
+  --shadow-elevated: 0 1px 0 rgba(255, 255, 255, 0.04), 0 4px 12px rgba(0, 0, 0, 0.35), 0 12px 28px rgba(0, 0, 0, 0.2);
+  --shadow-floating: 0 4px 6px -1px rgba(0, 0, 0, 0.3), 0 10px 28px -4px rgba(0, 0, 0, 0.4), 0 24px 48px -12px rgba(0, 0, 0, 0.5);
+  --shadow-inset: inset 0 1px 2px rgba(0, 0, 0, 0.25);
+  --surface: #0f0f0f;
+  --surface-elevated: #141414;
 
-  --sidebar: oklch(0.98 0.002 286);
-  --sidebar-foreground: oklch(0.3 0.008 286);
-  --sidebar-primary: oklch(0.51 0.2 272);
-  --sidebar-primary-foreground: oklch(0.985 0 0);
-  --sidebar-accent: oklch(0.94 0.006 286);
-  --sidebar-accent-foreground: oklch(0.21 0.006 286);
-  --sidebar-border: oklch(0.915 0.004 286);
-  --sidebar-ring: oklch(0.51 0.2 272);
+  /* Table rows (DataTable). Hairline hover, primary-tinted selection. */
+  --row-hover: rgba(26, 26, 26, 0.3);
+  --row-selected: rgba(90, 143, 201, 0.1);
+
+  /*
+   * Semantic tones, re-tuned to the Leadwire palette: info = the single
+   * accent (steel blue), success/warning = the restrained green/amber from
+   * gtm's category palette, danger = destructive red. "-soft" = 15% tint.
+   */
+  --tone-neutral: #9ca3af;
+  --tone-neutral-soft: rgba(255, 255, 255, 0.06);
+  --tone-info: #5a8fc9;
+  --tone-info-soft: rgba(90, 143, 201, 0.15);
+  --tone-success: #7fa87f;
+  --tone-success-soft: rgba(122, 158, 122, 0.16);
+  --tone-warning: #c4a777;
+  --tone-warning-soft: rgba(181, 154, 107, 0.16);
+  --tone-danger: #ef4444;
+  --tone-danger-soft: rgba(239, 68, 68, 0.15);
 }
 
 .dark {
-  --background: oklch(0.165 0.004 286);
-  --foreground: oklch(0.95 0.002 286);
-  --card: oklch(0.195 0.005 286);
-  --card-foreground: oklch(0.95 0.002 286);
-  --popover: oklch(0.215 0.006 286);
-  --popover-foreground: oklch(0.95 0.002 286);
+  --radius: 0.625rem;
 
-  --primary: oklch(0.64 0.17 272);
-  --primary-foreground: oklch(0.99 0 0);
-  --secondary: oklch(0.25 0.006 286);
-  --secondary-foreground: oklch(0.95 0.002 286);
-  --muted: oklch(0.24 0.006 286);
-  --muted-foreground: oklch(0.69 0.012 286);
-  --accent: oklch(0.26 0.007 286);
-  --accent-foreground: oklch(0.95 0.002 286);
-  --destructive: oklch(0.68 0.18 25);
+  --background: #0a0a0a;
+  --foreground: #f5f5f5;
+  --card: #141414;
+  --card-foreground: #f5f5f5;
+  --popover: #141414;
+  --popover-foreground: #f5f5f5;
 
-  --border: oklch(1 0 0 / 9%);
-  --input: oklch(1 0 0 / 14%);
-  --ring: oklch(0.66 0.16 272);
+  --primary: #5a8fc9;
+  --primary-foreground: #ffffff;
+  --secondary: #1a1a1a;
+  --secondary-foreground: #f5f5f5;
+  --muted: #1a1a1a;
+  --muted-foreground: #9ca3af;
+  --accent: #262626;
+  --accent-foreground: #f5f5f5;
+  --destructive: #ef4444;
 
-  --row-hover: oklch(1 0 0 / 4%);
-  --row-selected: oklch(0.64 0.17 272 / 14%);
+  --border: #2a2a2a;
+  --input: #2a2a2a;
+  --ring: #5a8fc9;
 
-  --tone-neutral: oklch(0.75 0.01 286);
-  --tone-neutral-soft: oklch(1 0 0 / 7%);
-  --tone-info: oklch(0.75 0.12 245);
-  --tone-info-soft: oklch(0.6 0.14 245 / 18%);
-  --tone-success: oklch(0.76 0.14 155);
-  --tone-success-soft: oklch(0.6 0.13 155 / 18%);
-  --tone-warning: oklch(0.8 0.13 75);
-  --tone-warning-soft: oklch(0.7 0.13 75 / 18%);
-  --tone-danger: oklch(0.72 0.16 25);
-  --tone-danger-soft: oklch(0.6 0.18 25 / 20%);
+  --chart-1: #5a8fc9;
+  --chart-2: #4a7eb8;
+  --chart-3: #3a6da7;
+  --chart-4: #2a5c96;
+  --chart-5: #1a4b85;
 
-  --chart-1: oklch(0.66 0.17 272);
-  --chart-2: oklch(0.72 0.12 190);
-  --chart-3: oklch(0.8 0.13 75);
-  --chart-4: oklch(0.7 0.15 330);
-  --chart-5: oklch(0.65 0.012 286);
+  --sidebar: #0f0f0f;
+  --sidebar-foreground: #f5f5f5;
+  --sidebar-primary: #5a8fc9;
+  --sidebar-primary-foreground: #ffffff;
+  --sidebar-accent: #1a1a1a;
+  --sidebar-accent-foreground: #f5f5f5;
+  --sidebar-border: #2a2a2a;
+  --sidebar-ring: #5a8fc9;
 
-  --sidebar: oklch(0.18 0.005 286);
-  --sidebar-foreground: oklch(0.82 0.006 286);
-  --sidebar-primary: oklch(0.64 0.17 272);
-  --sidebar-primary-foreground: oklch(0.99 0 0);
-  --sidebar-accent: oklch(0.25 0.007 286);
-  --sidebar-accent-foreground: oklch(0.97 0.002 286);
-  --sidebar-border: oklch(1 0 0 / 8%);
-  --sidebar-ring: oklch(0.66 0.16 272);
+  --dossier-accent: var(--primary);
+  --shadow-elevated: 0 1px 0 rgba(255, 255, 255, 0.04), 0 4px 12px rgba(0, 0, 0, 0.35), 0 12px 28px rgba(0, 0, 0, 0.2);
+  --shadow-floating: 0 4px 6px -1px rgba(0, 0, 0, 0.3), 0 10px 28px -4px rgba(0, 0, 0, 0.4), 0 24px 48px -12px rgba(0, 0, 0, 0.5);
+  --shadow-inset: inset 0 1px 2px rgba(0, 0, 0, 0.25);
+  --surface: #0f0f0f;
+  --surface-elevated: #141414;
+
+  /* Table rows (DataTable). Hairline hover, primary-tinted selection. */
+  --row-hover: rgba(26, 26, 26, 0.3);
+  --row-selected: rgba(90, 143, 201, 0.1);
+
+  /*
+   * Semantic tones, re-tuned to the Leadwire palette: info = the single
+   * accent (steel blue), success/warning = the restrained green/amber from
+   * gtm's category palette, danger = destructive red. "-soft" = 15% tint.
+   */
+  --tone-neutral: #9ca3af;
+  --tone-neutral-soft: rgba(255, 255, 255, 0.06);
+  --tone-info: #5a8fc9;
+  --tone-info-soft: rgba(90, 143, 201, 0.15);
+  --tone-success: #7fa87f;
+  --tone-success-soft: rgba(122, 158, 122, 0.16);
+  --tone-warning: #c4a777;
+  --tone-warning-soft: rgba(181, 154, 107, 0.16);
+  --tone-danger: #ef4444;
+  --tone-danger-soft: rgba(239, 68, 68, 0.15);
+}
+
+.main-depth {
+  background: radial-gradient(ellipse 120% 80% at 50% 0%, rgba(20, 20, 20, 0.4) 0%, transparent 55%),
+    var(--background);
 }
 
 @layer base {
@@ -185,16 +220,12 @@
   }
   html {
     @apply font-sans;
-    color-scheme: light;
-  }
-  html.dark {
     color-scheme: dark;
   }
   body {
-    @apply bg-background text-sm text-foreground;
+    @apply bg-background text-sm text-foreground font-sans;
     /* Numbers line up everywhere: tables, stat cards, counters. */
     font-variant-numeric: tabular-nums;
-    font-feature-settings: "cv11", "ss01";
   }
   /* Visible keyboard focus for anything that does not style its own ring. */
   :where(a, button, [role="button"], [tabindex]):focus-visible {
@@ -202,13 +233,57 @@
     outline-offset: 2px;
   }
   ::selection {
-    background: color-mix(in oklch, var(--primary) 25%, transparent);
+    background: rgba(90, 143, 201, 0.3);
   }
 }
 
+/* Depth system */
+.surface-elevated {
+  box-shadow: var(--shadow-elevated);
+}
+.surface-floating {
+  box-shadow: var(--shadow-floating);
+}
+.surface-inset {
+  box-shadow: var(--shadow-inset);
+}
+
+.card-glow {
+  box-shadow: var(--shadow-elevated);
+  transition:
+    box-shadow 0.3s ease-out,
+    transform 0.3s ease-out;
+}
+.card-glow:hover {
+  box-shadow:
+    0 1px 0 rgba(255, 255, 255, 0.05),
+    0 8px 24px rgba(0, 0, 0, 0.4),
+    0 0 20px rgba(90, 143, 201, 0.12);
+  transform: translateY(-1px);
+}
+
+/* Thin dark scrollbar for dense scroll regions (dossier, tab bodies). */
+.dossier-scroll {
+  scrollbar-width: thin;
+  scrollbar-color: var(--border) transparent;
+}
+.dossier-scroll::-webkit-scrollbar {
+  width: 8px;
+}
+.dossier-scroll::-webkit-scrollbar-track {
+  background: transparent;
+}
+.dossier-scroll::-webkit-scrollbar-thumb {
+  background: var(--border);
+  border-radius: 4px;
+}
+.dossier-scroll::-webkit-scrollbar-thumb:hover {
+  background: var(--muted-foreground);
+}
+
 /* Reduced motion: CSS animations/transitions (tw-animate, Radix data-state
-   animations, skeleton pulse) collapse to instant. Motion components handle
-   their own branch via useReducedMotion. */
+   animations, skeleton pulse, card-glow lift) collapse to instant. Motion
+   components handle their own branch via useReducedMotion. */
 @media (prefers-reduced-motion: reduce) {
   *,
   *::before,

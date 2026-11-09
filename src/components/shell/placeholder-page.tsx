@@ -1,9 +1,19 @@
-/** Temporary page body used by WP-01 placeholders until the owning package lands. */
-export function PlaceholderPage({ title, wp }: { title: string; wp: string }) {
+import { ConstructionIcon } from "lucide-react";
+import { PageHeader, PageShell } from "@/components/primitives";
+
+/** Styled stand-in for a route whose owning package has not landed yet. */
+export function PlaceholderPage({ title, description, wp }: { title: string; description?: string; wp: string }) {
   return (
-    <div className="mx-auto w-full max-w-5xl">
-      <h1 className="text-2xl font-semibold tracking-tight">{title}</h1>
-      <p className="mt-2 text-sm text-muted-foreground">{`Built in ${wp}.`}</p>
-    </div>
+    <PageShell>
+      <PageHeader title={title} description={description} />
+      <div
+        data-testid="placeholder"
+        className="flex flex-col items-center justify-center gap-3 rounded-lg bg-surface py-16 text-center shadow-[var(--shadow-elevated)]"
+      >
+        <ConstructionIcon className="size-6 text-primary" aria-hidden />
+        <p className="font-serif text-2xl tracking-tight">Under construction</p>
+        <p className="text-xs tracking-wider text-muted-foreground uppercase">{`Built in ${wp}`}</p>
+      </div>
+    </PageShell>
   );
 }

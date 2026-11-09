@@ -17,7 +17,6 @@ export function shortcutGroups(mod: string): { title: string; items: Shortcut[] 
       title: "Global",
       items: [
         { keys: [mod, "K"], label: "Open search and commands" },
-        { keys: ["["], label: "Collapse or expand the sidebar" },
         { keys: ["?"], label: "Show this help" },
         { keys: [mod, "/"], label: "Focus the filter search box (tables)" },
       ],

@@ -1,24 +1,16 @@
-import {
-  BuildingIcon,
-  LayoutDashboardIcon,
-  MailIcon,
-  PhoneIcon,
-  SearchIcon,
-  SettingsIcon,
-  type LucideIcon,
-} from "lucide-react";
+import { GitBranchIcon, LayoutDashboardIcon, LayoutGridIcon, MailIcon, PhoneIcon, type LucideIcon } from "lucide-react";
 
 export type NavItem = { href: string; label: string; icon: LucideIcon };
 
+/** Top-bar navigation, in order. `/overview` lands in WP-16 (404 until then). */
 export const NAV_ITEMS: NavItem[] = [
-  { href: "/", label: "Dashboard", icon: LayoutDashboardIcon },
-  { href: "/businesses", label: "Businesses", icon: BuildingIcon },
-  { href: "/searches", label: "Searches", icon: SearchIcon },
-  { href: "/calling", label: "Calling", icon: PhoneIcon },
-  { href: "/email", label: "Email", icon: MailIcon },
-  { href: "/settings", label: "Settings", icon: SettingsIcon },
+  { href: "/lookup", label: "LOOKUP", icon: LayoutGridIcon },
+  { href: "/leads", label: "LEADS", icon: GitBranchIcon },
+  { href: "/calling", label: "CALLING", icon: PhoneIcon },
+  { href: "/email", label: "EMAIL", icon: MailIcon },
+  { href: "/overview", label: "OVERVIEW", icon: LayoutDashboardIcon },
 ];
 
 export function isActive(pathname: string, href: string): boolean {
-  return href === "/" ? pathname === "/" : pathname === href || pathname.startsWith(`${href}/`);
+  return pathname === href || pathname.startsWith(`${href}/`);
 }
