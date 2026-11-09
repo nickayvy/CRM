@@ -163,7 +163,7 @@ const ROUTES: Route[] = [
   { path: "/settings", render: () => SettingsPage(), contains: () => ["Settings", "Workspace", "Sources"] },
   { path: "/settings/rules", render: () => RulesPage(), contains: () => ["Qualification rules"] },
   { path: "/overview", render: () => OverviewPage(), contains: () => ["Overview", "Businesses by source"] },
-  { path: "/design", render: async () => DesignPage(), contains: () => ["Leadwire design system"] },
+  { path: "/design", render: async () => DesignPage(), contains: () => ["LAR design system"] },
 ];
 
 describe("route server render", () => {

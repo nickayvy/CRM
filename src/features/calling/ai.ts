@@ -40,7 +40,7 @@ export function dynamicVariables(c: CallCampaign, b: Business, aiCallId: string,
     contact_name: v.owner_name ?? "unknown",
     local_time: formatInTimeZone(now, c.timezone, "EEEE, yyyy-MM-dd HH:mm"),
     campaign_script: plainScript(c.script, b).trim() || "Introduce yourself and ask whether they would like a follow-up from the team.",
-    leadwire_call_id: aiCallId,
+    lar_call_id: aiCallId,
   };
 }
 
@@ -137,7 +137,9 @@ async function findCall(db: DbOrTx, data: NonNullable<ElevenLabsWebhook["data"]>
     const byConv = await getAiCallByConversation(db, conv);
     if (byConv) return byConv;
   }
-  const id = str(data.conversation_initiation_client_data?.dynamic_variables?.leadwire_call_id);
+  const vars = data.conversation_initiation_client_data?.dynamic_variables;
+  // leadwire_call_id: name used before the LAR rebrand; kept so calls placed before it still resolve.
+  const id = str(vars?.lar_call_id) || str(vars?.leadwire_call_id);
   return UUID_RE.test(id) ? getAiCall(db, id) : null;
 }
 

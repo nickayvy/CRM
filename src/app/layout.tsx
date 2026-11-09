@@ -9,7 +9,7 @@ const spaceGrotesk = Space_Grotesk({ variable: "--font-space-grotesk", subsets: 
 const sourceSerif = Source_Serif_4({ variable: "--font-serif-display", subsets: ["latin"] });
 
 export const metadata: Metadata = {
-  title: { default: "Leadwire", template: "%s · Leadwire" },
+  title: { default: "LAR", template: "%s · LAR" },
   description: "Discover high-activity businesses and turn them into leads.",
 };
 

@@ -36,7 +36,7 @@ const COPY: Record<
   },
 };
 
-/** Leadwire email + password card (ported from gtm's login/signup forms). */
+/** LAR email + password card (ported from gtm's login/signup forms). */
 export function AuthForm({ mode, next = "/lookup", notice }: { mode: Mode; next?: string; notice?: string }) {
   const copy = COPY[mode];
   const router = useRouter();

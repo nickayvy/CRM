@@ -21,7 +21,7 @@ export const SHORT_REASON_LABELS: Record<string, string> = {
 
 /**
  * Fixed color per outcome so a series keeps its color whichever outcomes are
- * present. Leadwire blue ramp only (`--chart-1..5`): the five most telling
+ * present. LAR blue ramp only (`--chart-1..5`): the five most telling
  * outcomes take a ramp step each, the three "no contact" outcomes share
  * translucent steps.
  */

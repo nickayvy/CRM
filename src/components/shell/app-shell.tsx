@@ -8,7 +8,7 @@ import { TOPBAR_CLASS } from "./topbar-class";
 import { UserMenu } from "./user-menu";
 
 /**
- * Leadwire chrome: a single 80 px top bar (brand · five nav items · command
+ * LAR chrome: a single 80 px top bar (brand · five nav items · command
  * palette + user menu) over a scrolling `main.main-depth`. Below lg the nav
  * collapses into a Menu dropdown. /login and /signup render without it.
  */

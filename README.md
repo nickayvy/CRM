@@ -1,6 +1,6 @@
-# Leadwire
+# LAR
 
-Leadwire (formerly Local Business CRM) is a dark, signal-first prospecting CRM
+LAR (formerly Leadwire, and before that Local Business CRM) is a dark, signal-first prospecting CRM
 for selling to small local businesses. `/` redirects to `/lookup`. It discovers
 businesses on Trustpilot (via Firecrawl) and, when a key is set, Yelp Fusion;
 qualifies them with an explicit rule engine; and gives each signed-in user a

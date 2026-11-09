@@ -203,7 +203,7 @@ describe("dispatchAiCalls", () => {
     const calls = await listAiCalls(db, campaign.id);
     expect(calls.map((c) => c.status)).toEqual(["initiated", "initiated"]);
     expect(calls.every((c) => c.conversationId?.startsWith("conv_"))).toBe(true);
-    expect(vars.leadwire_call_id).toBe(calls.find((c) => c.businessId === biz[0].id)?.id);
+    expect(vars.lar_call_id).toBe(calls.find((c) => c.businessId === biz[0].id)?.id);
     // A second dispatch has no free slot.
     expect(await dispatchAiCalls(db, campaign.id, placer)).toEqual({ placed: 0, stopped: "at_capacity" });
   });
@@ -282,14 +282,14 @@ describe("handleWebhook", () => {
     expect(item).toMatchObject({ state: "pending", lastOutcome: "no_answer", attempts: 1, claimedBy: AI_AGENT });
   });
 
-  it("call_initiation_failure maps busy, and finds the call by leadwire_call_id", async () => {
+  it("call_initiation_failure maps busy, and finds the call by lar_call_id", async () => {
     const { call } = await oneCall();
     const r = await handleWebhook(db, {
       type: "call_initiation_failure",
       data: {
         conversation_id: "conv_unknown_to_us",
         failure_reason: "busy",
-        conversation_initiation_client_data: { dynamic_variables: { leadwire_call_id: call.id } },
+        conversation_initiation_client_data: { dynamic_variables: { lar_call_id: call.id } },
       },
     });
     expect(r).toMatchObject({ handled: true, outcome: "busy" });

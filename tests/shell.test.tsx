@@ -16,7 +16,7 @@ import { updateSession } from "@/lib/supabase/middleware";
 afterEach(cleanup);
 
 describe("top-bar navigation", () => {
-  it("has the five Leadwire items in order", () => {
+  it("has the five LAR items in order", () => {
     expect(NAV_ITEMS.map((i) => [i.label, i.href])).toEqual([
       ["LOOKUP", "/lookup"],
       ["LEADS", "/leads"],
