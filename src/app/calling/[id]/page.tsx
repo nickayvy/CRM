@@ -34,6 +34,7 @@ import { shortTime } from "@/features/calling/time";
 import { CALL_OUTCOMES } from "@/features/calling/types";
 import { formatDate, formatPhone, formatRelative } from "@/lib/format";
 import { OUTCOME_LABELS } from "@/lib/labels";
+import { requireUser } from "@/lib/supabase/server";
 
 export const dynamic = "force-dynamic";
 
@@ -50,6 +51,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 }
 
 export default async function CallCampaignPage({ params }: Props) {
+  await requireUser();
   const { id } = await params;
   if (!UUID_RE.test(id)) notFound();
   const db = getDb();
@@ -127,18 +129,22 @@ export default async function CallCampaignPage({ params }: Props) {
       </CampaignLive>
 
       <div className="grid gap-6 lg:grid-cols-3">
-        <PageSection title="Queue" description={`${queue.total} items in position order.`} className="min-w-0 lg:col-span-2">
+        <PageSection
+          title="Queue"
+          description={`${queue.total} items in position order.`}
+          className="min-w-0 rounded-lg bg-surface p-4 shadow-[var(--shadow-elevated)] lg:col-span-2"
+        >
           <QueueTable rows={rows} timezone={tz} total={queue.total} />
         </PageSection>
 
         <div className="grid min-w-0 content-start gap-6">
-          <PageSection title="Due callbacks">
+          <PageSection title="Due callbacks" className="rounded-lg bg-surface p-4 shadow-[var(--shadow-elevated)]">
             {due.length === 0 ? (
               <EmptyState size="compact" title="No callbacks due" description="Due callbacks are dialed before the rest of the queue." />
             ) : (
               <ul className="grid gap-2">
                 {due.map((c) => (
-                  <li key={c.id} className="flex items-center justify-between gap-2 rounded-md border p-2 text-sm">
+                  <li key={c.id} className="flex items-center justify-between gap-2 rounded-lg bg-surface-elevated p-3 text-sm">
                     <div className="min-w-0">
                       <p className="truncate font-medium">{c.business.name}</p>
                       <p className="text-xs text-muted-foreground tabular-nums">{formatPhone(c.business.phone)}</p>
@@ -150,7 +156,7 @@ export default async function CallCampaignPage({ params }: Props) {
             )}
             {upcoming.length ? (
               <div className="mt-3 grid gap-1">
-                <p className="text-xs font-medium text-muted-foreground">Upcoming</p>
+                <p className="text-[10px] tracking-wider text-muted-foreground uppercase">Upcoming</p>
                 <ul className="grid gap-1 text-sm">
                   {upcoming.map((c) => (
                     <li key={c.id} className="flex justify-between gap-2">
@@ -163,7 +169,7 @@ export default async function CallCampaignPage({ params }: Props) {
             ) : null}
           </PageSection>
 
-          <PageSection title="Outcomes" description={`${outcomeTotal} calls logged in this campaign.`}>
+          <PageSection title="Outcomes" description={`${outcomeTotal} calls logged in this campaign.`} className="rounded-lg bg-surface p-4 shadow-[var(--shadow-elevated)]">
             <div className="grid gap-2">
               {CALL_OUTCOMES.map((o) => (
                 <ProgressBar
@@ -178,7 +184,7 @@ export default async function CallCampaignPage({ params }: Props) {
             </div>
           </PageSection>
 
-          <PageSection title="Settings">
+          <PageSection title="Settings" className="rounded-lg bg-surface p-4 shadow-[var(--shadow-elevated)]">
             <KeyValueList>
               <KeyValue label="Daily cap">{campaign.dailyCap ?? "No cap"}</KeyValue>
               <KeyValue label="Calling hours">{hours}</KeyValue>

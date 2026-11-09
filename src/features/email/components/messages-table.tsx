@@ -109,7 +109,7 @@ export function MessagesTable({ rows, page, pageSize, total }: { rows: MessageRo
                 </KeyValue>
               ) : null}
             </KeyValueList>
-            <div className="whitespace-pre-wrap break-words rounded-md border bg-muted/30 p-3 text-sm">{open.bodyRendered}</div>
+            <div className="whitespace-pre-wrap break-words rounded-lg bg-surface-elevated p-3 text-sm shadow-[var(--shadow-inset)]">{open.bodyRendered}</div>
           </div>
         ) : null}
       </SidePanel>

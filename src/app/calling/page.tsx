@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { getDb } from "@/db/client";
 import { evaluateAllCampaigns, listCallCampaigns } from "@/db/repo/call-campaigns";
 import { CampaignCard } from "@/features/calling/components/campaign-card";
+import { requireUser } from "@/lib/supabase/server";
 
 export const dynamic = "force-dynamic";
 
@@ -23,6 +24,7 @@ function NewCampaignButton() {
 }
 
 export default async function CallingPage() {
+  await requireUser();
   const db = getDb();
   // Bring running/paused statuses up to date (hours, caps, callbacks) before listing.
   await evaluateAllCampaigns(db);

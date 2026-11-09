@@ -69,7 +69,7 @@ function allZones(current: string): string[] {
 }
 
 const selectClass =
-  "h-9 w-full min-w-0 rounded-md border border-input bg-transparent px-3 text-sm shadow-xs outline-none focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50 aria-invalid:border-destructive dark:bg-input/30";
+  "h-9 w-full min-w-0 rounded-lg border border-input bg-transparent px-3 text-sm shadow-xs outline-none focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50 aria-invalid:border-destructive dark:bg-input/30";
 
 export function CampaignForm({ action, initial = {}, submitLabel, cancelHref, successMessage }: CampaignFormProps) {
   const [state, formAction, pending] = React.useActionState(action, null);
@@ -104,7 +104,7 @@ export function CampaignForm({ action, initial = {}, submitLabel, cancelHref, su
         const fd = new FormData(e.currentTarget);
         React.startTransition(() => formAction(fd));
       }}
-      className="grid gap-8"
+      className="grid gap-8 rounded-lg bg-surface p-4 shadow-[var(--shadow-elevated)] sm:p-6"
       noValidate
     >
       <FieldSet>
@@ -141,7 +141,7 @@ export function CampaignForm({ action, initial = {}, submitLabel, cancelHref, su
                   type="button"
                   onClick={() => insertToken(t.token)}
                   title={t.description}
-                  className="rounded-md border bg-muted/50 px-1.5 py-0.5 font-mono text-xs hover:bg-muted"
+                  className="rounded-md bg-muted/30 px-1.5 py-0.5 font-mono text-xs transition-colors duration-300 ease-out hover:bg-muted"
                 >
                   {`{{${t.token}}}`}
                 </button>

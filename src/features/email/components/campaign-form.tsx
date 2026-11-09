@@ -129,7 +129,7 @@ export function CampaignForm({
 
   return (
     <form onSubmit={submit} className="flex min-w-0 flex-col gap-8" noValidate>
-      <PageSection title="Campaign">
+      <PageSection title="Campaign" className="rounded-lg bg-surface p-4 shadow-[var(--shadow-elevated)]">
         <FieldGroup className="grid gap-4 sm:grid-cols-2">
           <Field data-invalid={!!fieldErrors.name || undefined} className="sm:col-span-2">
             <FieldLabel htmlFor="name">Name</FieldLabel>
@@ -158,10 +158,11 @@ export function CampaignForm({
       <PageSection
         title="Steps"
         description="Each step waits its delay after the previous one. Step 1 sends as soon as a business is enrolled."
+        className="rounded-lg bg-surface p-4 shadow-[var(--shadow-elevated)]"
       >
-        <div className="flex flex-col gap-3 rounded-lg border bg-muted/30 p-3">
+        <div className="flex flex-col gap-3 rounded-lg bg-surface-elevated p-3">
           <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
-            <span className="text-xs font-medium">Tokens</span>
+            <span className="text-[10px] tracking-wider text-muted-foreground uppercase">Tokens</span>
             <div className="flex flex-wrap gap-1.5">
               {TEMPLATE_TOKENS.map((t) => (
                 <button
@@ -170,7 +171,7 @@ export function CampaignForm({
                   title={t.description}
                   onMouseDown={(e) => e.preventDefault()}
                   onClick={() => insertToken(t.token)}
-                  className="rounded-md border bg-background px-1.5 py-0.5 font-mono text-[11px] hover:bg-muted"
+                  className="rounded-md bg-muted/30 px-1.5 py-0.5 font-mono text-[11px] transition-colors duration-300 ease-out hover:bg-muted"
                 >
                   {`{{${t.token}}}`}
                 </button>
@@ -181,7 +182,7 @@ export function CampaignForm({
             Click a token to insert it at the cursor. Unknown tokens render as blank; owner_first_name is blank when the owner is unknown.
           </p>
           <div className="flex flex-wrap items-center gap-2">
-            <label htmlFor="preview-business" className="text-xs font-medium">
+            <label htmlFor="preview-business" className="text-[10px] tracking-wider text-muted-foreground uppercase">
               Preview as
             </label>
             {previewBusinesses.length ? (
@@ -211,7 +212,7 @@ export function CampaignForm({
             const k = (f: string) => `steps.${i}.${f}`;
             return (
               <AnimatedItem key={s.key} layout="position">
-                <fieldset className="flex min-w-0 flex-col gap-3 rounded-lg border bg-card p-3 sm:p-4" aria-label={`Step ${i + 1}`}>
+                <fieldset className="flex min-w-0 flex-col gap-3 rounded-lg bg-surface-elevated p-3 shadow-[var(--shadow-inset)] sm:p-4" aria-label={`Step ${i + 1}`}>
                   <div className="flex flex-wrap items-center gap-2">
                     <span className="flex size-6 items-center justify-center rounded-full bg-primary text-xs font-semibold text-primary-foreground">
                       {i + 1}
@@ -274,8 +275,8 @@ export function CampaignForm({
                         <FieldError errors={errs(fieldErrors, k("body"))} />
                       </Field>
                     </div>
-                    <div className="flex min-w-0 flex-col gap-1.5 rounded-md border border-dashed bg-muted/30 p-3" aria-live="polite">
-                      <span className="text-[11px] font-medium tracking-wide text-muted-foreground uppercase">Preview</span>
+                    <div className="flex min-w-0 flex-col gap-1.5 rounded-lg border border-dashed border-white/10 bg-muted/30 p-3" aria-live="polite">
+                      <span className="text-[10px] tracking-wider text-muted-foreground uppercase">Preview</span>
                       {preview ? (
                         <>
                           <p className="text-sm font-medium break-words">{renderTemplate(s.subject, preview) || <span className="text-muted-foreground">(no subject)</span>}</p>
@@ -299,7 +300,7 @@ export function CampaignForm({
         </div>
       </PageSection>
 
-      <div className="flex flex-wrap items-center justify-end gap-2 border-t pt-4">
+      <div className="flex flex-wrap items-center justify-end gap-2 border-t border-white/5 pt-4">
         {formError ? (
           <p role="alert" className="mr-auto text-sm text-destructive">
             {formError}

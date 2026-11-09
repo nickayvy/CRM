@@ -14,6 +14,7 @@ import { senderKind } from "@/lib/email/sender";
 import { env } from "@/lib/env";
 import { formatDate } from "@/lib/format";
 import { PAUSE_REASON_LABELS } from "@/lib/labels";
+import { requireUser } from "@/lib/supabase/server";
 
 export const dynamic = "force-dynamic";
 
@@ -28,6 +29,7 @@ type Props = {
 };
 
 export default async function EmailCampaignPage({ params, searchParams }: Props) {
+  await requireUser();
   const { id } = await params;
   const sp = await searchParams;
   if (!UUID_RE.test(id)) notFound();
@@ -101,6 +103,7 @@ export default async function EmailCampaignPage({ params, searchParams }: Props)
       <PageSection
         title="Enrollments"
         description={`${enrollments.total} ${enrollments.total === 1 ? "business" : "businesses"} in this sequence`}
+        className="rounded-lg bg-surface p-4 shadow-[var(--shadow-elevated)]"
         actions={
           <Button variant="outline" size="sm" asChild>
             <Link href={`/email/${id}/messages`}>

@@ -9,12 +9,14 @@ import { SenderBadge } from "@/features/email/components/badges";
 import { type CampaignRow, CampaignsTable } from "@/features/email/components/campaigns-table";
 import { senderKind } from "@/lib/email/sender";
 import { env } from "@/lib/env";
+import { requireUser } from "@/lib/supabase/server";
 
 export const dynamic = "force-dynamic";
 
 export const metadata: Metadata = { title: "Email" };
 
 export default async function EmailPage() {
+  await requireUser();
   const campaigns = await listEmailCampaigns(getDb());
   const rows: CampaignRow[] = campaigns.map((c) => ({
     id: c.id,

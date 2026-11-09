@@ -241,12 +241,12 @@ function EnrollPanel({
             </SelectContent>
           </Select>
         </Field>
-        <div className="rounded-lg border bg-muted/30 p-3 text-sm" aria-live="polite" data-testid="enroll-count">
+        <div className="rounded-lg bg-surface-elevated p-3 text-sm shadow-[var(--shadow-inset)]" aria-live="polite" data-testid="enroll-count">
           {counting || count === null ? (
             <span className="text-muted-foreground">Counting…</span>
           ) : (
             <>
-              <span className="text-lg font-semibold tabular-nums">{count}</span>{" "}
+              <span className="font-serif text-2xl tracking-tight tabular-nums">{count}</span>{" "}
               <span className="text-muted-foreground">{count === 1 ? "business matches" : "businesses match"}</span>
             </>
           )}

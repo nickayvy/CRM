@@ -3,12 +3,14 @@ import { PageHeader, PageShell } from "@/components/primitives";
 import { createCampaignAction } from "@/features/calling/actions";
 import { CampaignForm } from "@/features/calling/components/campaign-form";
 import { env } from "@/lib/env";
+import { requireUser } from "@/lib/supabase/server";
 
 export const dynamic = "force-dynamic";
 
 export const metadata: Metadata = { title: "New call campaign" };
 
-export default function NewCallCampaignPage() {
+export default async function NewCallCampaignPage() {
+  await requireUser();
   return (
     <PageShell width="narrow">
       <PageHeader
