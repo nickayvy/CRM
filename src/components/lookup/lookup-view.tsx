@@ -34,6 +34,8 @@ export function useLookupSelect(): (id: string) => void {
 type Props = {
   graph: { nodes: GraphNode[]; links: GraphLink[] };
   categories: { alias: string; count: number }[];
+  /** alias → display title for bubbles and the category filter. */
+  categoryTitles: Record<string, string>;
   discoveryEnabled: boolean;
   /** The grid panel body (server-rendered, suspended per query). */
   children: React.ReactNode;
@@ -43,7 +45,7 @@ type Props = {
  * Client shell of /lookup (gtm lookup page): 30 % network panel · flex-5 grid
  * panel · flex-2 filter panel, stacked below lg with the network collapsible.
  */
-export function LookupView({ graph, categories, discoveryEnabled, children }: Props) {
+export function LookupView({ graph, categories, categoryTitles, discoveryEnabled, children }: Props) {
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
@@ -109,7 +111,7 @@ export function LookupView({ graph, categories, discoveryEnabled, children }: Pr
             className={cn("min-h-0 flex-1 flex-col", graphOpen ? "flex" : "hidden", "lg:flex")}
           >
             <div className="shrink-0 bg-[#151518]">
-              <CategoryBubbles nodes={graph.nodes} order={order} selectedCategory={selectedCategory} onCategoryClick={onCategory} />
+              <CategoryBubbles nodes={graph.nodes} order={order} selectedCategory={selectedCategory} titles={categoryTitles} onCategoryClick={onCategory} />
             </div>
             <div className="relative h-72 min-h-0 lg:h-auto lg:flex-1">
               <NetworkGraph
@@ -135,7 +137,7 @@ export function LookupView({ graph, categories, discoveryEnabled, children }: Pr
             {children}
           </div>
           <div className={cn("order-first flex min-w-0 flex-col overflow-hidden lg:order-none lg:flex-[2]", PANEL)}>
-            <FilterPanel categories={categories} />
+            <FilterPanel categories={categories} titles={categoryTitles} />
           </div>
         </div>
 

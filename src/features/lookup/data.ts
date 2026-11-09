@@ -1,8 +1,11 @@
 // Server-side loaders for /lookup and GET /api/lookup/graph. Take a Db so
 // tests can run them against PGlite.
+import { sql } from "drizzle-orm";
 import type { Db } from "@/db/client";
 import { getBusiness, listBusinesses } from "@/db/repo/businesses";
+import { businesses } from "@/db/schema";
 import { type GraphNode, listGraphNodes, listRelations, relatedBusinesses } from "@/db/repo/discovery";
+import { TRUSTPILOT_CATEGORIES } from "./discovery-bridge";
 import { PAGE_SIZE, type LookupQuery } from "./search-params";
 import { type GraphLink, type LookupBusiness, toLookupBusiness } from "./types";
 
@@ -31,4 +34,20 @@ export async function loadDossier(db: Db, id: string): Promise<Dossier | null> {
   if (!business) return null;
   const related = await relatedBusinesses(db, id);
   return { business: toLookupBusiness(business), related: related.map(toLookupBusiness) };
+}
+
+type TitleRow = { alias: string; title: string };
+
+/**
+ * Display title per category alias, from the rows' `categories` jsonb
+ * ({alias,title}) with the 22 Trustpilot labels as a fallback.
+ */
+export async function loadCategoryTitles(db: Db): Promise<Record<string, string>> {
+  const res = await db.execute<TitleRow>(
+    sql`SELECT DISTINCT ON (c->>'alias') c->>'alias' AS alias, c->>'title' AS title FROM ${businesses}, jsonb_array_elements(${businesses.categories}) AS c WHERE coalesce(c->>'title', '') <> '' ORDER BY c->>'alias', c->>'title'`,
+  );
+  const rows = Array.isArray(res) ? (res as TitleRow[]) : ((res as { rows?: TitleRow[] }).rows ?? []);
+  const out: Record<string, string> = Object.fromEntries(TRUSTPILOT_CATEGORIES.map((c) => [c.slug, c.label]));
+  for (const r of rows) if (r.alias && r.title) out[r.alias] = r.title;
+  return out;
 }

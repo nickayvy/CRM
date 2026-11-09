@@ -11,7 +11,7 @@ import { Slider } from "@/components/ui/slider";
 import { categoryLabel } from "@/features/lookup/graph-utils";
 import { type FilterKey, hrefFor, patchLookupParams } from "@/features/lookup/search-params";
 
-type Props = { categories: { alias: string; count: number }[] };
+type Props = { categories: { alias: string; count: number }[]; titles?: Record<string, string> };
 
 const ALL = "__all__";
 
@@ -19,7 +19,7 @@ const ALL = "__all__";
  * "Refine" panel (gtm filter-panel.tsx). Every control writes its URL param
  * and drops `offset`; search is debounced 300 ms, sliders commit on release.
  */
-export function FilterPanel({ categories }: Props) {
+export function FilterPanel({ categories, titles }: Props) {
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
@@ -128,11 +128,11 @@ export function FilterPanel({ categories }: Props) {
           <SelectContent>
             <SelectItem value={ALL}>All categories</SelectItem>
             {category && !categories.some((c) => c.alias === category) && (
-              <SelectItem value={category}>{categoryLabel(category)}</SelectItem>
+              <SelectItem value={category}>{categoryLabel(category, titles)}</SelectItem>
             )}
             {categories.map((c) => (
               <SelectItem key={c.alias} value={c.alias}>
-                {categoryLabel(c.alias)} ({c.count})
+                {categoryLabel(c.alias, titles)} ({c.count})
               </SelectItem>
             ))}
           </SelectContent>

@@ -125,7 +125,6 @@ function DossierBody({ dossier, onNavigate }: { dossier: Dossier; onNavigate: (i
 
   return (
     <>
-      <DialogTitle className="sr-only">{b.name}</DialogTitle>
       <DialogDescription className="sr-only">Dossier for {b.name}</DialogDescription>
       <div className="flex shrink-0 items-center justify-between border-l-[3px] border-l-primary px-6 py-3 pr-12">
         <div className="flex items-center gap-2 text-xs tracking-wider text-muted-foreground uppercase tabular-nums" data-testid="last-synced">
@@ -152,7 +151,7 @@ function DossierBody({ dossier, onNavigate }: { dossier: Dossier; onNavigate: (i
                     {[category, b.subcategory].filter(Boolean).join(" / ")}
                   </span>
                 )}
-                <h2 className="mb-1 font-serif text-2xl leading-tight font-bold tracking-tight text-foreground md:text-3xl">{b.name}</h2>
+                <DialogTitle className="mb-1 font-serif text-2xl leading-tight font-bold tracking-tight text-foreground md:text-3xl">{b.name}</DialogTitle>
                 <div className="mt-1 mb-2 flex flex-wrap items-center gap-x-5 gap-y-2 text-[13px] text-muted-foreground md:text-sm">
                   {b.website && host && (
                     <a href={absoluteUrl(b.website)} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 font-medium transition-colors hover:text-foreground">

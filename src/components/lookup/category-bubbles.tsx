@@ -9,12 +9,14 @@ type Props = {
   /** Canonical order shared with the graph so colors match. */
   order: readonly string[];
   selectedCategory: string | null;
+  /** alias → display title. */
+  titles?: Record<string, string>;
   onCategoryClick: (category: string | null) => void;
   className?: string;
 };
 
 /** "All" + the top 8 categories by node count (gtm category-bubbles.tsx); clicking the selected one clears it. */
-export function CategoryBubbles({ nodes, order, selectedCategory, onCategoryClick, className = "" }: Props) {
+export function CategoryBubbles({ nodes, order, selectedCategory, titles, onCategoryClick, className = "" }: Props) {
   const top = useMemo(() => categoryCounts(nodes).slice(0, MAX_BUBBLES), [nodes]);
   if (top.length === 0) return null;
   return (
@@ -33,7 +35,7 @@ export function CategoryBubbles({ nodes, order, selectedCategory, onCategoryClic
         {top.map(({ category, count }) => {
           const color = categoryColor(category, order);
           const selected = selectedCategory === category;
-          const label = categoryLabel(category);
+          const label = categoryLabel(category, titles);
           return (
             <button
               key={category}

@@ -80,8 +80,10 @@ export function trimLinks(links: GraphLink[], nodes: Pick<GraphNode, "id">[]): G
   return out;
 }
 
-/** "home_services" / "home-services" / "plumbing" → "Home Services" / "Plumbing"; mixed-case titles pass through. */
-export function categoryLabel(category: string): string {
+/** Known title for the alias, else "home_services" / "auto-repair" → "Home Services" / "Auto Repair"; mixed-case titles pass through. */
+export function categoryLabel(category: string, titles?: Record<string, string>): string {
+  const title = titles?.[category];
+  if (title) return title;
   if (category !== category.toLowerCase()) return category;
   return category
     .split(/[_-]+/)
