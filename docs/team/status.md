@@ -35,3 +35,17 @@ Estimated agents: 7 Opus seniors + roughly 1–3 Sonnet juniors each.
 - 2026-11-07 WP-08 spawned for the two cosmetic open issues. Yelp live mode and real email delivery remain gated on user-supplied YELP_API_KEY / RESEND_API_KEY.
 - 2026-11-07 WP-08 delivered (PR #8, 3 files, 485 tests); PM review ACCEPT round 1; merged to main; deploying.
 - 2026-11-07 WP-08 deployed (production on 9ed47a2): all routes 200, crons OK. Run closed. Remaining inputs are optional and user-held: YELP_API_KEY (live ingestion instead of fixtures) and RESEND_API_KEY (real delivery instead of dry run).
+
+# v2 — Leadwire pivot (2026-11-08)
+
+| WP | Title | Wave | Agent | Branch / PR | State | Review |
+|---|---|---|---|---|---|---|
+| WP-11 | Leadwire theme, shell, Supabase Auth | 1 | — | wp-11-theme-shell-auth | not started | — |
+| WP-12 | Data model v2, repos, test-data removal | 1 | — | wp-12-data-v2 | not started | — |
+| WP-13 | Trustpilot discovery (Firecrawl) | 2 | — | wp-13-discovery | blocked on wave 1 | — |
+| WP-14 | Lookup UI | 2 | — | wp-14-lookup-ui | blocked on wave 1 | — |
+| WP-15 | Leads UI | 2 | — | wp-15-leads-ui | blocked on wave 1 | — |
+| WP-16 | Restyle + integration | 3 | — | wp-16-restyle | blocked on wave 2 | — |
+
+## v2 log
+- 2026-11-08 User directive: overhaul to the gtm ("Leadwire") product and UI, remove all test data, defer voice agents. Inventory, spec, architecture delta, and six packages written under docs/team/v2/.
