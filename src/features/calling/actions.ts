@@ -10,6 +10,7 @@ import {
   claimNext,
   countAddable,
   createCallCampaign,
+  deleteCallCampaign,
   evaluateCampaign,
   getCallCampaign,
   getQueueItem,
@@ -37,7 +38,8 @@ import {
   toBusinessFilter,
   toCampaignColumns,
 } from "./schema";
-import { createElevenLabsCaller, missingElevenLabsConfig } from "@/lib/elevenlabs/client";
+import { createElevenLabsAgents, createElevenLabsCaller, missingElevenLabsConfig } from "@/lib/elevenlabs/client";
+import { provisionCampaignAgent, releaseCampaignAgent, syncCampaignAgentName } from "./agents";
 import { dispatchAiCalls } from "./ai";
 import { parseLocalDateTime } from "./time";
 import type { DialerCampaign, DialerClaim } from "./types";
@@ -73,8 +75,11 @@ export async function createCampaignAction(
   if (!parsed.success) return fail("Please fix the highlighted fields.", fieldErrors(parsed.error));
   let id: string;
   try {
-    const c = await createCallCampaign(getDb(), { ...toCampaignColumns(parsed.data), status: "draft" });
+    const db = getDb();
+    const c = await createCallCampaign(db, { ...toCampaignColumns(parsed.data), status: "draft" });
     id = c.id;
+    // Best effort: a failure here leaves the campaign on the shared agent.
+    await provisionCampaignAgent(db, c, createElevenLabsAgents());
   } catch (err) {
     console.error("[calling] createCampaignAction failed", err);
     return fail("Could not create the campaign.");
@@ -93,8 +98,14 @@ export async function updateCampaignAction(
   if (!parsed.success) return fail("Please fix the highlighted fields.", fieldErrors(parsed.error));
   try {
     const db = getDb();
+    const before = await getCallCampaign(db, id);
+    if (!before) return fail("Campaign not found.");
     const c = await updateCallCampaign(db, id, toCampaignColumns(parsed.data));
     if (!c) return fail("Campaign not found.");
+    const agents = createElevenLabsAgents();
+    // Switched to (or saved as) AI without an agent yet → make one; renamed → rename it.
+    await provisionCampaignAgent(db, c, agents);
+    await syncCampaignAgentName(c, before.name, agents);
     // New hours/cap may change whether it should be running.
     await evaluateCampaign(db, id);
     revalidateCampaign(id);
@@ -102,6 +113,33 @@ export async function updateCampaignAction(
   } catch (err) {
     console.error("[calling] updateCampaignAction failed", err);
     return fail("Could not save the campaign.");
+  }
+}
+
+/**
+ * Deletes a campaign, its queue and AI call records (cascade), and its own
+ * ElevenLabs agent. When the agent cannot be deleted the campaign is kept so
+ * nothing is orphaned. The client navigates back to /calling.
+ */
+export async function deleteCampaignAction(id: string): Promise<ActionResult> {
+  if (!UUID_RE.test(id)) return fail("Campaign not found.");
+  try {
+    const db = getDb();
+    const campaign = await getCallCampaign(db, id);
+    if (!campaign) return fail("Campaign not found.");
+    try {
+      await releaseCampaignAgent(campaign, createElevenLabsAgents());
+    } catch (err) {
+      console.error(`[calling] agent delete failed for campaign ${id}`, err);
+      return fail(`The campaign was kept because its ElevenLabs agent could not be deleted: ${err instanceof Error ? err.message : String(err)}`);
+    }
+    const deleted = await deleteCallCampaign(db, id);
+    if (!deleted) return fail("Campaign not found.");
+    revalidateCampaign(id);
+    return ok(null);
+  } catch (err) {
+    console.error("[calling] deleteCampaignAction failed", err);
+    return fail("Could not delete the campaign.");
   }
 }
 

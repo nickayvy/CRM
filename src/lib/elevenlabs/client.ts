@@ -9,6 +9,8 @@ export const SIGNATURE_TOLERANCE_SECS = 30 * 60;
 
 export type OutboundCallInput = {
   toNumber: string;
+  /** Agent to place the call with; defaults to the shared template agent (ELEVENLABS_AGENT_ID). */
+  agentId?: string;
   /** Values for the agent prompt's {{variables}}. All values must be strings. */
   dynamicVariables: Record<string, string>;
 };
@@ -42,9 +44,10 @@ export function missingElevenLabsConfig(): string[] {
 /** Places calls with POST /v1/convai/twilio/outbound-call. Throws ElevenLabsError when unconfigured or rejected. */
 export function createElevenLabsCaller(fetchImpl: typeof fetch = fetch): CallPlacer {
   return {
-    async placeCall({ toNumber, dynamicVariables }) {
+    async placeCall(input) {
+      const { toNumber, dynamicVariables } = input;
       const apiKey = env.ELEVENLABS_API_KEY;
-      const agentId = env.ELEVENLABS_AGENT_ID;
+      const agentId = input.agentId || env.ELEVENLABS_AGENT_ID;
       const phoneId = env.ELEVENLABS_PHONE_NUMBER_ID;
       if (!apiKey || !agentId || !phoneId) throw new ElevenLabsError("ElevenLabs is not configured.");
       const res = await fetchImpl(`${API_BASE}/v1/convai/twilio/outbound-call`, {
@@ -70,6 +73,77 @@ export function createElevenLabsCaller(fetchImpl: typeof fetch = fetch): CallPla
         throw new ElevenLabsError(`ElevenLabs refused the call (${res.status}): ${detail}`.slice(0, 500), res.status);
       }
       return { conversationId: body.conversation_id ?? null, callSid: body.callSid ?? null };
+    },
+  };
+}
+
+// ------------------------------------------------------------------ agents
+
+/** Per-campaign agents: each AI campaign gets a copy of the template agent, deleted with the campaign. */
+export interface AgentManager {
+  /** POST /v1/convai/agents/{template}/duplicate → the new agent's id. */
+  duplicateAgent(templateAgentId: string, name: string): Promise<string>;
+  /** PATCH /v1/convai/agents/{id} with a new name. */
+  renameAgent(agentId: string, name: string): Promise<void>;
+  /** DELETE /v1/convai/agents/{id}. Resolves when the agent is gone, including when it already was (404). */
+  deleteAgent(agentId: string): Promise<void>;
+}
+
+/** Env vars agent management needs (empty → ready). Calls also need the phone number and webhook secret. */
+export function missingAgentConfig(): string[] {
+  const missing: string[] = [];
+  if (!env.ELEVENLABS_API_KEY) missing.push("ELEVENLABS_API_KEY");
+  if (!env.ELEVENLABS_AGENT_ID) missing.push("ELEVENLABS_AGENT_ID");
+  return missing;
+}
+
+/** Where to open an agent in the ElevenLabs dashboard. */
+export function agentDashboardUrl(agentId: string): string {
+  return `https://elevenlabs.io/app/agents/${encodeURIComponent(agentId)}`;
+}
+
+async function errorDetail(res: Response): Promise<string> {
+  const body = (await res.json().catch(() => ({}))) as { message?: string; detail?: unknown };
+  return (body.message ?? (typeof body.detail === "string" ? body.detail : JSON.stringify(body.detail ?? ""))).slice(0, 400);
+}
+
+export function createElevenLabsAgents(fetchImpl: typeof fetch = fetch): AgentManager {
+  const headers = () => {
+    const apiKey = env.ELEVENLABS_API_KEY;
+    if (!apiKey) throw new ElevenLabsError("ElevenLabs is not configured.");
+    return { "xi-api-key": apiKey, "content-type": "application/json" };
+  };
+  const agentPath = (id: string) => `${API_BASE}/v1/convai/agents/${encodeURIComponent(id)}`;
+  return {
+    async duplicateAgent(templateAgentId, name) {
+      const res = await fetchImpl(`${agentPath(templateAgentId)}/duplicate`, {
+        method: "POST",
+        headers: headers(),
+        body: JSON.stringify({ name }),
+        signal: AbortSignal.timeout(20_000),
+      });
+      if (!res.ok) throw new ElevenLabsError(`ElevenLabs could not copy the agent (${res.status}): ${await errorDetail(res)}`, res.status);
+      const body = (await res.json().catch(() => ({}))) as { agent_id?: string };
+      if (!body.agent_id) throw new ElevenLabsError("ElevenLabs returned no agent id.");
+      return body.agent_id;
+    },
+    async renameAgent(agentId, name) {
+      const res = await fetchImpl(agentPath(agentId), {
+        method: "PATCH",
+        headers: headers(),
+        body: JSON.stringify({ name }),
+        signal: AbortSignal.timeout(20_000),
+      });
+      if (!res.ok) throw new ElevenLabsError(`ElevenLabs could not rename the agent (${res.status}): ${await errorDetail(res)}`, res.status);
+    },
+    async deleteAgent(agentId) {
+      const res = await fetchImpl(agentPath(agentId), {
+        method: "DELETE",
+        headers: { "xi-api-key": headers()["xi-api-key"] },
+        signal: AbortSignal.timeout(20_000),
+      });
+      if (res.ok || res.status === 404) return;
+      throw new ElevenLabsError(`ElevenLabs could not delete the agent (${res.status}): ${await errorDetail(res)}`, res.status);
     },
   };
 }

@@ -33,11 +33,11 @@ async function columns(table: string): Promise<Map<string, Col>> {
 }
 
 describe("migrations", () => {
-  it("ships exactly 0000_init through 0003_ai_calls, and all are applied", async () => {
+  it("ships exactly 0000_init through 0004_campaign_agent, and all are applied", async () => {
     const files = readdirSync(MIGRATIONS_FOLDER).filter((f) => f.endsWith(".sql")).sort();
-    expect(files).toEqual(["0000_init.sql", "0001_v2.sql", "0002_scrape_backoff.sql", "0003_ai_calls.sql"]);
+    expect(files).toEqual(["0000_init.sql", "0001_v2.sql", "0002_scrape_backoff.sql", "0003_ai_calls.sql", "0004_campaign_agent.sql"]);
     const applied = await q<{ n: number | string }>(sql`SELECT count(*) AS n FROM drizzle.__drizzle_migrations`);
-    expect(Number(applied[0].n)).toBe(4);
+    expect(Number(applied[0].n)).toBe(5);
   });
 
   it("0003_ai_calls is additive: two enums, the ai_calls table, and call_campaigns.mode defaulting to human", async () => {

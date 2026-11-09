@@ -28,10 +28,11 @@ import {
 } from "@/db/repo/call-campaigns";
 import { listAiCalls } from "@/db/repo/ai-calls";
 import { AiCallsList, PlaceAiCallsButton } from "@/features/calling/components/ai-calls-panel";
-import { missingElevenLabsConfig } from "@/lib/elevenlabs/client";
+import { agentDashboardUrl, missingElevenLabsConfig } from "@/lib/elevenlabs/client";
 import { AddBusinessesPanel } from "@/features/calling/components/add-businesses-panel";
 import { CampaignControls } from "@/features/calling/components/campaign-controls";
 import { CampaignLive } from "@/features/calling/components/campaign-live";
+import { DeleteCampaignButton } from "@/features/calling/components/delete-campaign-button";
 import { QueueTable, type QueueTableRow } from "@/features/calling/components/queue-table";
 import { shortTime } from "@/features/calling/time";
 import { CALL_OUTCOMES } from "@/features/calling/types";
@@ -110,6 +111,7 @@ export default async function CallCampaignPage({ params }: Props) {
                 <SettingsIcon aria-hidden /> Settings
               </Link>
             </Button>
+            <DeleteCampaignButton campaignId={id} name={campaign.name} />
             {isAi ? (
               <PlaceAiCallsButton campaignId={id} missingConfig={missingConfig} />
             ) : (
@@ -224,6 +226,22 @@ export default async function CallCampaignPage({ params }: Props) {
           <PageSection title="Settings" className="rounded-lg bg-surface p-4 shadow-[var(--shadow-elevated)]">
             <KeyValueList>
               <KeyValue label="Calls placed by">{isAi ? "AI agent" : "People (dialer)"}</KeyValue>
+              {isAi ? (
+                <KeyValue label="ElevenLabs agent">
+                  {campaign.elevenlabsAgentId ? (
+                    <a
+                      href={agentDashboardUrl(campaign.elevenlabsAgentId)}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="underline-offset-4 hover:underline"
+                    >
+                      This campaign&apos;s own agent
+                    </a>
+                  ) : (
+                    "Shared template agent"
+                  )}
+                </KeyValue>
+              ) : null}
               <KeyValue label="Daily cap">{campaign.dailyCap ?? "No cap"}</KeyValue>
               <KeyValue label="Calling hours">{hours}</KeyValue>
               <KeyValue label="Time zone">{tz.replace(/_/g, " ")}</KeyValue>

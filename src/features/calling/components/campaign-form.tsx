@@ -10,7 +10,7 @@ import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
 import type { CallCampaign } from "@/db/schema";
 import type { ActionResult } from "@/lib/action-result";
-import { shortTime } from "../time";
+import { shortTime, timeOptions } from "../time";
 import { SCRIPT_TOKENS } from "../script-tokens";
 
 type Values = Pick<
@@ -78,6 +78,8 @@ export function CampaignForm({ action, initial = {}, submitLabel, cancelHref, su
   const err = (k: string) => (errors[k]?.length ? errors[k].map((message) => ({ message })) : undefined);
   const timezone = initial.timezone ?? "America/Chicago";
   const zones = React.useMemo(() => allZones(timezone), [timezone]);
+  const startOptions = React.useMemo(() => timeOptions(initial.callingHoursStart), [initial.callingHoursStart]);
+  const endOptions = React.useMemo(() => timeOptions(initial.callingHoursEnd), [initial.callingHoursEnd]);
   const scriptRef = React.useRef<HTMLTextAreaElement>(null);
 
   React.useEffect(() => {
@@ -182,40 +184,67 @@ export function CampaignForm({ action, initial = {}, submitLabel, cancelHref, su
             <FieldDescription>Calls with an outcome per local day. Empty = no cap.</FieldDescription>
             <FieldError errors={err("dailyCap")} />
           </Field>
-          <Field data-invalid={!!err("timezone") || undefined}>
-            <FieldLabel htmlFor="timezone">Time zone</FieldLabel>
-            <select id="timezone" name="timezone" defaultValue={timezone} className={selectClass} aria-invalid={!!err("timezone") || undefined}>
-              {zones.map((z) => (
-                <option key={z} value={z}>
-                  {z.replace(/_/g, " ")}
-                </option>
-              ))}
-            </select>
-            <FieldError errors={err("timezone")} />
-          </Field>
-          <Field data-invalid={!!err("callingHoursStart") || undefined}>
-            <FieldLabel htmlFor="callingHoursStart">Calling hours start</FieldLabel>
-            <Input
-              id="callingHoursStart"
-              name="callingHoursStart"
-              type="time"
-              defaultValue={shortTime(initial.callingHoursStart)}
-              aria-invalid={!!err("callingHoursStart") || undefined}
-            />
-            <FieldError errors={err("callingHoursStart")} />
-          </Field>
-          <Field data-invalid={!!err("callingHoursEnd") || undefined}>
-            <FieldLabel htmlFor="callingHoursEnd">Calling hours end</FieldLabel>
-            <Input
-              id="callingHoursEnd"
-              name="callingHoursEnd"
-              type="time"
-              defaultValue={shortTime(initial.callingHoursEnd)}
-              aria-invalid={!!err("callingHoursEnd") || undefined}
-            />
-            <FieldDescription>Leave both empty to call any time. End is exclusive.</FieldDescription>
-            <FieldError errors={err("callingHoursEnd")} />
-          </Field>
+          <div className="grid gap-2 sm:col-span-2">
+            <p className="text-sm font-medium">Calling hours</p>
+            <div className="grid gap-3 sm:grid-cols-[1fr_1fr_1.4fr]">
+              <Field data-invalid={!!err("callingHoursStart") || undefined}>
+                <FieldLabel htmlFor="callingHoursStart" className="text-xs text-muted-foreground">
+                  Start
+                </FieldLabel>
+                <select
+                  id="callingHoursStart"
+                  name="callingHoursStart"
+                  defaultValue={shortTime(initial.callingHoursStart)}
+                  className={selectClass}
+                  aria-invalid={!!err("callingHoursStart") || undefined}
+                >
+                  <option value="">Any time</option>
+                  {startOptions.map((t) => (
+                    <option key={t} value={t}>
+                      {t}
+                    </option>
+                  ))}
+                </select>
+                <FieldError errors={err("callingHoursStart")} />
+              </Field>
+              <Field data-invalid={!!err("callingHoursEnd") || undefined}>
+                <FieldLabel htmlFor="callingHoursEnd" className="text-xs text-muted-foreground">
+                  End
+                </FieldLabel>
+                <select
+                  id="callingHoursEnd"
+                  name="callingHoursEnd"
+                  defaultValue={shortTime(initial.callingHoursEnd)}
+                  className={selectClass}
+                  aria-invalid={!!err("callingHoursEnd") || undefined}
+                >
+                  <option value="">Any time</option>
+                  {endOptions.map((t) => (
+                    <option key={t} value={t}>
+                      {t}
+                    </option>
+                  ))}
+                </select>
+                <FieldError errors={err("callingHoursEnd")} />
+              </Field>
+              <Field data-invalid={!!err("timezone") || undefined}>
+                <FieldLabel htmlFor="timezone" className="text-xs text-muted-foreground">
+                  Time zone
+                </FieldLabel>
+                <select id="timezone" name="timezone" defaultValue={timezone} className={selectClass} aria-invalid={!!err("timezone") || undefined}>
+                  {zones.map((z) => (
+                    <option key={z} value={z}>
+                      {z.replace(/_/g, " ")}
+                    </option>
+                  ))}
+                </select>
+                <FieldError errors={err("timezone")} />
+              </Field>
+            </div>
+            <FieldDescription>
+              24-hour clock in the selected time zone. Leave both at &quot;Any time&quot; to call whenever. End is exclusive.
+            </FieldDescription>
+          </div>
           <Field data-invalid={!!err("maxConcurrentAgents") || undefined}>
             <FieldLabel htmlFor="maxConcurrentAgents">Max concurrent agents</FieldLabel>
             <Input

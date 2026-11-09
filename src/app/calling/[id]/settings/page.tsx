@@ -5,6 +5,7 @@ import { getDb } from "@/db/client";
 import { getCallCampaign } from "@/db/repo/call-campaigns";
 import { updateCampaignAction } from "@/features/calling/actions";
 import { CampaignForm } from "@/features/calling/components/campaign-form";
+import { DeleteCampaignButton } from "@/features/calling/components/delete-campaign-button";
 import { requireUser } from "@/lib/supabase/server";
 
 export const dynamic = "force-dynamic";
@@ -29,6 +30,7 @@ export default async function CampaignSettingsPage({ params }: { params: Promise
           { label: campaign.name, href: `/calling/${id}` },
           { label: "Settings" },
         ]}
+        actions={<DeleteCampaignButton campaignId={id} name={campaign.name} />}
       />
       <CampaignForm
         action={updateCampaignAction.bind(null, id)}

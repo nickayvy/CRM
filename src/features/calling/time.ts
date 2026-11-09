@@ -32,6 +32,27 @@ export function shortTime(t: string | null | undefined): string {
   return n ? n.slice(0, 5) : "";
 }
 
+/** Minutes between calling-hours dropdown entries. */
+export const TIME_STEP_MINUTES = 30;
+
+/**
+ * 24-hour "HH:MM" options for the calling-hours dropdowns: every 30 minutes
+ * from 00:00 to 23:30. A stored value off that grid (e.g. "09:15") is kept in
+ * place so an existing campaign still shows its own setting.
+ */
+export function timeOptions(current?: string | null): string[] {
+  const out: string[] = [];
+  for (let m = 0; m < 24 * 60; m += TIME_STEP_MINUTES) {
+    out.push(`${String(Math.floor(m / 60)).padStart(2, "0")}:${String(m % 60).padStart(2, "0")}`);
+  }
+  const cur = shortTime(current);
+  if (cur && !out.includes(cur)) {
+    out.push(cur);
+    out.sort();
+  }
+  return out;
+}
+
 /** Local calendar day of `d` in `tz`, as "yyyy-MM-dd". */
 export function localDay(d: Date, tz: string): string {
   return formatInTimeZone(d, tz, "yyyy-MM-dd");

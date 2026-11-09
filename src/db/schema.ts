@@ -234,6 +234,8 @@ export const callCampaigns = pgTable("call_campaigns", {
   status: campaignStatusEnum("status").notNull().default("draft"),
   /** human: agents work the queue in the dialer. ai: the ElevenLabs agent places the calls. */
   mode: callModeEnum("mode").notNull().default("human"),
+  /** The campaign's own ElevenLabs agent (a copy of the template in ELEVENLABS_AGENT_ID); null → the shared template places the calls. */
+  elevenlabsAgentId: text("elevenlabs_agent_id"),
   script: text("script").notNull().default(""),
   dailyCap: integer("daily_cap"),
   callingHoursStart: time("calling_hours_start"),

@@ -81,6 +81,12 @@ export async function updateCallCampaign(
   return row ?? null;
 }
 
+/** Deletes the campaign; queue items and AI call records cascade. Business activity history is kept. */
+export async function deleteCallCampaign(db: DbOrTx, id: string): Promise<boolean> {
+  const rows = await db.delete(callCampaigns).where(eq(callCampaigns.id, id)).returning({ id: callCampaigns.id });
+  return rows.length > 0;
+}
+
 export async function getCallCampaign(db: DbOrTx, id: string): Promise<CallCampaign | null> {
   const [row] = await db.select().from(callCampaigns).where(eq(callCampaigns.id, id));
   return row ?? null;

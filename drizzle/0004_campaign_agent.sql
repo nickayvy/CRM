@@ -1,0 +1,1 @@
+ALTER TABLE "call_campaigns" ADD COLUMN "elevenlabs_agent_id" text;

@@ -86,7 +86,11 @@ export async function dispatchAiCalls(
       startedAt: now,
     });
     try {
-      const r = await placer.placeCall({ toNumber: to, dynamicVariables: dynamicVariables(campaign, business, call.id, now) });
+      const r = await placer.placeCall({
+        toNumber: to,
+        agentId: campaign.elevenlabsAgentId ?? undefined,
+        dynamicVariables: dynamicVariables(campaign, business, call.id, now),
+      });
       await updateAiCall(db, call.id, { conversationId: r.conversationId, callSid: r.callSid });
       placed++;
     } catch (err) {

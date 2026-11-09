@@ -25,10 +25,12 @@ import { normalizeName, phoneDigits } from "@/lib/format";
 import type { ActionResult } from "@/lib/action-result";
 import { parseCampaignForm } from "@/features/calling/schema";
 import {
+  TIME_STEP_MINUTES,
   defaultCallbackValue,
   isWithinHours,
   localDayBounds,
   parseLocalDateTime,
+  timeOptions,
 } from "@/features/calling/time";
 import { fillScript } from "@/features/calling/script-tokens";
 import type { CampaignStatusPayload, DialerClaim } from "@/features/calling/types";
@@ -58,6 +60,7 @@ const {
   addBusinessesAction,
   claimNextAction,
   createCampaignAction,
+  deleteCampaignAction,
   pauseAction,
   previewAddAction,
   recordOutcomeAction,
@@ -947,5 +950,50 @@ describe("fillScript", () => {
 
   it("fills every occurrence", () => {
     expect(fillScript("{{city}} {{city}}", biz)).toBe("Houston Houston");
+  });
+});
+
+// ---------------------------------------------------------------- delete campaign + hours dropdown
+
+describe("deleteCampaignAction", () => {
+  it("removes the campaign and its queue items", async () => {
+    const { campaign, biz } = await makeCampaign(2);
+    const before = await listQueue(db, campaign.id, { limit: 10 });
+    expect(before.total).toBe(2);
+    unwrap(await deleteCampaignAction(campaign.id));
+    expect(await getCallCampaign(db, campaign.id)).toBeNull();
+    const [{ n }] = (await db.select({ n: sql<number>`count(*)::int` }).from(callQueueItems)) as { n: number }[];
+    expect(n).toBe(0);
+    // Businesses survive; only the campaign membership goes.
+    const left = await db.select({ id: businesses.id }).from(businesses).where(eq(businesses.id, biz[0].id));
+    expect(left).toHaveLength(1);
+    expect(await listCallCampaigns(db)).toHaveLength(0);
+  });
+
+  it("fails for an unknown or malformed id", async () => {
+    const r1 = await deleteCampaignAction("00000000-0000-4000-8000-000000000000");
+    expect(r1.ok).toBe(false);
+    const r2 = await deleteCampaignAction("nope");
+    expect(r2.ok).toBe(false);
+  });
+});
+
+describe("timeOptions", () => {
+  it("lists every half hour on a 24-hour clock", () => {
+    const opts = timeOptions();
+    expect(opts).toHaveLength((24 * 60) / TIME_STEP_MINUTES);
+    expect(opts[0]).toBe("00:00");
+    expect(opts[1]).toBe("00:30");
+    expect(opts).toContain("13:00");
+    expect(opts.at(-1)).toBe("23:30");
+    expect(opts.every((t) => /^\d{2}:\d{2}$/.test(t))).toBe(true);
+  });
+
+  it("keeps an off-grid stored value in order", () => {
+    const opts = timeOptions("09:15:00");
+    expect(opts).toContain("09:15");
+    expect(opts.indexOf("09:15")).toBe(opts.indexOf("09:00") + 1);
+    expect(timeOptions("09:00")).toHaveLength(48);
+    expect(timeOptions(null)).toHaveLength(48);
   });
 });
