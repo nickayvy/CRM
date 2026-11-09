@@ -1,6 +1,7 @@
-# Local Business CRM
+# Leadwire
 
-A lead-generation CRM for selling to small local businesses. It pulls
+Leadwire (formerly Local Business CRM) is a dark, signal-first prospecting CRM
+for selling to small local businesses. `/` redirects to `/lookup`. It pulls
 businesses from Yelp Fusion by category and location, qualifies them with an
 explicit rule engine, and gives a sales team browsing, calling campaigns and
 email sequences.
@@ -35,7 +36,7 @@ again, then prints a row count per table.
 | `npm run build` / `npm start` | Production build / serve it |
 | `npm run lint` | ESLint |
 | `npm run typecheck` | `tsc --noEmit` |
-| `npm test` / `npm run test:watch` | Vitest (`tests/**/*.test.ts`, each file gets an in-memory PGlite) |
+| `npm test` / `npm run test:watch` | Vitest (`tests/**/*.test.{ts,tsx}`, each file gets an in-memory PGlite) |
 | `npm run db:generate` | `drizzle-kit generate`: write a new SQL migration from `src/db/schema.ts` |
 | `npm run db:migrate` | Apply `./drizzle/*.sql` to the active database |
 | `npm run db:seed` | Migrate, then reset and seed demo data |
@@ -43,7 +44,7 @@ again, then prints a row count per table.
 
 ## Environment
 
-Every variable is optional. Copy `.env.example` to `.env.local` and fill in
+Every variable except the two Supabase ones (needed to sign in) is optional. Copy `.env.example` to `.env.local` and fill in
 what you need; the example file documents each one.
 
 | Variable | Default | Purpose |
@@ -52,8 +53,8 @@ what you need; the example file documents each one.
 | `PGLITE_DATA_DIR` | `.data/pglite` | Local PGlite directory. |
 | `YELP_API_KEY` | unset | Yelp Fusion key. Without it, searches read `fixtures/yelp/`. |
 | `YELP_MODE` | `live` with a key, else `fixture` | Force a mode. |
-| `APP_PASSWORD` | unset → gate off | Shared password for the whole app. |
-| `APP_SESSION_SECRET` | dev default (warns) | HMAC secret for the session cookie. Set it in production. |
+| `NEXT_PUBLIC_SUPABASE_URL` | unset | Supabase project URL. Required for sign-in; unset → every page redirects to `/login`. |
+| `NEXT_PUBLIC_SUPABASE_ANON_KEY` | unset | Supabase anon or publishable key (public by design). Required for sign-in; unset → every page redirects to `/login`. |
 | `RESEND_API_KEY` | unset → dry run | Real email sending via Resend. |
 | `EMAIL_FROM` | `CRM <onboarding@resend.dev>` | Default sender. |
 | `CRON_SECRET` | unset → open | Bearer token required by `/api/cron/*`. |
@@ -70,13 +71,29 @@ what you need; the example file documents each one.
 Both drivers run the same migrations from `./drizzle`, so the schema is
 identical. Tests always use an in-memory PGlite (`createTestDb()`).
 
-### Password gate
+### Authentication (Supabase Auth)
 
-When `APP_PASSWORD` is set, `src/proxy.ts` redirects every page to `/login`
-until the browser holds a `crm_session` cookie equal to
-`HMAC-SHA256(APP_SESSION_SECRET, APP_PASSWORD)`. Changing either value logs
-everyone out. `/api/cron/*` is exempt and uses `CRON_SECRET` instead. A
-logout button appears in the top bar while the gate is active.
+Sign-in is email + password through Supabase Auth, using `@supabase/ssr`.
+`src/proxy.ts` calls `updateSession`, which refreshes the session cookie and
+redirects signed-out users to `/login` (API routes get a 401 instead).
+Exempt paths: `/login`, `/signup`, `/api/auth/*` and `/api/cron/*` (cron routes
+check `CRON_SECRET` themselves). Signed-in users who open `/login` or
+`/signup` are sent to `/lookup`.
+
+Setup:
+
+1. Put `NEXT_PUBLIC_SUPABASE_URL` and `NEXT_PUBLIC_SUPABASE_ANON_KEY` in
+   `.env.local` (never commit it).
+2. In the Supabase dashboard, go to Authentication → URL Configuration. Set
+   **Site URL** to `https://<domain>` and add the redirect URL
+   `https://<domain>/api/auth/callback` (plus
+   `http://localhost:3000/api/auth/callback` for local dev).
+3. Email confirmation: when "Confirm email" is on, sign-up sends a link that
+   lands on `/api/auth/callback`, which exchanges the code for a session and
+   redirects to `/lookup`. When it is off, sign-up signs the user in
+   immediately.
+4. You can also create users in the dashboard: Authentication → Users → Add
+   user, with "Auto Confirm" ticked.
 
 ## Deploying
 
@@ -90,7 +107,8 @@ In short:
    already sets `prepare: false`, so no extra flags are needed.
 2. Import the repo in Vercel (Next.js preset, `npm run build`, Node 24) and set
    `DATABASE_URL` (required: PGlite cannot persist on serverless), plus
-   `APP_PASSWORD`, `APP_SESSION_SECRET` and `CRON_SECRET` (recommended). See
+   `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY` and
+   `CRON_SECRET` (recommended). See
    the [Environment](#environment) table for the rest.
 3. `vercel.json` declares two hourly crons (`/api/cron/campaigns`,
    `/api/cron/email`). Hobby allows crons only once a day, so change both
@@ -104,10 +122,10 @@ In short:
 ```
 src/app/            routes (App Router); every DB-reading page is force-dynamic
 src/components/ui/  shadcn/ui components
-src/components/shell/  app shell: sidebar, mobile drawer, theme toggle
+src/components/shell/  app shell: top bar and navigation
 src/db/             schema, client, migrator, seed, test utils, repositories
 src/lib/            env, formatting, labels, action results, auth helpers
-src/proxy.ts        optional password gate (Next 16 "proxy", formerly middleware)
+src/proxy.ts        Supabase Auth session refresh + redirects (Next 16 "proxy", formerly middleware)
 drizzle/            generated SQL migrations (committed)
 fixtures/yelp/      offline Yelp Fusion fixtures used without an API key
 scripts/            migrate / seed / ingest CLIs (run with tsx)
