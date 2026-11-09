@@ -1,10 +1,11 @@
 # Leadwire
 
 Leadwire (formerly Local Business CRM) is a dark, signal-first prospecting CRM
-for selling to small local businesses. `/` redirects to `/lookup`. It pulls
-businesses from Yelp Fusion by category and location, qualifies them with an
-explicit rule engine, and gives a sales team browsing, calling campaigns and
-email sequences.
+for selling to small local businesses. `/` redirects to `/lookup`. It discovers
+businesses on Trustpilot (via Firecrawl) and, when a key is set, Yelp Fusion;
+qualifies them with an explicit rule engine; and gives each signed-in user a
+lead list that feeds calling campaigns and email sequences. `/overview` shows
+discovery yield, leads, calls and email at a glance.
 
 Stack: Next.js 16 (App Router, Turbopack), React 19, TypeScript strict,
 Tailwind CSS v4, shadcn/ui, `motion`, Drizzle ORM, PGlite (local and tests)
@@ -12,17 +13,18 @@ or Supabase Postgres (production), Vitest.
 
 ## Quick start
 
-No accounts, keys or Docker needed. Requires Node 24 and npm.
+No Docker needed. Requires Node 24 and npm. Signing in needs the two public
+Supabase values in `.env.local` (see [Authentication](#authentication-supabase-auth)).
 
 ```bash
 npm install
 npm run db:migrate   # creates .data/pglite and applies ./drizzle migrations
-npm run db:seed      # 100 fixture businesses, campaigns, activities
+npm run db:seed      # ensures the qualification-rules row; no demo data
 npm run dev          # http://localhost:3000
 ```
 
-`db:seed` is idempotent: it truncates every table and inserts the demo data
-again, then prints a row count per table.
+`db:seed` is idempotent and inserts nothing but the default rules row. The app
+starts empty: businesses arrive from Trustpilot discovery or Yelp searches.
 
 > **PGlite is single-process.** Only one process may open `.data/pglite` at
 > a time. Stop `npm run dev` before running `db:migrate` or `db:seed`, or set
@@ -39,8 +41,8 @@ again, then prints a row count per table.
 | `npm test` / `npm run test:watch` | Vitest (`tests/**/*.test.{ts,tsx}`, each file gets an in-memory PGlite) |
 | `npm run db:generate` | `drizzle-kit generate`: write a new SQL migration from `src/db/schema.ts` |
 | `npm run db:migrate` | Apply `./drizzle/*.sql` to the active database |
-| `npm run db:seed` | Migrate, then reset and seed demo data |
-| `npm run ingest` | Run a Yelp search job from the CLI (implemented in WP-03) |
+| `npm run db:seed` | Ensure the qualification-rules row exists (no demo data) |
+| `npm run ingest` | Run a Yelp search job from the CLI (needs `YELP_API_KEY`) |
 
 ## Environment
 
@@ -51,8 +53,8 @@ what you need; the example file documents each one.
 |---|---|---|
 | `DATABASE_URL` | unset → PGlite | Postgres connection string. When set, the app uses postgres-js. |
 | `PGLITE_DATA_DIR` | `.data/pglite` | Local PGlite directory. |
-| `YELP_API_KEY` | unset | Yelp Fusion key. Without it, searches read `fixtures/yelp/`. |
-| `YELP_MODE` | `live` with a key, else `fixture` | Force a mode. |
+| `YELP_API_KEY` | unset → Yelp disabled | Yelp Fusion key. Without it, `/searches` says "Yelp search is not configured". |
+| `FIRECRAWL_API_KEY` | unset → discovery disabled | Firecrawl key for Trustpilot discovery (scrape, seed, daily sync). |
 | `NEXT_PUBLIC_SUPABASE_URL` | unset | Supabase project URL. Required for sign-in; unset → every page redirects to `/login`. |
 | `NEXT_PUBLIC_SUPABASE_ANON_KEY` | unset | Supabase anon or publishable key (public by design). Required for sign-in; unset → every page redirects to `/login`. |
 | `RESEND_API_KEY` | unset → dry run | Real email sending via Resend. |
@@ -110,12 +112,15 @@ In short:
    `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY` and
    `CRON_SECRET` (recommended). See
    the [Environment](#environment) table for the rest.
-3. `vercel.json` declares two hourly crons (`/api/cron/campaigns`,
-   `/api/cron/email`). Hobby allows crons only once a day, so change both
-   schedules to a daily expression there, or use Pro. The app does not depend
-   on them.
-4. The build does not migrate: re-run `npm run db:migrate` whenever a new file
-   lands in `drizzle/`.
+3. Set `FIRECRAWL_API_KEY` for Trustpilot discovery (optional: `YELP_API_KEY`,
+   `RESEND_API_KEY`). In Supabase Auth set the Site URL to
+   `https://<vercel-domain>` and add the redirect URL `/api/auth/callback`.
+4. `vercel.json` declares one daily cron, `/api/cron/daily` (`0 13 * * *`):
+   campaigns, due emails, a 12-row stale Trustpilot sync and, on Sundays, a
+   category seed. It fits the Hobby plan; the app does not depend on it.
+5. The build does not migrate: re-run `npm run db:migrate` whenever a new file
+   lands in `drizzle/` (currently up to `0002_scrape_backoff.sql`). There is no
+   demo data to load.
 
 ## Project layout
 
@@ -127,7 +132,6 @@ src/db/             schema, client, migrator, seed, test utils, repositories
 src/lib/            env, formatting, labels, action results, auth helpers
 src/proxy.ts        Supabase Auth session refresh + redirects (Next 16 "proxy", formerly middleware)
 drizzle/            generated SQL migrations (committed)
-fixtures/yelp/      offline Yelp Fusion fixtures used without an API key
 scripts/            migrate / seed / ingest CLIs (run with tsx)
 tests/              Vitest suites
 docs/deploy.md      Vercel + Supabase deployment guide
