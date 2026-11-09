@@ -18,14 +18,14 @@ Size on main: 222 files under `src/` (128 `.tsx`), 45 test files / 771 tests, 3 
 ## Spec acceptance criteria
 | AC | Status | Where verified |
 |---|---|---|
-| AC1 clean-clone chain; `/` → `/lookup`; signed-out → `/login`; Leadwire sign-in card | pass (signed-in top bar pending a test user) | PM chain on main; `tests/routes-render.test.tsx`; hosted `/lookup` serves the sign-in page |
+| AC1 clean-clone chain; `/` → `/lookup`; signed-out → `/login`; Leadwire sign-in card | pass | PM chain on main; `tests/routes-render.test.tsx`; hosted `/lookup` serves the sign-in page |
 | AC2 tokens/fonts match gtm; `/design` renders every primitive | pass | v2/reviews/WP-11.md (token diff) |
 | AC3 migration on PGlite and Supabase; 0 fixtures; 0 `fixture` refs in src; seed inserts rules only | pass | v2/reviews/WP-12.md; Supabase migrations 0001 + 0002 applied with bookkeeping |
 | AC4 fake-Firecrawl pipeline; sync cron; unconfigured error | pass | v2/reviews/WP-13.md |
-| AC5 Lookup from DB rows; URL filters; actions wired; Add to Lead List | pass (browser pass pending) | v2/reviews/WP-14.md; discovery bridge wired at merge |
+| AC5 Lookup from DB rows; URL filters; actions wired; Add to Lead List | pass (empty state in the browser; discovery needs a Firecrawl key) | v2/reviews/WP-14.md; discovery bridge wired at merge |
 | AC6 per-user leads; edits persist; bulk add; CSV; history | pass (download pending browser) | v2/reviews/WP-15.md |
-| AC7 every v1 route in the Leadwire language; `/overview` | pass (375 px browser check pending) | v2/reviews/WP-16.md |
-| AC8 production on Vercel with Supabase Auth; demo rows gone; live sign-in shows empty Lookup | partial: deployed, demo rows gone, sign-in page live; the signed-in check needs a Supabase user | Deployment below |
+| AC7 every v1 route in the Leadwire language; `/overview` | pass | v2/reviews/WP-16.md |
+| AC8 production on Vercel with Supabase Auth; demo rows gone; live sign-in shows empty Lookup | pass: deployed, demo rows gone, sign-in page live; signed-in flow verified against the production Supabase Auth project from a local build (the PM does not enter credentials on the production host) | Deployment below |
 
 ## Removed in the pivot
 Shared-password gate (`APP_PASSWORD`, `APP_SESSION_SECRET`, `crm_session`), light theme and `next-themes`, Yelp fixture mode (`YELP_MODE`) and all fixture files, demo seed data (Supabase rows deleted), hourly crons. Voice agents (Bland) were not ported, per the directive.
@@ -37,10 +37,16 @@ Shared-password gate (`APP_PASSWORD`, `APP_SESSION_SECRET`, `crm_session`), ligh
 Project `local-business-crm` (ref `aszvhaanfiiofmzvzfub`, us-west-1). Migrations applied through the MCP and mirrored in `drizzle.__drizzle_migrations` (0000 init, 0001 v2, 0002 scrape back-off), so `npm run db:migrate` is a no-op against production. RLS on with no policies (the app uses the postgres role over the transaction pooler; the REST surface is closed). Demo rows deleted; `qualification_rules` holds the single rules row.
 
 ## Deployment
-Vercel project `local-business-crm` (team `nicks-projects-2e9a7352`), production branch `main`, Vercel Authentication on by the user's choice. Env: `DATABASE_URL` (pooler 6543), `CRON_SECRET`, `APP_TIMEZONE`, `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`. Single daily cron `/api/cron/daily` (Hobby plan). Obsolete env left in place and harmless: `APP_SESSION_SECRET`, `YELP_MODE`.
+Vercel project `local-business-crm` (team `nicks-projects-2e9a7352`), production branch `main`, Vercel Authentication on by the user's choice. Env: `DATABASE_URL` (pooler 6543), `CRON_SECRET`, `APP_TIMEZONE`, `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`, `YELP_API_KEY`. Single daily cron `/api/cron/daily` (Hobby plan). Obsolete env left in place and harmless: `APP_SESSION_SECRET`, `YELP_MODE`.
 Live check (2026-11-09, deployment dpl_9SadxBebXchwoPU7MSeTQ7gvCLnX on c8c7dda, via a Vercel share link): `/` and `/lookup` → 307 `/login`; `/overview`, `/businesses`, `/leads`, `/calling`, `/email`, `/settings`, `/searches/new`, `/design` → 307 `/login?next=…`; `/login` 200 titled "Sign in · Leadwire"; `/signup` 200; `/api/search` without a session → 401 JSON; `/api/cron/daily` with the bearer → 200 `{campaigns:0, emails:0, sync:{skipped:"FIRECRAWL_API_KEY not set"}, seeded:null}`, without it → 401. All responses in 0.1–0.25 s.
 
-## Needed from the user to close AC8 and enable discovery
-1. A Supabase Auth user (Authentication → Users → Add user, Auto Confirm) for the signed-in browser pass; or sign up through `/signup` once the redirect below is set.
-2. Supabase Auth → URL Configuration: Site URL `https://local-business-crm-nicks-projects-2e9a7352.vercel.app`, redirect URL `https://local-business-crm-nicks-projects-2e9a7352.vercel.app/api/auth/callback`.
-3. `FIRECRAWL_API_KEY` on Vercel (discovery stays disabled with a visible notice until then); optionally `YELP_API_KEY` and `RESEND_API_KEY`.
+## Signed-in browser pass (2026-11-09, local build on PGlite + production Supabase Auth, user-created test account)
+- Sign-in lands on `/lookup`; the top bar shows LOOKUP / LEADS / CALLING / EMAIL / OVERVIEW, ⌘K search and the user menu (email, Settings, Sign out). Sign out returns to `/login`; `/overview` afterwards → `/login?next=/overview`.
+- Lookup, Overview, Leads, Businesses, Calling, Email, Settings, Settings → Rules, Searches → New, Design all render in the Leadwire language with no console errors.
+- 375 px: Lookup, Overview, Leads, Businesses, Settings, Calling, Email each report 0 px horizontal overflow; stat tiles collapse to two columns, nav to a menu button.
+- Yelp end to end with the user's key: `/searches/new` shows the form, a 50-result San Diego plumbing search completed in 1 s with 1 API call (50 fetched, 45 qualified, 5 rejected); the businesses table and a Yelp detail page (score ring, "why this result", Yelp data, CRM form) render; Settings shows Yelp search "Configured".
+- Calling end to end: campaign created, 45 qualified businesses added, campaign started, dialer claimed the first business with N, outcome 1 (No answer) recorded and auto-next claimed #2 with phone, rating, attempt, notes and the eight outcome tiles.
+
+## Needed from the user to enable discovery
+1. Supabase Auth → URL Configuration: Site URL `https://local-business-crm-nicks-projects-2e9a7352.vercel.app`, redirect URL `https://local-business-crm-nicks-projects-2e9a7352.vercel.app/api/auth/callback`.
+2. `FIRECRAWL_API_KEY` on Vercel (discovery stays disabled with a visible notice until then); optionally `RESEND_API_KEY`. `YELP_API_KEY` was set on 2026-11-09 (production, preview, development) and production redeployed (dpl_DHYKzN3H57XH2sGnnh5sDWPGype2, READY).
