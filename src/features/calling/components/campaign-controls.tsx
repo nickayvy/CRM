@@ -5,7 +5,7 @@ import { PauseIcon, PlayIcon } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import type { CampaignStatus, PauseReason } from "@/db/schema";
-import { pauseAction, resumeAction, startAction } from "../actions";
+import { type AutoAiCalls, pauseAction, resumeAction, startAction } from "../actions";
 import { useLiveStatus } from "./campaign-live";
 
 export type CampaignControlsProps = {
@@ -21,11 +21,17 @@ export function CampaignControls({ campaignId, status: s0, pauseReason: r0 }: Ca
   const pauseReason = live?.pauseReason ?? r0;
   const [pending, startTransition] = React.useTransition();
 
-  function run(fn: () => Promise<{ ok: boolean; message?: string }>, done: string) {
+  function run(fn: () => Promise<{ ok: boolean; message?: string; data?: unknown }>, done: string) {
     startTransition(async () => {
       const r = await fn();
-      if (r.ok) toast.success(done);
-      else toast.error(r.message ?? "Something went wrong.");
+      if (!r.ok) {
+        toast.error(r.message ?? "Something went wrong.");
+        return;
+      }
+      toast.success(done);
+      // Start/Resume on an AI campaign also places the first calls.
+      const ai = (r.data as { aiCalls?: AutoAiCalls } | undefined)?.aiCalls;
+      if (ai) (ai.error ? toast.error : ai.placed ? toast.success : toast.info)(ai.message);
     });
   }
 

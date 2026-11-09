@@ -25,15 +25,30 @@ export type AiCallView = {
 };
 
 /** "Place AI calls" button: fills free AI slots now; later calls follow each webhook. */
-export function PlaceAiCallsButton({ campaignId, missingConfig }: { campaignId: string; missingConfig: string[] }) {
+export function PlaceAiCallsButton({
+  campaignId,
+  missingConfig,
+  draft,
+}: {
+  campaignId: string;
+  missingConfig: string[];
+  /** A draft campaign cannot place calls; Start does that. */
+  draft: boolean;
+}) {
   const router = useRouter();
   const [pending, startTransition] = React.useTransition();
-  const disabled = pending || missingConfig.length > 0;
+  const disabled = pending || draft || missingConfig.length > 0;
   return (
     <Button
       size="sm"
       disabled={disabled}
-      title={missingConfig.length ? `Set ${missingConfig.join(", ")} to enable AI calling` : undefined}
+      title={
+        missingConfig.length
+          ? `Set ${missingConfig.join(", ")} to enable AI calling`
+          : draft
+            ? "Start the campaign first; Start places the first calls"
+            : undefined
+      }
       onClick={() =>
         startTransition(async () => {
           const r = await placeAiCallsAction(campaignId);
@@ -61,7 +76,7 @@ export function AiCallsList({ calls, timezone }: { calls: AiCallView[]; timezone
       <EmptyState
         size="compact"
         title="No AI calls yet"
-        description="Start the campaign, then place AI calls. Each result lands here and on the queue."
+        description="Starting the campaign places the first AI calls. Each result lands here and on the queue."
       />
     );
   }

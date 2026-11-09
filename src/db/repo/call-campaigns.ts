@@ -4,9 +4,10 @@ import { and, asc, count, desc, eq, gt, gte, inArray, isNotNull, lt, lte, ne, sq
 import type { PgDatabase, PgQueryResultHKT } from "drizzle-orm/pg-core";
 import { isWithinHours, localDayBounds } from "@/features/calling/time";
 import type { Schema } from "../client";
-import { syncLeadStatusFromOutcome } from "./leads";
+import { OUTCOME_TO_LEAD_STATUS, syncLeadStatusFromOutcome } from "./leads";
 import {
   type Business,
+  type BusinessStatus,
   type CallCampaign,
   type CallOutcome,
   type CallQueueItem,
@@ -17,6 +18,7 @@ import {
   businesses,
   callCampaigns,
   callQueueItems,
+  leads,
 } from "../schema";
 
 /** A Db or an open transaction on one. Every function here accepts either. */
@@ -81,10 +83,98 @@ export async function updateCallCampaign(
   return row ?? null;
 }
 
-/** Deletes the campaign; queue items and AI call records cascade. Business activity history is kept. */
+/** The business status a call outcome writes (recordOutcome); null when the outcome leaves status alone. */
+function statusForOutcome(outcome: CallOutcome): BusinessStatus | null {
+  switch (outcome) {
+    case "no_answer":
+    case "voicemail":
+    case "busy":
+      return "contacted";
+    case "interested":
+      return "interested";
+    case "not_interested":
+      return "not_interested";
+    case "callback":
+      return "callback";
+    case "do_not_call":
+      return "do_not_call";
+    case "wrong_number":
+      return null;
+  }
+}
+
+type CallActivityRow = { businessId: string; outcome: string | null; occurredAt: Date; metadata: Record<string, unknown> };
+
+/**
+ * Deletes a campaign and everything it did: its queue and AI call records
+ * (cascade), its call activities, and the business and lead state those
+ * outcomes set. For each business the campaign called, the status, last
+ * contact and lead status are recomputed from the call history that remains
+ * (other campaigns), or reset when none remains. Only values that still match
+ * what this campaign last wrote are touched, so manual edits survive, and a
+ * do-not-call set by the campaign is kept on purpose.
+ */
 export async function deleteCallCampaign(db: DbOrTx, id: string): Promise<boolean> {
-  const rows = await db.delete(callCampaigns).where(eq(callCampaigns.id, id)).returning({ id: callCampaigns.id });
-  return rows.length > 0;
+  return db.transaction(async (tx) => {
+    const campaign = await getCallCampaign(tx, id);
+    if (!campaign) return false;
+
+    const own = (await tx
+      .select({ businessId: activities.businessId, outcome: activities.outcome, occurredAt: activities.occurredAt, metadata: activities.metadata })
+      .from(activities)
+      .where(and(eq(activities.type, "call"), eq(activities.campaignType, "call"), eq(activities.campaignId, id)))
+      .orderBy(desc(activities.occurredAt))) as CallActivityRow[];
+    // Newest first, so the first row per business is the campaign's last word on it.
+    const lastByBusiness = new Map<string, CallOutcome>();
+    for (const row of own) if (row.outcome && !lastByBusiness.has(row.businessId)) lastByBusiness.set(row.businessId, row.outcome as CallOutcome);
+
+    await tx.delete(activities).where(and(eq(activities.campaignType, "call"), eq(activities.campaignId, id)));
+    await tx.delete(callCampaigns).where(eq(callCampaigns.id, id));
+
+    for (const [businessId, lastOutcome] of lastByBusiness) await revertBusinessAfterCampaign(tx, businessId, lastOutcome);
+    return true;
+  });
+}
+
+/** Recomputes one business's call-derived state after a campaign's activities are gone. */
+async function revertBusinessAfterCampaign(tx: DbOrTx, businessId: string, lastOutcome: CallOutcome): Promise<void> {
+  const [business] = await tx.select().from(businesses).where(eq(businesses.id, businessId));
+  if (!business) return;
+  const [remaining] = (await tx
+    .select({ businessId: activities.businessId, outcome: activities.outcome, occurredAt: activities.occurredAt, metadata: activities.metadata })
+    .from(activities)
+    .where(and(eq(activities.businessId, businessId), eq(activities.type, "call"), isNotNull(activities.outcome), ne(activities.outcome, "wrong_number")))
+    .orderBy(desc(activities.occurredAt))
+    .limit(1)) as CallActivityRow[];
+  const remainingOutcome = remaining ? (remaining.outcome as CallOutcome) : null;
+
+  const patch: Partial<Business> = { updatedAt: new Date() };
+  // Last contact comes only from call outcomes, so it follows the surviving history.
+  patch.lastContactedAt = remaining?.occurredAt ?? null;
+
+  const wrote = statusForOutcome(lastOutcome);
+  // Never undo a do-not-call, and leave statuses this campaign did not set (manual edits, other sources).
+  if (wrote && wrote !== "do_not_call" && business.status === wrote) {
+    const next = remainingOutcome ? statusForOutcome(remainingOutcome) : null;
+    patch.status = next ?? "new";
+    if (patch.status === "callback") {
+      const cb = remaining?.metadata?.callbackAt;
+      patch.nextFollowUpAt = typeof cb === "string" ? new Date(cb) : business.nextFollowUpAt;
+    } else if (business.status === "callback") {
+      patch.nextFollowUpAt = null;
+    }
+  }
+  await tx.update(businesses).set(patch).where(eq(businesses.id, businessId));
+
+  // Leads mirror outcomes too: same rule, same fallback to the surviving history.
+  const leadWrote = OUTCOME_TO_LEAD_STATUS[lastOutcome];
+  if (leadWrote !== "skipped") {
+    const leadNext = remainingOutcome ? OUTCOME_TO_LEAD_STATUS[remainingOutcome] : "queued";
+    await tx
+      .update(leads)
+      .set({ status: leadNext, updatedAt: new Date() })
+      .where(and(eq(leads.businessId, businessId), eq(leads.status, leadWrote)));
+  }
 }
 
 export async function getCallCampaign(db: DbOrTx, id: string): Promise<CallCampaign | null> {

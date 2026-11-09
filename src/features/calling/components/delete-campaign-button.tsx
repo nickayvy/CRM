@@ -18,7 +18,7 @@ export function DeleteCampaignButton({ campaignId, name }: { campaignId: string;
     const yes = await confirm({
       title: `Delete ${name}?`,
       description:
-        "This removes the campaign, its queue, its AI call records and its own ElevenLabs agent. Business call history is kept. It cannot be undone.",
+        "This removes the campaign, its queue, its call history and AI call records, and its own ElevenLabs agent. Statuses and last-contact dates it set on businesses and leads are rolled back. It cannot be undone.",
       confirmLabel: "Delete",
       tone: "danger",
     });

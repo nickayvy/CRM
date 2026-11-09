@@ -113,7 +113,7 @@ export default async function CallCampaignPage({ params }: Props) {
             </Button>
             <DeleteCampaignButton campaignId={id} name={campaign.name} />
             {isAi ? (
-              <PlaceAiCallsButton campaignId={id} missingConfig={missingConfig} />
+              <PlaceAiCallsButton campaignId={id} missingConfig={missingConfig} draft={campaign.status === "draft"} />
             ) : (
               <Button size="sm" asChild>
                 <Link href={`/calling/${id}/dial`}>

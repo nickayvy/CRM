@@ -6,19 +6,24 @@ import { fromZonedTime } from "date-fns-tz";
 import type { Db } from "@/db/client";
 import {
   addBusinessesToCampaign,
+  claimNext,
   createCallCampaign,
   getCallCampaign,
   getQueueItem,
   listCallCampaigns,
   listQueue,
+  recordOutcome,
 } from "@/db/repo/call-campaigns";
+import { addLead } from "@/db/repo/leads";
 import {
   type Business,
   type CallCampaign,
   type NewBusiness,
   type NewCallCampaign,
+  activities,
   businesses,
   callQueueItems,
+  leads,
 } from "@/db/schema";
 import { createTestDb } from "@/db/test-utils";
 import { normalizeName, phoneDigits } from "@/lib/format";
@@ -38,6 +43,27 @@ import type { CampaignStatusPayload, DialerClaim } from "@/features/calling/type
 // ---------------------------------------------------------------- mocks
 
 const cookieJar = vi.hoisted(() => new Map<string, string>());
+
+// AI dispatch from Start/Resume goes through this fake instead of ElevenLabs.
+const aiPlacer = vi.hoisted(() => ({
+  calls: [] as { toNumber: string }[],
+  fail: undefined as string | undefined,
+  missing: [] as string[],
+}));
+vi.mock("@/lib/elevenlabs/client", async (importOriginal) => {
+  const real = await importOriginal<typeof import("@/lib/elevenlabs/client")>();
+  return {
+    ...real,
+    missingElevenLabsConfig: () => aiPlacer.missing,
+    createElevenLabsCaller: () => ({
+      async placeCall(input: { toNumber: string }) {
+        if (aiPlacer.fail) throw new Error(aiPlacer.fail);
+        aiPlacer.calls.push(input);
+        return { conversationId: `conv_${aiPlacer.calls.length}_${Date.now()}`, callSid: `CA${aiPlacer.calls.length}` };
+      },
+    }),
+  };
+});
 
 vi.mock("next/cache", () => ({ revalidatePath: () => {} }));
 vi.mock("next/navigation", () => ({
@@ -89,6 +115,9 @@ afterAll(async () => {
 });
 beforeEach(async () => {
   cookieJar.clear();
+  aiPlacer.calls.length = 0;
+  aiPlacer.fail = undefined;
+  aiPlacer.missing = [];
   vi.unstubAllEnvs();
   await db.execute(sql`TRUNCATE TABLE call_queue_items, call_campaigns, activities, businesses RESTART IDENTITY CASCADE`);
 });
@@ -559,7 +588,7 @@ describe("pause / resume / start", () => {
     }
 
     const resumed = unwrap(await resumeAction(campaign.id));
-    expect(resumed).toEqual({ status: "running", pauseReason: null });
+    expect(resumed).toEqual({ status: "running", pauseReason: null, aiCalls: null });
     expect(claimedOf(unwrap(await claimNextAction(campaign.id))).item.state).toBe("claimed");
   });
 
@@ -570,7 +599,7 @@ describe("pause / resume / start", () => {
     const { campaign } = await makeCampaign(1, { timezone: "UTC", callingHoursStart: start, callingHoursEnd: end });
     await pauseAction(campaign.id);
     const r = unwrap(await resumeAction(campaign.id));
-    expect(r).toEqual({ status: "paused", pauseReason: "outside_hours" });
+    expect(r).toEqual({ status: "paused", pauseReason: "outside_hours", aiCalls: null });
   });
 
   it("startAction on a draft with an empty queue fails; after adding businesses it starts", async () => {
@@ -581,8 +610,43 @@ describe("pause / resume / start", () => {
 
     const b = await makeBusiness();
     expect(unwrap(await addBusinessesAction(c.id, { ids: [b.id] }))).toEqual({ added: 1, skipped: 0 });
-    expect(unwrap(await startAction(c.id))).toEqual({ status: "running", pauseReason: null });
+    expect(unwrap(await startAction(c.id))).toEqual({ status: "running", pauseReason: null, aiCalls: null });
     expect((await getCallCampaign(db, c.id))?.status).toBe("running");
+  });
+
+  it("startAction on an AI campaign places the first calls at once", async () => {
+    const c = await createCallCampaign(db, { name: "AI", mode: "ai", status: "draft", timezone: "America/Chicago", maxConcurrentAgents: 2 });
+    const biz = [await makeBusiness(), await makeBusiness(), await makeBusiness()];
+    unwrap(await addBusinessesAction(c.id, { ids: biz.map((b) => b.id) }));
+    const r = unwrap(await startAction(c.id));
+    expect(r).toEqual({ status: "running", pauseReason: null, aiCalls: { placed: 2, message: "Placed 2 AI calls.", error: false } });
+    expect(aiPlacer.calls).toHaveLength(2);
+  });
+
+  it("startAction on an AI campaign still starts when dialing fails or is not configured", async () => {
+    const c1 = await createCallCampaign(db, { name: "AI fail", mode: "ai", status: "draft", timezone: "America/Chicago" });
+    unwrap(await addBusinessesAction(c1.id, { ids: [(await makeBusiness()).id] }));
+    aiPlacer.fail = "ElevenLabs said no";
+    expect(unwrap(await startAction(c1.id))).toMatchObject({ status: "running", aiCalls: { placed: 0, message: "ElevenLabs said no", error: true } });
+    expect((await getCallCampaign(db, c1.id))?.status).toBe("running");
+
+    aiPlacer.fail = undefined;
+    aiPlacer.missing = ["ELEVENLABS_API_KEY"];
+    const c2 = await createCallCampaign(db, { name: "AI unconfigured", mode: "ai", status: "draft", timezone: "America/Chicago" });
+    unwrap(await addBusinessesAction(c2.id, { ids: [(await makeBusiness()).id] }));
+    expect(unwrap(await startAction(c2.id))).toMatchObject({ status: "running", aiCalls: { placed: 0, error: true } });
+    expect(aiPlacer.calls).toHaveLength(0);
+  });
+
+  it("resumeAction on a manually paused AI campaign places calls again", async () => {
+    const c = await createCallCampaign(db, { name: "AI resume", mode: "ai", status: "draft", timezone: "America/Chicago", maxConcurrentAgents: 1 });
+    unwrap(await addBusinessesAction(c.id, { ids: [(await makeBusiness()).id, (await makeBusiness()).id] }));
+    aiPlacer.missing = ["ELEVENLABS_API_KEY"];
+    unwrap(await startAction(c.id));
+    unwrap(await pauseAction(c.id));
+    aiPlacer.missing = [];
+    expect(unwrap(await resumeAction(c.id)).aiCalls).toEqual({ placed: 1, message: "Placed 1 AI call.", error: false });
+    expect(aiPlacer.calls).toHaveLength(1);
   });
 
   it("startAction refuses a campaign that is not a draft or does not exist", async () => {
@@ -995,5 +1059,92 @@ describe("timeOptions", () => {
     expect(opts.indexOf("09:15")).toBe(opts.indexOf("09:00") + 1);
     expect(timeOptions("09:00")).toHaveLength(48);
     expect(timeOptions(null)).toHaveLength(48);
+  });
+});
+
+// ---------------------------------------------------------------- delete campaign: everything it did goes with it
+
+describe("deleteCampaignAction rolls back what the campaign did", () => {
+  const USER = "11111111-1111-4111-8111-111111111111";
+
+  async function callOnce(campaignId: string, outcome: "busy" | "interested" | "voicemail" | "callback" | "do_not_call", at: Date, callbackAt?: Date) {
+    const claim = await claimNext(db, campaignId, "qa", at);
+    if (!claim.ok) throw new Error(`claim failed: ${claim.reason}`);
+    await recordOutcome(db, claim.item.id, { outcome, agent: "qa", callbackAt }, at);
+    return claim.business.id;
+  }
+  const biz = async (id: string) => (await db.select().from(businesses).where(eq(businesses.id, id)))[0];
+  const callActivities = async (id: string) =>
+    db.select().from(activities).where(eq(activities.businessId, id));
+
+  it("deletes its call activities and resets businesses and leads it alone had touched", async () => {
+    const t0 = new Date("2026-03-02T15:00:00Z");
+    const { campaign, biz: [b1, b2] } = await makeCampaign(2);
+    await addLead(db, USER, b2.id);
+    const first = await callOnce(campaign.id, "busy", t0);
+    const second = await callOnce(campaign.id, "interested", new Date(t0.getTime() + 60_000));
+    const busyId = first === b1.id ? b1.id : b2.id;
+    const interestedId = second === b2.id ? b2.id : b1.id;
+    expect((await biz(busyId)).status).toBe("contacted");
+    expect((await biz(interestedId)).status).toBe("interested");
+    expect((await db.select().from(leads).where(eq(leads.businessId, b2.id)))[0].status).toMatch(/success|contacted/);
+
+    unwrap(await deleteCampaignAction(campaign.id));
+
+    expect(await getCallCampaign(db, campaign.id)).toBeNull();
+    expect(await callActivities(b1.id)).toHaveLength(0);
+    expect(await callActivities(b2.id)).toHaveLength(0);
+    for (const id of [b1.id, b2.id]) {
+      const b = await biz(id);
+      expect(b.status).toBe("new");
+      expect(b.lastContactedAt).toBeNull();
+    }
+    expect((await db.select().from(leads).where(eq(leads.businessId, b2.id)))[0].status).toBe("queued");
+  });
+
+  it("falls back to the history another campaign left, keeps manual statuses, and never undoes do-not-call", async () => {
+    const tA = new Date("2026-03-03T15:00:00Z");
+    const tB = new Date("2026-03-04T15:00:00Z");
+    const { campaign: older, biz: [shared] } = await makeCampaign(1);
+    await callOnce(older.id, "voicemail", tA); // shared → contacted, lastContactedAt tA
+
+    const manual = await makeBusiness({ status: "interested" });
+    const dnc = await makeBusiness();
+    const newer = await createCallCampaign(db, { name: "Newer", status: "running", timezone: "America/Chicago" });
+    await addBusinessesToCampaign(db, newer.id, [shared.id, manual.id, dnc.id]);
+    const outcomes: Record<string, "callback" | "busy" | "do_not_call"> = {
+      [shared.id]: "callback",
+      [manual.id]: "busy",
+      [dnc.id]: "do_not_call",
+    };
+    for (let i = 0; i < 3; i++) {
+      const at = new Date(tB.getTime() + i * 60_000);
+      const claim = await claimNext(db, newer.id, "qa", at);
+      if (!claim.ok) throw new Error(claim.reason);
+      const outcome = outcomes[claim.business.id];
+      await recordOutcome(db, claim.item.id, { outcome, agent: "qa", callbackAt: outcome === "callback" ? new Date("2026-03-05T16:00:00Z") : undefined }, at);
+    }
+    expect((await biz(shared.id)).status).toBe("callback");
+    expect((await biz(manual.id)).status).toBe("interested"); // busy does not downgrade a manual status
+    expect((await biz(dnc.id)).doNotCall).toBe(true);
+
+    unwrap(await deleteCampaignAction(newer.id));
+
+    const s = await biz(shared.id);
+    expect(s.status).toBe("contacted"); // from the older campaign's voicemail
+    expect(s.lastContactedAt?.toISOString()).toBe(tA.toISOString());
+    expect(s.nextFollowUpAt).toBeNull();
+    expect(await callActivities(shared.id)).toHaveLength(1);
+
+    const m = await biz(manual.id);
+    expect(m.status).toBe("interested");
+    expect(m.lastContactedAt).toBeNull();
+
+    const d = await biz(dnc.id);
+    expect(d.doNotCall).toBe(true);
+    expect(d.status).toBe("do_not_call");
+
+    // The older campaign is untouched.
+    expect(await getCallCampaign(db, older.id)).not.toBeNull();
   });
 });

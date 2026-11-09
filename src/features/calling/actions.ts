@@ -117,7 +117,8 @@ export async function updateCampaignAction(
 }
 
 /**
- * Deletes a campaign, its queue and AI call records (cascade), and its own
+ * Deletes a campaign with everything it did (queue, AI call records, call
+ * history, the business and lead state its outcomes set) and its own
  * ElevenLabs agent. When the agent cannot be deleted the campaign is kept so
  * nothing is orphaned. The client navigates back to /calling.
  */
@@ -212,21 +213,48 @@ export async function pauseAction(campaignId: string): Promise<ActionResult> {
 }
 
 /** Resume, then evaluate at once so hours/cap rules apply immediately. */
-export async function resumeAction(campaignId: string): Promise<ActionResult<{ status: string; pauseReason: string | null }>> {
+export async function resumeAction(campaignId: string): Promise<ActionResult<CampaignStateResult>> {
   try {
     const db = getDb();
     await resumeCampaign(db, campaignId);
     const c = await evaluateCampaign(db, campaignId);
+    const aiCalls = await autoPlaceAiCalls(c);
     revalidateCampaign(campaignId);
-    return ok({ status: c.status, pauseReason: c.pauseReason });
+    return ok({ status: c.status, pauseReason: c.pauseReason, aiCalls });
   } catch (err) {
     console.error("[calling] resumeAction failed", err);
     return fail("Could not resume the campaign.");
   }
 }
 
+/** Outcome of the automatic AI dispatch after Start/Resume; null when nothing was attempted. */
+export type AutoAiCalls = { placed: number; message: string; error: boolean } | null;
+type CampaignStateResult = { status: string; pauseReason: string | null; aiCalls: AutoAiCalls };
+
+/**
+ * After an AI campaign starts or resumes, fill its free AI slots right away so
+ * Start alone begins dialing. Never throws: a dispatch failure is reported
+ * back without undoing the start.
+ */
+async function autoPlaceAiCalls(c: CallCampaign): Promise<AutoAiCalls> {
+  if (c.mode !== "ai" || c.status !== "running") return null;
+  const missing = missingElevenLabsConfig();
+  if (missing.length) return { placed: 0, message: `AI calling is not configured. Missing: ${missing.join(", ")}.`, error: true };
+  try {
+    const r = await dispatchAiCalls(getDb(), c.id, createElevenLabsCaller());
+    if (r.stopped === "error") {
+      return { placed: r.placed, message: r.error ?? "The call could not be placed.", error: true };
+    }
+    if (r.placed === 0) return { placed: 0, message: DISPATCH_STOP_MESSAGES[r.stopped], error: false };
+    return { placed: r.placed, message: `Placed ${r.placed} AI call${r.placed === 1 ? "" : "s"}.`, error: false };
+  } catch (err) {
+    console.error("[calling] autoPlaceAiCalls failed", err);
+    return { placed: 0, message: "Could not place AI calls.", error: true };
+  }
+}
+
 /** Draft → running. Refuses when the queue is empty. */
-export async function startAction(campaignId: string): Promise<ActionResult<{ status: string; pauseReason: string | null }>> {
+export async function startAction(campaignId: string): Promise<ActionResult<CampaignStateResult>> {
   try {
     const db = getDb();
     const c = await getCallCampaign(db, campaignId);
@@ -236,8 +264,9 @@ export async function startAction(campaignId: string): Promise<ActionResult<{ st
     if (total === 0) return fail("Add businesses to the queue before starting.");
     await startCampaign(db, campaignId);
     const after = await evaluateCampaign(db, campaignId);
+    const aiCalls = await autoPlaceAiCalls(after);
     revalidateCampaign(campaignId);
-    return ok({ status: after.status, pauseReason: after.pauseReason });
+    return ok({ status: after.status, pauseReason: after.pauseReason, aiCalls });
   } catch (err) {
     console.error("[calling] startAction failed", err);
     return fail("Could not start the campaign.");
