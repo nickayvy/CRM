@@ -36,11 +36,11 @@ Estimated agents: 7 Opus seniors + roughly 1–3 Sonnet juniors each.
 - 2026-11-07 WP-08 delivered (PR #8, 3 files, 485 tests); PM review ACCEPT round 1; merged to main; deploying.
 - 2026-11-07 WP-08 deployed (production on 9ed47a2): all routes 200, crons OK. Run closed. Remaining inputs are optional and user-held: YELP_API_KEY (live ingestion instead of fixtures) and RESEND_API_KEY (real delivery instead of dry run).
 
-# v2 — Leadwire pivot (2026-11-08)
+# v2 — LAR pivot (2026-11-08)
 
 | WP | Title | Wave | Agent | Branch / PR | State | Review |
 |---|---|---|---|---|---|---|
-| WP-11 | Leadwire theme, shell, Supabase Auth | 1 | senior-wp11 (Opus) | wp-11-theme-shell-auth / PR #9 | merged | v2/reviews/WP-11.md (ACCEPT) |
+| WP-11 | LAR theme, shell, Supabase Auth | 1 | senior-wp11 (Opus) | wp-11-theme-shell-auth / PR #9 | merged | v2/reviews/WP-11.md (ACCEPT) |
 | WP-12 | Data model v2, repos, test-data removal | 1 | senior-wp12 (Opus) | wp-12-data-v2 / PR #10 | merged | v2/reviews/WP-12.md (ACCEPT) |
 | WP-13 | Trustpilot discovery (Firecrawl) | 2 | senior-wp13 (Opus) | wp-13-discovery / PR #11 | merged | v2/reviews/WP-13.md (ACCEPT) |
 | WP-14 | Lookup UI | 2 | senior-wp14 (Opus) | wp-14-lookup-ui / PR #13 | merged | v2/reviews/WP-14.md (ACCEPT) |
@@ -48,7 +48,7 @@ Estimated agents: 7 Opus seniors + roughly 1–3 Sonnet juniors each.
 | WP-16 | Restyle + integration | 3 | senior-wp16 (Opus) | wp-16-restyle / PR #14 | merged | v2/reviews/WP-16.md (ACCEPT) |
 
 ## v2 log
-- 2026-11-08 User directive: overhaul to the gtm ("Leadwire") product and UI, remove all test data, defer voice agents. Inventory, spec, architecture delta, and six packages written under docs/team/v2/.
+- 2026-11-08 User directive: overhaul to the gtm ("LAR") product and UI, remove all test data, defer voice agents. Inventory, spec, architecture delta, and six packages written under docs/team/v2/.
 - 2026-11-08 v2 wave 1 spawned: WP-11 (theme/shell/auth), WP-12 (data v2 + test-data removal) in parallel.
 - 2026-11-08 v2 wave 1 merged (WP-11 PR #9, WP-12 PR #10). Supabase: demo rows deleted, migration 0001 applied with RLS on the new tables. Signed-in shell check pending a test user.
 - 2026-11-08 Main green after wave 1 (536 tests, 0 warnings). Dev-only auth bypass was proposed and refused by the permission classifier (security weakening); signed-in QA waits for a user-created Supabase test account. Wave 2 spawned: WP-13, WP-14, WP-15 in parallel. Vercel env: NEXT_PUBLIC_SUPABASE_URL/ANON_KEY set.

@@ -1,13 +1,13 @@
-# Leadwire v2 — Spec (pivot)
+# LAR v2 — Spec (pivot)
 
 **Status:** approved by directive (user message 2026-11-08: "do a complete overhaul … copy the UI first and foremost … get rid of all the test data … voice agents later … scope pivots towards this new product"). PM proceeds without pausing; the user may redirect at any wave boundary.
 **PM:** Fable 5.1
-**Reference implementation:** `/Users/nick/Documents/projects/gtm` (the "Leadwire" Next.js app; read-only, available to every engineer). Inventory: `docs/team/v2/gtm-inventory.md`.
+**Reference implementation:** `/Users/nick/Documents/projects/gtm` (the "LAR" Next.js app; read-only, available to every engineer). Inventory: `docs/team/v2/gtm-inventory.md`.
 **Builds on:** the v1 CRM on `main` (spec in `docs/team/spec.md`).
 
 ## Goal
 
-Turn the v1 CRM into **Leadwire** ("Turn market noise into signal."): a dark,
+Turn the v1 CRM into **LAR** ("Turn market noise into signal."): a dark,
 dense, signal-first prospecting product that discovers high-activity
 businesses, shows them as a category-colored network graph plus a filterable
 grid with an intel "dossier" per business, lets each signed-in user build a
@@ -20,7 +20,7 @@ is removed: the app starts empty and fills from real sources.
 - Voice agents: Bland AI calls, call webhooks, agent configuration, active-call
   widgets, call-history-from-AI. (Explicitly deferred by the user.) The manual
   dialer and call activities from v1 stay.
-- Light theme (Leadwire is dark-only; we follow).
+- Light theme (LAR is dark-only; we follow).
 - Multi-tenant teams/roles. Auth is per user; businesses are shared; leads are
   per user; campaigns stay workspace-shared.
 - Any bundled sample data, fixtures, or fake businesses. Tests build their own
@@ -43,18 +43,18 @@ is removed: the app starts empty and fills from real sources.
   and emails.
 
 ## Functional requirements
-R1. Visual language: Leadwire tokens (background #0a0a0a, surface #0f0f0f,
+R1. Visual language: LAR tokens (background #0a0a0a, surface #0f0f0f,
     elevated #141414, primary #5a8fc9, border #2a2a2a, muted-foreground
     #9ca3af), shadows `--shadow-elevated/floating/inset`, radius 0.625rem,
     fonts Space Grotesk (sans) + Source Serif 4 (display), `.main-depth`
     gradient, `.card-glow`, `.dossier-scroll`, `duration-300 ease-out`
     transitions, `tabular-nums`, uppercase micro-labels. Dark only.
 R2. Shell: top bar only (no sidebar), 80 px, blurred `bg-background/80`;
-    left brand (logo + "Leadwire" serif + tagline), center nav `LOOKUP ·
+    left brand (logo + "LAR" serif + tagline), center nav `LOOKUP ·
     LEADS · CALLING · EMAIL · OVERVIEW` (uppercase, icon + label, active
     `bg-muted/60`), right user menu (email, Settings, Sign out). `/` redirects
     to `/lookup`.
-R3. Auth: Supabase Auth email+password. `/login`, `/signup` (Leadwire card
+R3. Auth: Supabase Auth email+password. `/login`, `/signup` (LAR card
     style), `/api/auth/callback`; middleware redirects unauthenticated users
     to `/login` (exempt: `/login`, `/signup`, `/api/auth/*`, `/api/cron/*`);
     authenticated users on auth pages go to `/lookup`. The v1 shared-password
@@ -94,7 +94,7 @@ R8. Leads page (`/leads`): metrics tiles (Leads, Queued, Success, Calls 7d),
     contacted, callback, success, failed, skipped (mapped from dialer
     outcomes where applicable).
 R9. Existing v1 screens (businesses table + detail, searches, calling,
-    dialer, email, settings, overview) are restyled into the Leadwire
+    dialer, email, settings, overview) are restyled into the LAR
     language and composed under the new shell; their behaviour is unchanged.
 R10. Test-data removal: delete `fixtures/`, Yelp fixture mode, the demo seed
     (campaigns, activities, enrollments, fake businesses); `npm run db:seed`
@@ -104,17 +104,17 @@ R11. Zero fake content in the UI: no "Last synced: a day ago" placeholders
     (use real timestamps), no sample arrays.
 
 ## Acceptance criteria (spec level; per-package ACs in the WP files)
-AC1  [WP-11] Clean clone: `npm ci && npm run db:migrate && npm run db:seed && npm test && npm run typecheck && npm run lint && npm run build` exit 0. `/` → `/lookup`; unauthenticated `/lookup` → `/login`; `/login` and `/signup` render the Leadwire card; after sign-in the top bar shows the five nav items and the user menu.
+AC1  [WP-11] Clean clone: `npm ci && npm run db:migrate && npm run db:seed && npm test && npm run typecheck && npm run lint && npm run build` exit 0. `/` → `/lookup`; unauthenticated `/lookup` → `/login`; `/login` and `/signup` render the LAR card; after sign-in the top bar shows the five nav items and the user menu.
 AC2  [WP-11] Tokens and fonts match the gtm `globals.css` (PM diffs the token blocks); `/design` renders every primitive in the new language with no console errors.
 AC3  [WP-12] Migration adds the columns/tables in R4 and applies to PGlite and Supabase; `git ls-files fixtures | wc -l` = 0; `grep -r fixture src | wc -l` = 0; `db:seed` inserts only the rules row; all tests pass with inline builders.
 AC4  [WP-13] With a fake Firecrawl client injected: scraping a profile upserts the business, writes a snapshot, computes velocity, creates relations to existing slugs; category scrape inserts basic rows; sync cron picks stale rows and chains; without `FIRECRAWL_API_KEY` the actions return a clear error.
 AC5  [WP-14] `/lookup` renders bubbles, graph, grid, filters, and dossier from DB rows; filters round-trip through the URL; paste-URL and seed-category call the WP-13 actions; "Add to Lead List" creates a lead for the signed-in user.
 AC6  [WP-15] `/leads` lists only the signed-in user's leads; status/notes edits persist; bulk add to a call campaign increases that campaign's queue; Export CSV downloads; History shows dialer call activities.
-AC7  [WP-16] Every v1 route renders in the Leadwire language under the new shell with no horizontal overflow at 375 px; `/overview` shows the v1 dashboard restyled.
+AC7  [WP-16] Every v1 route renders in the LAR language under the new shell with no horizontal overflow at 375 px; `/overview` shows the v1 dashboard restyled.
 AC8  [PM] Production on Vercel runs with Supabase Auth; the demo rows are gone from Supabase; the live app signs a user in and shows an empty, working Lookup.
 
 ## Decisions made by the PM
-- Product name and copy follow the gtm repo ("Leadwire"). Logo: copy `public/logo.png` from gtm.
+- Product name and copy follow the gtm repo ("LAR"). Logo: copy `public/logo.png` from gtm.
 - Dark-only, matching gtm; the v1 theme toggle is removed.
 - Auth via Supabase Auth with `@supabase/ssr`; data access stays on Drizzle over `DATABASE_URL`, so per-user scoping is enforced in server code (`requireUser()`), not RLS.
 - Leads are per user (`leads.user_id` = Supabase auth user id). Businesses, campaigns, and rules are shared.

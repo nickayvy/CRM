@@ -137,9 +137,7 @@ async function findCall(db: DbOrTx, data: NonNullable<ElevenLabsWebhook["data"]>
     const byConv = await getAiCallByConversation(db, conv);
     if (byConv) return byConv;
   }
-  const vars = data.conversation_initiation_client_data?.dynamic_variables;
-  // leadwire_call_id: name used before the LAR rebrand; kept so calls placed before it still resolve.
-  const id = str(vars?.lar_call_id) || str(vars?.leadwire_call_id);
+  const id = str(data.conversation_initiation_client_data?.dynamic_variables?.lar_call_id);
   return UUID_RE.test(id) ? getAiCall(db, id) : null;
 }
 

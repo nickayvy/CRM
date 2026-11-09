@@ -6,7 +6,7 @@
 **Delivers:** branch `wp-16-restyle` / PR "WP-16: Restyle and integration"
 
 ## Objective
-Every remaining v1 screen is composed in the Leadwire language under the new shell: businesses table and detail, searches (Yelp, with a clear "not configured" state), calling list, campaign, dialer, email list, campaign, messages, settings, rules, and the overview (old dashboard). Copy and labels follow Leadwire's tone. Nothing references fixtures or the old theme.
+Every remaining v1 screen is composed in the LAR language under the new shell: businesses table and detail, searches (Yelp, with a clear "not configured" state), calling list, campaign, dialer, email list, campaign, messages, settings, rules, and the overview (old dashboard). Copy and labels follow LAR's tone. Nothing references fixtures or the old theme.
 
 ## Context the engineer needs
 - Read `docs/team/v2/gtm-inventory.md` §Visual language and the merged WP-11/14/15 code for the house style (metric tiles, panels, tables, badges, micro-labels). Use the restyled primitives; replace leftover `Card`-heavy layouts with `bg-surface` panels and shadows; serif display numerals on metric tiles; dialer keeps its keyboard workflow but adopts the dark panel look (outcome buttons as `bg-surface` tiles with primary accents).
@@ -24,7 +24,7 @@ Every remaining v1 screen is composed in the Leadwire language under the new she
 - New data model or new features beyond the Source column/filter and the overview tiles.
 
 ## Acceptance criteria
-AC-16.1 Every route (`/lookup, /leads, /businesses, /businesses/[id], /searches, /searches/new, /calling, /calling/new, /calling/[id], /calling/[id]/dial, /email, /email/new, /email/[id], /email/[id]/messages, /settings, /settings/rules, /overview, /design`) renders under the shell in the Leadwire language with no console errors (screenshots of at least 8).
+AC-16.1 Every route (`/lookup, /leads, /businesses, /businesses/[id], /searches, /searches/new, /calling, /calling/new, /calling/[id], /calling/[id]/dial, /email, /email/new, /email/[id], /email/[id]/messages, /settings, /settings/rules, /overview, /design`) renders under the shell in the LAR language with no console errors (screenshots of at least 8).
 AC-16.2 `grep -rn "fixture\|Built in WP\|next-themes" src | wc -l` = 0.
 AC-16.3 Businesses table filters by Source and sorts by L30D; detail shows Trustpilot fields for a Trustpilot row.
 AC-16.4 `/searches/new` without a Yelp key shows the not-configured state and no form submission is possible.

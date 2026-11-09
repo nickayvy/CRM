@@ -1,4 +1,4 @@
-# Leadwire v2 — Architecture delta
+# LAR v2 — Architecture delta
 
 This document amends `docs/team/architecture.md` (v1). Everything not mentioned here is unchanged. Interfaces below are frozen for the v2 packages.
 
@@ -150,7 +150,7 @@ Dialer hook: WP-15 adds a call to `syncLeadStatusFromOutcome` inside `recordOutc
 - Dark only: `<html lang="en" class="dark">`; no ThemeProvider toggle. Keep `next-themes` out.
 - Every page under the shell calls `requireUser()` (server) once; client components receive `userId` via props when needed.
 - Server actions that touch leads take the user from `requireUser()`, never from the client.
-- Copy tone: Leadwire's ("INTEL BRIEF", uppercase micro-labels). No placeholder text that pretends to be data; show real timestamps or "NO DATA".
+- Copy tone: LAR's ("INTEL BRIEF", uppercase micro-labels). No placeholder text that pretends to be data; show real timestamps or "NO DATA".
 - Tests: node env for repos (PGlite via `createTestDb`), jsdom for components; builders in `tests/helpers/builders.ts` (`makeYelpBusiness(overrides)`, `makeTrustpilotProfile(overrides)`, `makeBusinessRow(overrides)`), `tests/helpers/fake-firecrawl.ts`.
 
 ## Deliberately undecided

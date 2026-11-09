@@ -1,4 +1,4 @@
-# gtm ("Leadwire") inventory — reference for the v2 port
+# gtm ("LAR") inventory — reference for the v2 port
 
 Source: `/Users/nick/Documents/projects/gtm` (read-only). Compiled 2026-11-08 by the PM's explorer. Engineers: read the real files; this is the map.
 
@@ -16,7 +16,7 @@ Source: `/Users/nick/Documents/projects/gtm` (read-only). Compiled 2026-11-08 by
 
 ## Shell and auth
 - `app/(dashboard)/layout.tsx`: `div.flex.h-screen.flex-col.overflow-hidden` → Topbar (Suspense) → `<main class="main-depth flex-1 overflow-auto">`. No sidebar.
-- Topbar: left logo (`/logo.png`, `h-18 w-18 rounded-lg`) + "Leadwire" (`font-serif text-2xl tracking-tight`) + tagline; center nav LOOKUP (LayoutGrid) / LEADS (GitBranch) uppercase; right ghost button with User icon + email → dropdown "Sign Out".
+- Topbar: left logo (`/logo.png`, `h-18 w-18 rounded-lg`) + "LAR" (`font-serif text-2xl tracking-tight`) + tagline; center nav LOOKUP (LayoutGrid) / LEADS (GitBranch) uppercase; right ghost button with User icon + email → dropdown "Sign Out".
 - Auth layout: `flex min-h-screen flex-col main-depth`, same header with branding, centered `max-w-md`. Forms in Card `card-glow rounded-lg border-white/5 bg-surface-elevated shadow-[var(--shadow-elevated)]`, title `font-serif text-2xl tracking-tight`; "Sign In" / "Create Account"; email + password inputs; full-width primary button with loading text; footer link `text-primary hover:underline`. Login → `/lookup`; signup → toast "Check your email to confirm your account" → `/login`. Middleware: unauth → `/login` (exempt `/login`, `/signup`, `/api/auth`, `/api/cron`); auth on auth pages → `/lookup`.
 
 ## Lookup page (`app/(dashboard)/lookup/page.tsx`)
