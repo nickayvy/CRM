@@ -14,8 +14,8 @@ export type PageShellProps = React.ComponentProps<"div"> & {
 
 /**
  * Outer wrapper of every page: horizontal centering, max width and the
- * vertical rhythm between header and sections. The app shell already adds
- * the outer gutter.
+ * vertical rhythm between header and sections. It also owns the page gutter
+ * (the shell's `main` has none, so full-bleed pages can skip PageShell).
  */
 export function PageShell({ width = "default", className, ...props }: PageShellProps) {
   return (
@@ -23,9 +23,9 @@ export function PageShell({ width = "default", className, ...props }: PageShellP
       data-slot="page-shell"
       data-width={width}
       className={cn(
-        "mx-auto flex w-full min-w-0 flex-col gap-6",
-        width === "default" && "max-w-6xl",
-        width === "narrow" && "max-w-3xl",
+        "mx-auto flex w-full min-w-0 flex-col gap-6 px-4 py-6 sm:px-8 sm:py-8",
+        width === "default" && "max-w-7xl",
+        width === "narrow" && "max-w-4xl",
         className,
       )}
       {...props}
@@ -60,13 +60,13 @@ export function PageHeader({ title, description, actions, breadcrumbs, meta, cla
     <header data-slot="page-header" className={cn("flex flex-col gap-2", className)}>
       {breadcrumbs && breadcrumbs.length > 0 ? (
         <nav aria-label="Breadcrumb">
-          <ol className="flex flex-wrap items-center gap-1 text-xs text-muted-foreground">
+          <ol className="flex flex-wrap items-center gap-1 text-2xs tracking-wider text-muted-foreground uppercase">
             {breadcrumbs.map((b, i) => {
               const last = i === breadcrumbs.length - 1;
               return (
                 <li key={`${b.label}-${i}`} className="flex items-center gap-1">
                   {b.href && !last ? (
-                    <Link href={b.href} className="rounded-sm hover:text-foreground">
+                    <Link href={b.href} className="rounded-sm transition-colors duration-300 ease-out hover:text-foreground">
                       {b.label}
                     </Link>
                   ) : (
@@ -84,7 +84,7 @@ export function PageHeader({ title, description, actions, breadcrumbs, meta, cla
       <div className="flex flex-wrap items-start justify-between gap-x-4 gap-y-3">
         <div className="flex min-w-0 flex-col gap-1">
           <div className="flex min-w-0 flex-wrap items-center gap-2">
-            <h1 className="truncate text-xl font-semibold tracking-tight">{title}</h1>
+            <h1 className="truncate font-serif text-3xl leading-tight font-normal tracking-tight">{title}</h1>
             {meta ? <div className="flex flex-wrap items-center gap-1.5">{meta}</div> : null}
           </div>
           {description ? <p className="text-sm text-muted-foreground">{description}</p> : null}
@@ -111,7 +111,12 @@ export function PageSection({ title, description, actions, className, children, 
       {title || actions ? (
         <div className="flex flex-wrap items-end justify-between gap-2">
           <div className="flex min-w-0 flex-col gap-0.5">
-            {title ? <h2 className="text-sm font-semibold">{title}</h2> : null}
+            {title ? (
+              <h2 className="flex items-center gap-2 text-xs font-medium tracking-wider uppercase">
+                <span aria-hidden className="size-2 shrink-0 rounded-full bg-primary" />
+                {title}
+              </h2>
+            ) : null}
             {description ? <p className="text-xs text-muted-foreground">{description}</p> : null}
           </div>
           {actions ? <div className="flex items-center gap-2">{actions}</div> : null}

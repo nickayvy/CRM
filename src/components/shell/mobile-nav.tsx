@@ -1,29 +1,41 @@
 "use client";
 
-import { useState } from "react";
+import Link from "next/link";
+import { usePathname } from "next/navigation";
 import { MenuIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
-import { NavLinks } from "./nav-links";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { cn } from "@/lib/utils";
+import { NAV_ITEMS, isActive } from "./nav-items";
 
+/** Below lg the five nav items collapse into a Menu dropdown. */
 export function MobileNav() {
-  const [open, setOpen] = useState(false);
+  const pathname = usePathname();
   return (
-    <Sheet open={open} onOpenChange={setOpen}>
-      <SheetTrigger asChild>
-        <Button variant="ghost" size="icon" className="md:hidden" aria-label="Open navigation" data-testid="mobile-nav-trigger">
+    <DropdownMenu>
+      <DropdownMenuTrigger asChild>
+        <Button variant="ghost" size="icon" className="lg:hidden" aria-label="Open navigation" data-testid="mobile-nav-trigger">
           <MenuIcon className="size-5" aria-hidden />
         </Button>
-      </SheetTrigger>
-      <SheetContent side="left" className="w-72 bg-sidebar p-0">
-        <SheetHeader className="border-b">
-          <SheetTitle>Local Business CRM</SheetTitle>
-          <SheetDescription className="sr-only">Main navigation</SheetDescription>
-        </SheetHeader>
-        <div className="p-3">
-          <NavLinks onNavigate={() => setOpen(false)} />
-        </div>
-      </SheetContent>
-    </Sheet>
+      </DropdownMenuTrigger>
+      <DropdownMenuContent align="end" className="w-48" data-testid="mobile-nav-menu">
+        {NAV_ITEMS.map(({ href, label, icon: Icon }) => {
+          const active = isActive(pathname, href);
+          return (
+            <DropdownMenuItem key={href} asChild className={cn("gap-2 text-sm", active && "bg-muted/60 text-foreground")}>
+              <Link href={href} aria-current={active ? "page" : undefined}>
+                <Icon className="size-4" aria-hidden />
+                {label}
+              </Link>
+            </DropdownMenuItem>
+          );
+        })}
+      </DropdownMenuContent>
+    </DropdownMenu>
   );
 }

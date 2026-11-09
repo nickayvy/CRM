@@ -57,11 +57,11 @@ export function SidePanel({
       <SheetContent
         side="right"
         data-slot="side-panel"
-        className={cn("w-full gap-0 p-0 data-[side=right]:w-full", SIZES[size], className)}
+        className={cn("w-full gap-0 border-white/5 bg-surface-elevated p-0 surface-floating data-[side=right]:w-full", SIZES[size], className)}
       >
-        <SheetHeader className="flex-row items-start gap-3 border-b px-4 py-3 pr-12">
+        <SheetHeader className="flex-row items-start gap-3 border-b border-l-[3px] border-b-white/10 border-l-primary px-5 py-4 pr-12">
           <div className="flex min-w-0 flex-1 flex-col gap-0.5">
-            <SheetTitle className="truncate text-sm font-semibold">{title}</SheetTitle>
+            <SheetTitle className="truncate font-serif text-xl font-normal tracking-tight">{title}</SheetTitle>
             {description ? (
               <SheetDescription className="text-xs">{description}</SheetDescription>
             ) : (
@@ -70,8 +70,8 @@ export function SidePanel({
           </div>
           {headerActions ? <div className="flex shrink-0 items-center gap-1.5">{headerActions}</div> : null}
         </SheetHeader>
-        <div className="min-h-0 flex-1 overflow-y-auto px-4 py-4">{children}</div>
-        {footer ? <SheetFooter className="flex-row justify-end gap-2 border-t px-4 py-3">{footer}</SheetFooter> : null}
+        <div className="dossier-scroll min-h-0 flex-1 overflow-y-auto px-5 py-5">{children}</div>
+        {footer ? <SheetFooter className="flex-row justify-end gap-2 border-t border-white/10 bg-surface px-5 py-3">{footer}</SheetFooter> : null}
       </SheetContent>
     </Sheet>
   );

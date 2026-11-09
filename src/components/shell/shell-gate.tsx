@@ -2,7 +2,7 @@
 
 import { usePathname } from "next/navigation";
 
-const BARE_ROUTES = ["/login"];
+const BARE_ROUTES = ["/login", "/signup"];
 
 /** Renders `bare` (the page alone) on chrome-less routes, otherwise the full shell. */
 export function ShellGate({ bare, children }: { bare: React.ReactNode; children: React.ReactNode }) {

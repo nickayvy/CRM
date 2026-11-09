@@ -57,13 +57,13 @@ export function ScoreRing({ value, size = 40, thickness = 4, tone, showValue = t
           strokeLinecap="round"
           strokeDasharray={circumference}
           strokeDashoffset={offset}
-          className={cn("transition-[stroke-dashoffset] duration-300", toneStroke[t])}
+          className={cn("transition-[stroke-dashoffset] duration-300 ease-out", toneStroke[t])}
         />
       </svg>
       {showValue ? (
         <span
           aria-hidden
-          className="absolute inset-0 flex items-center justify-center font-medium tabular-nums"
+          className="absolute inset-0 flex items-center justify-center font-serif tabular-nums"
           style={{ fontSize: size * 0.32 }}
         >
           {score}

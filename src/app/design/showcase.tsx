@@ -55,8 +55,11 @@ import {
   type RowSelectionState,
 } from "@/components/primitives";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Slider } from "@/components/ui/slider";
 import { Switch } from "@/components/ui/switch";
-import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { AnimatedItem, AnimatedList, AnimatedNumber, FadeIn, Presence, durations, easings, springs } from "@/lib/motion";
 import { formatPhone, formatRating, formatRelative } from "@/lib/format";
 import { CAMPAIGN_STATUS_LABELS, QUALIFICATION_LABELS, STATUS_LABELS, type Tone } from "@/lib/labels";
@@ -68,18 +71,23 @@ const SOFT_REASONS = new Set(["unclaimed", "low_score"]);
 
 function Swatch({ name, varName }: { name: string; varName: string }) {
   return (
-    <div className="flex items-center gap-2">
-      <span className="size-6 shrink-0 rounded-md border" style={{ background: `var(${varName})` }} aria-hidden />
+    <div className="flex min-w-0 items-center gap-2">
+      <span className="size-6 shrink-0 rounded-md ring-1 ring-white/10" style={{ background: `var(${varName})` }} aria-hidden />
       <div className="flex min-w-0 flex-col">
-        <span className="text-xs font-medium">{name}</span>
+        <span className="truncate text-xs font-medium">{name}</span>
         <code className="truncate font-mono text-2xs text-muted-foreground">{varName}</code>
       </div>
     </div>
   );
 }
 
+/** Leadwire panel: near-black surface lifted by shade and a layered shadow instead of a border. */
 function Panel({ children, className }: { children: React.ReactNode; className?: string }) {
-  return <div className={`rounded-lg border bg-card p-4 ${className ?? ""}`}>{children}</div>;
+  return <div className={`min-w-0 rounded-lg bg-surface p-4 shadow-[var(--shadow-elevated)] ${className ?? ""}`}>{children}</div>;
+}
+
+function MicroLabel({ children }: { children: React.ReactNode }) {
+  return <span className="text-2xs font-medium tracking-wider text-muted-foreground uppercase">{children}</span>;
 }
 
 const col = dataTableColumnHelper<SampleBusiness>();
@@ -449,14 +457,14 @@ function MotionDemo() {
     <div className="grid gap-3 md:grid-cols-2">
       <Panel className="flex flex-col gap-3">
         <div className="flex items-center justify-between">
-          <span className="text-sm font-medium">FadeIn</span>
+          <MicroLabel>FadeIn</MicroLabel>
           <Button size="xs" variant="outline" onClick={() => setReplay((r) => r + 1)}>
             <PlayIcon /> Replay
           </Button>
         </div>
-        <div className="grid grid-cols-4 gap-2">
+        <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
           {(["up", "fade", "scale", "right"] as const).map((v, i) => (
-            <FadeIn key={`${v}-${replay}`} variant={v} delay={i * 0.05} className="rounded-md border bg-muted/50 p-3 text-center text-xs">
+            <FadeIn key={`${v}-${replay}`} variant={v} delay={i * 0.05} className="rounded-md bg-surface-elevated p-3 text-center text-xs shadow-[var(--shadow-inset)]">
               {v}
             </FadeIn>
           ))}
@@ -464,13 +472,13 @@ function MotionDemo() {
       </Panel>
       <Panel className="flex flex-col gap-3">
         <div className="flex items-center justify-between">
-          <span className="text-sm font-medium">AnimatedNumber</span>
+          <MicroLabel>AnimatedNumber</MicroLabel>
           <Button size="xs" variant="outline" onClick={() => setN(Math.round(500 + Math.random() * 20000))}>
             <RefreshCwIcon /> Randomize
           </Button>
         </div>
         <div className="flex flex-wrap items-baseline gap-6">
-          <span className="text-3xl font-semibold tracking-tight">
+          <span className="font-serif text-3xl tracking-tight tabular-nums">
             <AnimatedNumber value={n} />
           </span>
           <span className="text-xl font-medium text-muted-foreground">
@@ -486,7 +494,7 @@ function MotionDemo() {
       </Panel>
       <Panel className="flex flex-col gap-3">
         <div className="flex items-center justify-between gap-2">
-          <span className="text-sm font-medium">AnimatedList + AnimatedItem</span>
+          <MicroLabel>AnimatedList + AnimatedItem</MicroLabel>
           <div className="flex gap-1">
             <Button size="xs" variant="outline" onClick={() => setItems((l) => [`New list ${nextId.current++}`, ...l])}>
               <PlusIcon /> Add
@@ -501,7 +509,7 @@ function MotionDemo() {
             <AnimatedItem
               key={name}
               as="li"
-              className="flex items-center justify-between rounded-md border bg-background px-2.5 py-1.5 text-dense"
+              className="flex items-center justify-between rounded-md bg-surface-elevated px-2.5 py-1.5 text-dense transition-colors duration-300 ease-out"
             >
               <span className="truncate">{name}</span>
               <Button size="icon-xs" variant="ghost" aria-label={`Remove ${name}`} onClick={() => setItems((l) => l.filter((x) => x !== name))}>
@@ -513,13 +521,13 @@ function MotionDemo() {
       </Panel>
       <Panel className="flex flex-col gap-3">
         <div className="flex items-center justify-between">
-          <span className="text-sm font-medium">Presence</span>
+          <MicroLabel>Presence</MicroLabel>
           <Switch checked={showPresence} onCheckedChange={setShowPresence} aria-label="Toggle presence demo" />
         </div>
         <div className="min-h-24">
           <Presence>
             {showPresence ? (
-              <FadeIn key="card" variant="scale" className="rounded-md border bg-muted/50 p-3 text-xs">
+              <FadeIn key="card" variant="scale" className="rounded-md bg-surface-elevated p-3 text-xs shadow-[var(--shadow-inset)]">
                 Enters with <code className="font-mono">scaleIn</code>, exits with its <code className="font-mono">exit</code> variant before unmounting.
               </FadeIn>
             ) : null}
@@ -549,17 +557,17 @@ export function DesignShowcase() {
     <MotionConfig reducedMotion={forceReduced ? "always" : "user"}>
       <PageShell width="full" className="max-w-[90rem]">
         <PageHeader
-          breadcrumbs={[{ label: "Dashboard", href: "/" }, { label: "Design system" }]}
-          title="Design system"
+          breadcrumbs={[{ label: "Lookup", href: "/lookup" }, { label: "Leadwire design system" }]}
+          title="Leadwire design system"
           meta={
             <>
-              <StatusBadge tone="info">WP-02</StatusBadge>
+              <StatusBadge tone="info">Leadwire</StatusBadge>
               <StatusBadge tone="success" variant="dot">
                 Stable
               </StatusBadge>
             </>
           }
-          description="Primitives and motion used by every screen. Toggle light/dark with the theme button in the top bar."
+          description="Dark-only tokens, depth and primitives behind every Leadwire screen: near-black panels separated by shade and layered shadow rather than borders."
           actions={
             <>
               <Button size="sm" variant="outline" onClick={() => setConfirmOpen(true)}>
@@ -572,7 +580,7 @@ export function DesignShowcase() {
           }
         />
 
-        <div className="flex flex-wrap items-center gap-3 rounded-lg border border-dashed px-3 py-2 text-xs text-muted-foreground">
+        <div className="flex flex-wrap items-center gap-3 rounded-lg bg-surface px-3 py-2 text-xs text-muted-foreground shadow-[var(--shadow-elevated)]">
           <label className="flex items-center gap-2 font-medium text-foreground">
             <Switch checked={forceReduced} onCheckedChange={setForceReduced} aria-label="Force reduced motion" />
             Force reduced motion
@@ -718,25 +726,26 @@ export function DesignShowcase() {
             </div>
           </PageSection>
 
-          <PageSection title="Chart card" description="Thin wrapper; charts themselves arrive in WP-07.">
+          <PageSection title="Chart card" description="ChartCard wraps a Recharts chart; series use the blue --chart-1..5 ramp.">
             <ChartCard title="Calls per day" description="This week" height={200} footer="Connect rate 27%">
               <ResponsiveContainer width="100%" height="100%" initialDimension={{ width: 400, height: 200 }}>
                 <BarChart data={CALLS_PER_DAY} margin={{ top: 4, right: 4, bottom: 0, left: -24 }}>
-                  <CartesianGrid vertical={false} stroke="var(--border)" />
-                  <XAxis dataKey="day" tickLine={false} axisLine={false} fontSize={12} stroke="var(--muted-foreground)" />
-                  <YAxis tickLine={false} axisLine={false} fontSize={12} stroke="var(--muted-foreground)" />
+                  <CartesianGrid vertical={false} stroke="rgba(255,255,255,0.06)" />
+                  <XAxis dataKey="day" tickLine={false} axisLine={false} fontSize={11} stroke="var(--muted-foreground)" />
+                  <YAxis tickLine={false} axisLine={false} fontSize={11} stroke="var(--muted-foreground)" />
                   <ChartTooltip
-                    cursor={{ fill: "var(--muted)" }}
+                    cursor={{ fill: "rgba(255,255,255,0.04)" }}
                     contentStyle={{
                       background: "var(--popover)",
-                      border: "1px solid var(--border)",
-                      borderRadius: 4,
+                      border: "1px solid rgba(255,255,255,0.1)",
+                      borderRadius: 8,
+                      boxShadow: "var(--shadow-floating)",
                       fontSize: 12,
                       color: "var(--popover-foreground)",
                     }}
                   />
-                  <Bar dataKey="calls" fill="var(--chart-1)" radius={[2, 2, 0, 0]} isAnimationActive={false} />
-                  <Bar dataKey="connects" fill="var(--chart-2)" radius={[2, 2, 0, 0]} isAnimationActive={false} />
+                  <Bar dataKey="calls" fill="var(--chart-1)" radius={[4, 4, 0, 0]} isAnimationActive={false} />
+                  <Bar dataKey="connects" fill="var(--chart-3)" radius={[4, 4, 0, 0]} isAnimationActive={false} />
                 </BarChart>
               </ResponsiveContainer>
             </ChartCard>
@@ -744,71 +753,164 @@ export function DesignShowcase() {
         </div>
 
         <PageSection title="Toolbar and keys">
-          <Toolbar variant="bar" aria-label="Campaign actions">
-            <ToolbarGroup>
-              <Button size="sm" variant="ghost">
-                <PlayIcon /> Start
-              </Button>
-              <Button size="sm" variant="ghost">
-                Pause
-              </Button>
-            </ToolbarGroup>
-            <ToolbarSeparator />
-            <ToolbarGroup>
-              <Button size="sm" variant="ghost">
-                <RefreshCwIcon /> Requalify
-              </Button>
-            </ToolbarGroup>
-            <ToolbarSpacer />
-            <span className="flex items-center gap-1.5 text-xs text-muted-foreground">
-              Command palette <KbdGroup keys={["⌘", "K"]} />
-            </span>
-          </Toolbar>
+          <div className="overflow-x-auto">
+            <Toolbar variant="bar" aria-label="Campaign actions">
+              <ToolbarGroup>
+                <Button size="sm" variant="ghost">
+                  <PlayIcon /> Start
+                </Button>
+                <Button size="sm" variant="ghost">
+                  Pause
+                </Button>
+              </ToolbarGroup>
+              <ToolbarSeparator />
+              <ToolbarGroup>
+                <Button size="sm" variant="ghost">
+                  <RefreshCwIcon /> Requalify
+                </Button>
+              </ToolbarGroup>
+              <ToolbarSpacer />
+              <span className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                Command palette <KbdGroup keys={["⌘", "K"]} />
+              </span>
+            </Toolbar>
+          </div>
         </PageSection>
 
         <PageSection title="Motion" description="Tokens, variants and wrappers from src/lib/motion.">
           <MotionDemo />
         </PageSection>
 
-        <PageSection title="Foundations" description="Tokens from globals.css (light and dark), 4px radius scale, 14px body / 13px dense.">
-          <div className="grid gap-3 lg:grid-cols-3">
-            <Panel className="grid grid-cols-2 gap-3">
-              {[
-                ["Background", "--background"],
-                ["Card", "--card"],
-                ["Muted", "--muted"],
-                ["Border", "--border"],
-                ["Foreground", "--foreground"],
-                ["Muted fg", "--muted-foreground"],
-                ["Accent (primary)", "--primary"],
-                ["Ring", "--ring"],
-              ].map(([n, v]) => (
-                <Swatch key={v} name={n} varName={v} />
-              ))}
+        <PageSection title="Controls" description="Restyled shadcn pieces: inset inputs, line tabs, slider, tooltip and the button variants.">
+          <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
+            <Panel className="flex flex-col gap-4">
+              <MicroLabel>Input</MicroLabel>
+              <Input placeholder="Search businesses, cities, categories…" aria-label="Sample input" />
+              <MicroLabel>Tabs (line)</MicroLabel>
+              <Tabs defaultValue="overview">
+                <TabsList variant="line">
+                  <TabsTrigger value="overview">Overview</TabsTrigger>
+                  <TabsTrigger value="activity">Activity</TabsTrigger>
+                  <TabsTrigger value="notes">Notes</TabsTrigger>
+                </TabsList>
+                <TabsContent value="overview" className="pt-2 text-muted-foreground">
+                  Score, contact details and the latest call outcome.
+                </TabsContent>
+                <TabsContent value="activity" className="pt-2 text-muted-foreground">
+                  Calls, emails and status changes in order.
+                </TabsContent>
+                <TabsContent value="notes" className="pt-2 text-muted-foreground">
+                  Free-form notes from the team.
+                </TabsContent>
+              </Tabs>
             </Panel>
-            <Panel className="grid grid-cols-2 gap-3">
-              {TONES.map((t) => (
-                <Swatch key={t} name={`Tone ${t}`} varName={`--tone-${t}`} />
-              ))}
-              {[1, 2, 3, 4, 5].map((i) => (
-                <Swatch key={i} name={`Chart ${i}`} varName={`--chart-${i}`} />
-              ))}
+            <Panel className="flex flex-col gap-4">
+              <MicroLabel>Slider</MicroLabel>
+              <Slider defaultValue={[60]} min={0} max={100} step={5} aria-label="Sample slider" />
+              <MicroLabel>Tooltip</MicroLabel>
+              <div>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button size="sm" variant="outline">
+                      Hover or focus me
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent>Tooltips sit on a foreground-inverted chip</TooltipContent>
+                </Tooltip>
+              </div>
+              <MicroLabel>Buttons</MicroLabel>
+              <div className="flex flex-wrap gap-2">
+                <Button size="sm">Default</Button>
+                <Button size="sm" variant="outline">
+                  Outline
+                </Button>
+                <Button size="sm" variant="secondary">
+                  Secondary
+                </Button>
+                <Button size="sm" variant="ghost">
+                  Ghost
+                </Button>
+                <Button size="sm" variant="destructive">
+                  Destructive
+                </Button>
+              </div>
             </Panel>
-            <Panel className="flex flex-col gap-2">
-              <span className="text-xl font-semibold tracking-tight">Page title 20/600</span>
-              <span className="text-sm font-semibold">Section 14/600</span>
-              <span className="text-sm">Body 14 — The quick brown fox, 1,234.56</span>
-              <span className="text-dense">Dense 13 — tables and controls, 1,234.56</span>
-              <span className="text-xs text-muted-foreground">Caption 12 — labels and hints</span>
-              <span className="font-mono text-2xs text-muted-foreground">Mono 11 — ids, codes</span>
-              <div className="mt-2 flex items-end gap-2">
+          </div>
+        </PageSection>
+
+        <PageSection title="Foundations" description="Dark-only Leadwire tokens from globals.css: depth by shade and shadow, serif display type, 0.625rem radius.">
+          <div className="grid grid-cols-1 gap-3 lg:grid-cols-3">
+            <Panel className="flex flex-col gap-3">
+              <MicroLabel>Surfaces and colour</MicroLabel>
+              <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                {[
+                  ["Background", "--background"],
+                  ["Surface", "--surface"],
+                  ["Surface elevated", "--surface-elevated"],
+                  ["Card", "--card"],
+                  ["Muted", "--muted"],
+                  ["Accent", "--accent"],
+                  ["Border", "--border"],
+                  ["Primary", "--primary"],
+                  ["Destructive", "--destructive"],
+                ].map(([n, v]) => (
+                  <Swatch key={v} name={n} varName={v} />
+                ))}
+              </div>
+            </Panel>
+            <Panel className="flex flex-col gap-3">
+              <MicroLabel>Chart ramp and tones</MicroLabel>
+              <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                {[1, 2, 3, 4, 5].map((i) => (
+                  <Swatch key={i} name={`Chart ${i}`} varName={`--chart-${i}`} />
+                ))}
+              </div>
+              <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                {TONES.map((t) => (
+                  <React.Fragment key={t}>
+                    <Swatch name={`Tone ${t}`} varName={`--tone-${t}`} />
+                    <Swatch name={`Tone ${t} soft`} varName={`--tone-${t}-soft`} />
+                  </React.Fragment>
+                ))}
+              </div>
+            </Panel>
+            <Panel className="flex flex-col gap-3">
+              <MicroLabel>Type</MicroLabel>
+              <span className="font-serif text-4xl tabular-nums">1,284</span>
+              <span className="font-serif text-2xl">Page and card titles</span>
+              <span className="text-sm">Body sm: Space Grotesk, 1,234.56 on a near-black surface.</span>
+              <span className="text-2xs tracking-wider text-muted-foreground uppercase">Micro-label 2xs uppercase</span>
+              <span className="text-dense">Dense 13: tables and controls, 1,234.56</span>
+              <span className="font-mono text-2xs text-muted-foreground">Mono 11: ids, codes</span>
+              <div className="mt-2 flex flex-wrap items-end gap-2">
                 {["rounded-sm", "rounded-md", "rounded-lg", "rounded-xl"].map((r) => (
-                  <div key={r} className={`flex size-12 items-end justify-center border bg-muted pb-0.5 text-2xs text-muted-foreground ${r}`}>
+                  <div
+                    key={r}
+                    className={`flex size-14 items-end justify-center bg-surface-elevated pb-1 text-2xs text-muted-foreground shadow-[var(--shadow-elevated)] ${r}`}
+                  >
                     {r.replace("rounded-", "")}
                   </div>
                 ))}
               </div>
             </Panel>
+          </div>
+          <div className="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
+            <div className="flex h-24 flex-col justify-end rounded-lg bg-surface-elevated p-3 shadow-[var(--shadow-elevated)]">
+              <MicroLabel>Elevated</MicroLabel>
+              <code className="font-mono text-2xs text-muted-foreground">--shadow-elevated</code>
+            </div>
+            <div className="flex h-24 flex-col justify-end rounded-lg bg-surface-elevated p-3 surface-floating">
+              <MicroLabel>Floating</MicroLabel>
+              <code className="font-mono text-2xs text-muted-foreground">surface-floating</code>
+            </div>
+            <div className="flex h-24 flex-col justify-end rounded-lg bg-surface p-3 surface-inset">
+              <MicroLabel>Inset</MicroLabel>
+              <code className="font-mono text-2xs text-muted-foreground">surface-inset</code>
+            </div>
+            <div className="card-glow flex h-24 flex-col justify-end rounded-lg bg-surface-elevated p-3">
+              <MicroLabel>Card glow</MicroLabel>
+              <code className="font-mono text-2xs text-muted-foreground">card-glow (hover lifts)</code>
+            </div>
           </div>
         </PageSection>
 
