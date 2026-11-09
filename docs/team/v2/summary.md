@@ -23,7 +23,7 @@ Size on main: 222 files under `src/` (128 `.tsx`), 45 test files / 771 tests, 3 
 | AC3 migration on PGlite and Supabase; 0 fixtures; 0 `fixture` refs in src; seed inserts rules only | pass | v2/reviews/WP-12.md; Supabase migrations 0001 + 0002 applied with bookkeeping |
 | AC4 fake-Firecrawl pipeline; sync cron; unconfigured error | pass | v2/reviews/WP-13.md |
 | AC5 Lookup from DB rows; URL filters; actions wired; Add to Lead List | pass (empty state in the browser; discovery needs a Firecrawl key) | v2/reviews/WP-14.md; discovery bridge wired at merge |
-| AC6 per-user leads; edits persist; bulk add; CSV; history | pass (download pending browser) | v2/reviews/WP-15.md |
+| AC6 per-user leads; edits persist; bulk add; CSV; history | pass (CSV download not exercised in the browser: no leads yet) | v2/reviews/WP-15.md |
 | AC7 every v1 route in the Leadwire language; `/overview` | pass | v2/reviews/WP-16.md |
 | AC8 production on Vercel with Supabase Auth; demo rows gone; live sign-in shows empty Lookup | pass: deployed, demo rows gone, sign-in page live; signed-in flow verified against the production Supabase Auth project from a local build (the PM does not enter credentials on the production host) | Deployment below |
 
