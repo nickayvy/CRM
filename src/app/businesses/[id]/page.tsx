@@ -101,7 +101,7 @@ function TrustpilotPanel({ b }: { b: Business }) {
             <span className="font-serif text-2xl text-muted-foreground">{b.name.slice(0, 1).toUpperCase()}</span>
           )}
         </div>
-        <dl className="grid flex-1 grid-cols-3 gap-3">
+        <dl className="grid min-w-0 flex-1 grid-cols-3 gap-3">
           <div className="flex min-w-0 flex-col gap-0.5">
             <dt className="text-[10px] tracking-wider text-muted-foreground uppercase">TrustScore</dt>
             <dd className="font-serif text-2xl leading-none tracking-tight tabular-nums" data-testid="trust-score">
@@ -114,7 +114,7 @@ function TrustpilotPanel({ b }: { b: Business }) {
           </div>
           <div className="flex min-w-0 flex-col gap-0.5">
             <dt className="text-[10px] tracking-wider text-muted-foreground uppercase">L30D</dt>
-            <dd className="flex items-center gap-1.5 font-serif text-2xl leading-none tracking-tight tabular-nums">
+            <dd className="flex flex-wrap items-center gap-1.5 font-serif text-2xl leading-none tracking-tight tabular-nums">
               {b.reviewsLast30d}
               <VelocityBadge l30d={b.reviewsLast30d} />
             </dd>
