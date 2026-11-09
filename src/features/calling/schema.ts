@@ -38,6 +38,7 @@ const timeField = z.preprocess(
 
 export const campaignFormSchema = z
   .object({
+    mode: z.preprocess((v) => (v === "ai" ? "ai" : "human"), z.enum(["human", "ai"])),
     name: z.preprocess(trimmed, z.string({ error: "Name is required" }).min(1, "Name is required").max(120)),
     description: z.preprocess(blankToUndefined, z.string().trim().max(500).optional()),
     script: z.preprocess((v) => (typeof v === "string" ? v : ""), z.string().max(20000, "Script is too long")),
@@ -77,6 +78,7 @@ export const campaignFormSchema = z
 export type CampaignFormValues = z.infer<typeof campaignFormSchema>;
 
 const FORM_KEYS = [
+  "mode",
   "name",
   "description",
   "script",
@@ -98,6 +100,7 @@ export function parseCampaignForm(formData: FormData) {
 /** Form values → repo columns (blank → null). */
 export function toCampaignColumns(v: CampaignFormValues) {
   return {
+    mode: v.mode,
     name: v.name,
     description: v.description ?? null,
     script: v.script,

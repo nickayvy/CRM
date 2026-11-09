@@ -52,7 +52,7 @@ function parse(block: string): Record<string, string> {
   return out;
 }
 
-describe("Leadwire design tokens match the gtm reference", () => {
+describe("LAR design tokens match the gtm reference", () => {
   const rootTokens = parse(extractBlock(css, ":root"));
   const darkTokens = parse(extractBlock(css, ".dark"));
 

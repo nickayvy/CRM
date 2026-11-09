@@ -1,11 +1,11 @@
 import Link from "next/link";
 import { cn } from "@/lib/utils";
 
-export const BRAND_NAME = "Leadwire";
+export const BRAND_NAME = "LAR";
 export const BRAND_TAGLINE = "Turn market noise into signal.";
 
 /**
- * Logo + "Leadwire" serif wordmark + tagline. Shared by the top bar and the
+ * Logo + "LAR" serif wordmark + tagline. Shared by the top bar and the
  * auth pages. The tagline hides on narrow screens.
  */
 export function Brand({ href, className }: { href?: string; className?: string }) {

@@ -16,7 +16,7 @@ import { AnimatedItem, AnimatedList, FadeIn } from "@/lib/motion";
 import { formatDate, formatPhone } from "@/lib/format";
 import { CAMPAIGN_STATUS_LABELS, OUTCOME_LABELS } from "@/lib/labels";
 
-/** Leadwire surface panel (PageSection with the primary-dot micro-label) used by every overview panel. */
+/** LAR surface panel (PageSection with the primary-dot micro-label) used by every overview panel. */
 export function Panel({ className, ...props }: React.ComponentProps<typeof PageSection>) {
   return <PageSection className={`rounded-lg bg-surface p-5 shadow-[var(--shadow-elevated)] ${className ?? ""}`} {...props} />;
 }

@@ -20,6 +20,13 @@ export type Env = {
   EMAIL_FROM: string;
   CRON_SECRET?: string;
   APP_TIMEZONE: string;
+  /** ElevenLabs Agents (AI calling). All four set → AI campaigns can place calls. */
+  ELEVENLABS_API_KEY?: string;
+  ELEVENLABS_AGENT_ID?: string;
+  /** ElevenLabs id of the imported Twilio number (not the phone number itself). */
+  ELEVENLABS_PHONE_NUMBER_ID?: string;
+  /** Signing secret of the workspace post-call webhook. */
+  ELEVENLABS_WEBHOOK_SECRET?: string;
   /** Public base URL of the deployment (absolute links, auth redirects). */
   NEXT_PUBLIC_APP_URL?: string;
 };
@@ -48,6 +55,18 @@ export const env: Env = {
   },
   get APP_TIMEZONE() {
     return str("APP_TIMEZONE") ?? "America/Chicago";
+  },
+  get ELEVENLABS_API_KEY() {
+    return str("ELEVENLABS_API_KEY");
+  },
+  get ELEVENLABS_AGENT_ID() {
+    return str("ELEVENLABS_AGENT_ID");
+  },
+  get ELEVENLABS_PHONE_NUMBER_ID() {
+    return str("ELEVENLABS_PHONE_NUMBER_ID");
+  },
+  get ELEVENLABS_WEBHOOK_SECRET() {
+    return str("ELEVENLABS_WEBHOOK_SECRET");
   },
   get NEXT_PUBLIC_APP_URL() {
     return str("NEXT_PUBLIC_APP_URL");

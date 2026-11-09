@@ -33,11 +33,23 @@ async function columns(table: string): Promise<Map<string, Col>> {
 }
 
 describe("migrations", () => {
-  it("ships exactly 0000_init, 0001_v2 and 0002_scrape_backoff, and all are applied", async () => {
+  it("ships exactly 0000_init through 0003_ai_calls, and all are applied", async () => {
     const files = readdirSync(MIGRATIONS_FOLDER).filter((f) => f.endsWith(".sql")).sort();
-    expect(files).toEqual(["0000_init.sql", "0001_v2.sql", "0002_scrape_backoff.sql"]);
+    expect(files).toEqual(["0000_init.sql", "0001_v2.sql", "0002_scrape_backoff.sql", "0003_ai_calls.sql"]);
     const applied = await q<{ n: number | string }>(sql`SELECT count(*) AS n FROM drizzle.__drizzle_migrations`);
-    expect(Number(applied[0].n)).toBe(3);
+    expect(Number(applied[0].n)).toBe(4);
+  });
+
+  it("0003_ai_calls is additive: two enums, the ai_calls table, and call_campaigns.mode defaulting to human", async () => {
+    const text = readFileSync(path.join(MIGRATIONS_FOLDER, "0003_ai_calls.sql"), "utf8");
+    expect(text).not.toMatch(/DROP |RENAME |ALTER COLUMN/i);
+    const mode = (await columns("call_campaigns")).get("mode");
+    expect(mode?.is_nullable).toBe("NO");
+    expect(mode?.column_default).toMatch(/'human'/);
+    const ai = await columns("ai_calls");
+    for (const c of ["campaign_id", "queue_item_id", "business_id", "conversation_id", "outcome", "transcript", "analysis"]) {
+      expect(ai.has(c), c).toBe(true);
+    }
   });
 
   it("0002_scrape_backoff only adds the two back-off columns", async () => {

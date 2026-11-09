@@ -40,7 +40,7 @@ export default async function Page() {
   await requireUser();
   return (
     <PageShell width="narrow">
-      <PageHeader title="Settings" description="Rules, data and the sources Leadwire pulls from." />
+      <PageHeader title="Settings" description="Rules, data and the sources LAR pulls from." />
       <PageSection title="Workspace">
         <ul className="flex flex-col gap-2">
           {LINKS.map((l) => (

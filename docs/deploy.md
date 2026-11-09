@@ -1,10 +1,10 @@
-# Deploying Leadwire to Vercel + Supabase
+# Deploying LAR to Vercel + Supabase
 
 Step by step, from an empty Supabase project to a smoke-tested deployment.
 Node 24 is required (`engines.node` in `package.json` is `>=24`); in Vercel set
 Project Settings → General → Node.js Version to **24.x**.
 
-Leadwire ships **no demo data**. A fresh deployment starts empty: businesses
+LAR ships **no demo data**. A fresh deployment starts empty: businesses
 arrive from Trustpilot discovery (Firecrawl) or Yelp searches, leads from what
 each user adds in Lookup.
 
@@ -143,14 +143,14 @@ DATABASE_URL="…transaction pooler URI…" npm run db:migrate
 ```
 
 Applied migrations are skipped, so it is safe to re-run. Current files:
-`0000_init.sql`, `0001_v2.sql` (Leadwire v2 tables and columns),
+`0000_init.sql`, `0001_v2.sql` (LAR v2 tables and columns),
 `0002_scrape_backoff.sql` (scrape back-off columns on `businesses`).
 
 ## 5. Smoke checklist
 
 Replace `<app>` with your deployment URL.
 
-- [ ] `https://<app>/` while signed out redirects to `/login`; the Leadwire sign-in card renders.
+- [ ] `https://<app>/` while signed out redirects to `/login`; the LAR sign-in card renders.
 - [ ] Sign up at `/signup` (confirm the email if confirmation is on), then sign in: you land on `/lookup` with the top bar (LOOKUP · LEADS · CALLING · EMAIL · OVERVIEW) and your email in the user menu.
 - [ ] `/lookup` on an empty database shows "No businesses yet". With `FIRECRAWL_API_KEY` set, paste `https://www.trustpilot.com/review/<domain>`: the business appears in the grid and graph; open its dossier and **Add to Lead List**.
 - [ ] Seed a category from Lookup: "Seeding started" toast; rows appear within a minute.

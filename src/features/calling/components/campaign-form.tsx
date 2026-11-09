@@ -15,6 +15,7 @@ import { SCRIPT_TOKENS } from "../script-tokens";
 
 type Values = Pick<
   CallCampaign,
+  | "mode"
   | "name"
   | "description"
   | "script"
@@ -114,6 +115,17 @@ export function CampaignForm({ action, initial = {}, submitLabel, cancelHref, su
             <FieldLabel htmlFor="name">Name</FieldLabel>
             <Input id="name" name="name" defaultValue={initial.name ?? ""} required aria-invalid={!!err("name") || undefined} />
             <FieldError errors={err("name")} />
+          </Field>
+          <Field>
+            <FieldLabel htmlFor="mode">Who places the calls</FieldLabel>
+            <select id="mode" name="mode" defaultValue={initial.mode ?? "human"} className={selectClass}>
+              <option value="human">People, in the dialer</option>
+              <option value="ai">AI agent (ElevenLabs)</option>
+            </select>
+            <FieldDescription>
+              With the AI agent, the script is the agent&apos;s brief: what you offer, talking points and the ask. Max
+              concurrent agents sets how many AI calls run at once.
+            </FieldDescription>
           </Field>
           <Field>
             <FieldLabel htmlFor="description">Description</FieldLabel>

@@ -72,7 +72,7 @@
 }
 
 /*
- * Leadwire design tokens (ported from the gtm app's globals.css). Dark only:
+ * LAR design tokens (ported from the gtm app's globals.css). Dark only:
  * :root and .dark are identical so the look never depends on the class.
  */
 :root {
@@ -126,7 +126,7 @@
   --row-selected: rgba(90, 143, 201, 0.1);
 
   /*
-   * Semantic tones, re-tuned to the Leadwire palette: info = the single
+   * Semantic tones, re-tuned to the LAR palette: info = the single
    * accent (steel blue), success/warning = the restrained green/amber from
    * gtm's category palette, danger = destructive red. "-soft" = 15% tint.
    */
@@ -193,7 +193,7 @@
   --row-selected: rgba(90, 143, 201, 0.1);
 
   /*
-   * Semantic tones, re-tuned to the Leadwire palette: info = the single
+   * Semantic tones, re-tuned to the LAR palette: info = the single
    * accent (steel blue), success/warning = the restrained green/amber from
    * gtm's category palette, danger = destructive red. "-soft" = 15% tint.
    */

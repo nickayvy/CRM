@@ -23,7 +23,7 @@ export type ChartCardProps = {
 /**
  * Thin card wrapper for charts: header, fixed-height plot area, optional
  * footer. Chart colors: use `var(--chart-1)` … `var(--chart-5)` (the
- * Leadwire blue ramp).
+ * LAR blue ramp).
  */
 export function ChartCard({ title, description, actions, height = 240, loading, footer, children, className }: ChartCardProps) {
   return (

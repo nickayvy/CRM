@@ -53,6 +53,8 @@ export const enrollmentStateEnum = pgEnum("enrollment_state", [
 ]);
 export const messageStatusEnum = pgEnum("message_status", ["queued", "sent", "failed", "dry_run"]);
 export const businessSourceEnum = pgEnum("business_source", ["yelp", "trustpilot"]);
+export const callModeEnum = pgEnum("call_mode", ["human", "ai"]);
+export const aiCallStatusEnum = pgEnum("ai_call_status", ["initiated", "completed", "failed"]);
 export const leadStatusEnum = pgEnum("lead_status", ["queued", "contacted", "callback", "success", "failed", "skipped"]);
 
 export type Qualification = (typeof qualificationEnum.enumValues)[number];
@@ -67,6 +69,8 @@ export type EnrollmentState = (typeof enrollmentStateEnum.enumValues)[number];
 export type MessageStatus = (typeof messageStatusEnum.enumValues)[number];
 export type BusinessSource = (typeof businessSourceEnum.enumValues)[number];
 export type LeadStatus = (typeof leadStatusEnum.enumValues)[number];
+export type CallMode = (typeof callModeEnum.enumValues)[number];
+export type AiCallStatus = (typeof aiCallStatusEnum.enumValues)[number];
 
 const ts = (name: string) => timestamp(name, { withTimezone: true });
 const createdAt = () => ts("created_at").notNull().defaultNow();
@@ -228,6 +232,8 @@ export const callCampaigns = pgTable("call_campaigns", {
   name: text("name").notNull(),
   description: text("description"),
   status: campaignStatusEnum("status").notNull().default("draft"),
+  /** human: agents work the queue in the dialer. ai: the ElevenLabs agent places the calls. */
+  mode: callModeEnum("mode").notNull().default("human"),
   script: text("script").notNull().default(""),
   dailyCap: integer("daily_cap"),
   callingHoursStart: time("calling_hours_start"),
@@ -268,6 +274,42 @@ export const callQueueItems = pgTable(
   (t) => [
     unique("call_queue_items_campaign_business_uq").on(t.campaignId, t.businessId),
     index("call_queue_items_campaign_state_position_idx").on(t.campaignId, t.state, t.position),
+  ],
+);
+
+// ---------------------------------------------------------------- AI calls (ElevenLabs)
+
+/** One outbound call placed by the ElevenLabs agent for a queue item. */
+export const aiCalls = pgTable(
+  "ai_calls",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    campaignId: uuid("campaign_id")
+      .notNull()
+      .references(() => callCampaigns.id, { onDelete: "cascade" }),
+    queueItemId: uuid("queue_item_id").references(() => callQueueItems.id, { onDelete: "set null" }),
+    businessId: uuid("business_id")
+      .notNull()
+      .references(() => businesses.id, { onDelete: "cascade" }),
+    toNumber: text("to_number").notNull(),
+    status: aiCallStatusEnum("status").notNull().default("initiated"),
+    /** ElevenLabs conversation id (set once the call is accepted). */
+    conversationId: text("conversation_id").unique(),
+    callSid: text("call_sid"),
+    outcome: callOutcomeEnum("outcome"),
+    summary: text("summary"),
+    /** [{ role, message }] turns, trimmed. */
+    transcript: jsonb("transcript").$type<{ role: string; message: string }[]>(),
+    /** Data collection results keyed by field id (value + rationale). */
+    analysis: jsonb("analysis").$type<Record<string, unknown>>(),
+    durationSecs: integer("duration_secs"),
+    error: text("error"),
+    startedAt: ts("started_at").notNull().defaultNow(),
+    endedAt: ts("ended_at"),
+  },
+  (t) => [
+    index("ai_calls_campaign_started_idx").on(t.campaignId, t.startedAt.desc()),
+    index("ai_calls_business_idx").on(t.businessId),
   ],
 );
 
@@ -410,6 +452,8 @@ export type CallCampaign = typeof callCampaigns.$inferSelect;
 export type NewCallCampaign = typeof callCampaigns.$inferInsert;
 export type CallQueueItem = typeof callQueueItems.$inferSelect;
 export type NewCallQueueItem = typeof callQueueItems.$inferInsert;
+export type AiCall = typeof aiCalls.$inferSelect;
+export type NewAiCall = typeof aiCalls.$inferInsert;
 export type EmailCampaign = typeof emailCampaigns.$inferSelect;
 export type NewEmailCampaign = typeof emailCampaigns.$inferInsert;
 export type EmailStep = typeof emailSteps.$inferSelect;

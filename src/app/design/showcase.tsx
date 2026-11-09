@@ -81,7 +81,7 @@ function Swatch({ name, varName }: { name: string; varName: string }) {
   );
 }
 
-/** Leadwire panel: near-black surface lifted by shade and a layered shadow instead of a border. */
+/** LAR panel: near-black surface lifted by shade and a layered shadow instead of a border. */
 function Panel({ children, className }: { children: React.ReactNode; className?: string }) {
   return <div className={`min-w-0 rounded-lg bg-surface p-4 shadow-[var(--shadow-elevated)] ${className ?? ""}`}>{children}</div>;
 }
@@ -557,17 +557,17 @@ export function DesignShowcase() {
     <MotionConfig reducedMotion={forceReduced ? "always" : "user"}>
       <PageShell width="full" className="max-w-[90rem]">
         <PageHeader
-          breadcrumbs={[{ label: "Lookup", href: "/lookup" }, { label: "Leadwire design system" }]}
-          title="Leadwire design system"
+          breadcrumbs={[{ label: "Lookup", href: "/lookup" }, { label: "LAR design system" }]}
+          title="LAR design system"
           meta={
             <>
-              <StatusBadge tone="info">Leadwire</StatusBadge>
+              <StatusBadge tone="info">LAR</StatusBadge>
               <StatusBadge tone="success" variant="dot">
                 Stable
               </StatusBadge>
             </>
           }
-          description="Dark-only tokens, depth and primitives behind every Leadwire screen: near-black panels separated by shade and layered shadow rather than borders."
+          description="Dark-only tokens, depth and primitives behind every LAR screen: near-black panels separated by shade and layered shadow rather than borders."
           actions={
             <>
               <Button size="sm" variant="outline" onClick={() => setConfirmOpen(true)}>
@@ -838,7 +838,7 @@ export function DesignShowcase() {
           </div>
         </PageSection>
 
-        <PageSection title="Foundations" description="Dark-only Leadwire tokens from globals.css: depth by shade and shadow, serif display type, 0.625rem radius.">
+        <PageSection title="Foundations" description="Dark-only LAR tokens from globals.css: depth by shade and shadow, serif display type, 0.625rem radius.">
           <div className="grid grid-cols-1 gap-3 lg:grid-cols-3">
             <Panel className="flex flex-col gap-3">
               <MicroLabel>Surfaces and colour</MicroLabel>
