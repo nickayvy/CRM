@@ -120,6 +120,40 @@ describe("FilterPanel", () => {
     expect(lastHref()).toBe("/lookup?category=plumbing&search=acme");
   });
 
+  it("does not overwrite what the user is typing when the URL catches up to an earlier search", async () => {
+    nav.qs = "";
+    vi.useFakeTimers({ shouldAdvanceTime: true });
+    const { rerender } = render(<FilterPanel categories={CATEGORIES} />);
+    const input = () => screen.getByLabelText("Search") as HTMLInputElement;
+    const pause = () => act(async () => void vi.advanceTimersByTime(310));
+    const urlBecomes = (qs: string) => {
+      nav.qs = qs;
+      rerender(<FilterPanel categories={CATEGORIES} />);
+    };
+
+    // A pause after a space sends the trimmed "home"; its echo must not eat the space.
+    fireEvent.change(input(), { target: { value: "home " } });
+    await pause();
+    expect(lastHref()).toBe("/lookup?search=home");
+    urlBecomes("search=home");
+    expect(input().value).toBe("home ");
+
+    // Two pauses send "home d" then "home dep"; the older URL lands while the user is on "home depo".
+    fireEvent.change(input(), { target: { value: "home d" } });
+    await pause();
+    fireEvent.change(input(), { target: { value: "home dep" } });
+    await pause();
+    fireEvent.change(input(), { target: { value: "home depo" } });
+    urlBecomes("search=home+d");
+    expect(input().value).toBe("home depo");
+    urlBecomes("search=home+dep");
+    expect(input().value).toBe("home depo");
+
+    // A URL change the box did not make (back button, another control) still wins.
+    urlBecomes("search=acme");
+    expect(input().value).toBe("acme");
+  });
+
   it("has-phone checkbox writes hasPhone=true and resets offset; unchecking removes it", async () => {
     nav.qs = "offset=50";
     const { unmount } = render(<FilterPanel categories={CATEGORIES} />);

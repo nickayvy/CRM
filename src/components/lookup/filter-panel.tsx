@@ -65,13 +65,25 @@ export function FilterPanel({ categories, titles, onNavigate }: Props) {
   const urlSearch = searchParams.get("search") ?? "";
 
   const [searchValue, setSearchValue] = useState(urlSearch);
+  // Search values this box has written to the URL and not yet seen come back.
+  // When the URL catches up to one of them it is our own echo (possibly an
+  // older one, if the user kept typing): keep what is in the input, including
+  // a trailing space the trim dropped, instead of overwriting it.
+  const [sentSearches, setSentSearches] = useState<readonly string[]>([]);
   const [localMinReviews, setLocalMinReviews] = useState(minReviews);
   const [localMinL30d, setLocalMinL30d] = useState(minL30d);
   // Re-sync local state when the URL changes from elsewhere (Clear, bubbles, back button).
   const [seen, setSeen] = useState({ urlSearch, minReviews, minL30d });
   if (seen.urlSearch !== urlSearch || seen.minReviews !== minReviews || seen.minL30d !== minL30d) {
     setSeen({ urlSearch, minReviews, minL30d });
-    if (seen.urlSearch !== urlSearch) setSearchValue(urlSearch);
+    if (seen.urlSearch !== urlSearch) {
+      const echo = sentSearches.indexOf(urlSearch);
+      if (echo >= 0) setSentSearches(sentSearches.slice(echo + 1));
+      else {
+        setSentSearches([]);
+        setSearchValue(urlSearch);
+      }
+    }
     setLocalMinReviews(minReviews);
     setLocalMinL30d(minL30d);
   }
@@ -97,12 +109,17 @@ export function FilterPanel({ categories, titles, onNavigate }: Props) {
 
   useEffect(() => {
     if (searchValue.trim() === urlSearchRef.current.trim()) return;
-    const t = setTimeout(() => updateRef.current("search", searchValue.trim()), 300);
+    const t = setTimeout(() => {
+      const value = searchValue.trim();
+      setSentSearches((prev) => [...prev, value]);
+      updateRef.current("search", value);
+    }, 300);
     return () => clearTimeout(t);
   }, [searchValue]);
 
   const clearAll = () => {
     setSearchValue("");
+    setSentSearches([]);
     go(pathname);
   };
 
