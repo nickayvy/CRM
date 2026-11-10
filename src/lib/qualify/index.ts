@@ -13,6 +13,10 @@ export type QualifyContext = {
   sameNameCityCount: number;
   /** Another, earlier-ingested business has the same phoneDigits. */
   phoneDuplicate: boolean;
+  /** Another, earlier-ingested business has the same websiteDomain (never for shared hosts). */
+  websiteDuplicate: boolean;
+  /** Another, earlier-ingested business has the same email (case-insensitive). */
+  emailDuplicate: boolean;
 };
 
 export type ReasonCode =
@@ -26,6 +30,8 @@ export type ReasonCode =
   | "too_few_reviews"
   | "too_many_reviews"
   | "duplicate_phone"
+  | "duplicate_website"
+  | "duplicate_email"
   | "unclaimed"
   | "low_score";
 
@@ -49,11 +55,13 @@ export const HARD_REASONS: readonly ReasonCode[] = [
   "too_few_reviews",
   "too_many_reviews",
   "duplicate_phone",
+  "duplicate_website",
+  "duplicate_email",
 ];
 export const SOFT_REASONS: readonly ReasonCode[] = ["unclaimed", "low_score"];
 
 export const REASON_LABELS: Record<ReasonCode, string> = {
-  closed: "Marked permanently closed on Yelp",
+  closed: "Marked permanently closed",
   category_mismatch: "Not listed in any of the searched categories",
   chain: "Matches a known chain or franchise name",
   multi_location: "Same business name found in several cities",
@@ -63,7 +71,9 @@ export const REASON_LABELS: Record<ReasonCode, string> = {
   too_few_reviews: "Too few reviews",
   too_many_reviews: "More reviews than the maximum (likely a large operator)",
   duplicate_phone: "Shares a phone number with another business",
-  unclaimed: "Yelp page not claimed by the owner",
+  duplicate_website: "Shares a website with another business",
+  duplicate_email: "Shares an email address with another business",
+  unclaimed: "Page not claimed by the owner",
   low_score: "Score below the review threshold",
 };
 
@@ -135,6 +145,8 @@ export function qualify(b: BusinessLike, ctx: QualifyContext, rules: Qualificati
   if (rules.maxReviews !== null && rules.maxReviews !== undefined && (b.reviewCount ?? 0) > rules.maxReviews)
     hard.add("too_many_reviews");
   if (ctx.phoneDuplicate) hard.add("duplicate_phone");
+  if (ctx.websiteDuplicate) hard.add("duplicate_website");
+  if (ctx.emailDuplicate) hard.add("duplicate_email");
 
   const score = scoreBusiness(b, ctx);
   const reasons: ReasonCode[] = HARD_REASONS.filter((r) => hard.has(r));

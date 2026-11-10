@@ -1,5 +1,5 @@
 {
-  "id": "aeab388e-b621-4722-837c-b876407adae8",
+  "id": "ae7fc08e-d848-4bf0-9d78-7b3f8c92552c",
   "prevId": "ce6c96a0-9543-45d2-9821-d26f3612b531",
   "version": "7",
   "dialect": "postgresql",
@@ -895,7 +895,7 @@
           "primaryKey": false,
           "notNull": false,
           "generated": {
-            "as": "substring(lower(btrim(\"website\")) from '^(?:[a-z][a-z0-9+.-]*://)?(?:[^/?#@]*@)?(?:www\\.)?([a-z0-9-]+(?:\\.[a-z0-9-]+)+)\\.?(?::[0-9]*)?(?:[/?#]|$)')",
+            "as": "substring(lower(btrim(\"website\")) from '^(?:[a-z][a-z0-9+.-]*://(?:[^/?#@]*@)?)?(?:www\\.)?([a-z0-9-]+(?:\\.[a-z0-9-]+)+)\\.?(?::[0-9]*)?(?:[/?#]|$)')",
             "type": "stored"
           }
         }

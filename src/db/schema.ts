@@ -116,11 +116,11 @@ export const searchJobs = pgTable("search_jobs", {
 
 /**
  * Expression behind `businesses.website_domain`. Mirrors WEBSITE_DOMAIN_RE in
- * src/lib/domain.ts: optional scheme, optional userinfo, optional "www.",
+ * src/lib/domain.ts: optional scheme (with optional userinfo), optional "www.",
  * then a dotted host (captured), optional trailing dot and port, then a path
  * delimiter or the end. Anything else yields NULL.
  */
-const WEBSITE_DOMAIN_SQL = String.raw`substring(lower(btrim("website")) from '^(?:[a-z][a-z0-9+.-]*://)?(?:[^/?#@]*@)?(?:www\.)?([a-z0-9-]+(?:\.[a-z0-9-]+)+)\.?(?::[0-9]*)?(?:[/?#]|$)')`;
+const WEBSITE_DOMAIN_SQL = String.raw`substring(lower(btrim("website")) from '^(?:[a-z][a-z0-9+.-]*://(?:[^/?#@]*@)?)?(?:www\.)?([a-z0-9-]+(?:\.[a-z0-9-]+)+)\.?(?::[0-9]*)?(?:[/?#]|$)')`;
 
 export const businesses = pgTable(
   "businesses",

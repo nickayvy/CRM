@@ -9,7 +9,7 @@ CREATE TABLE "api_usage" (
 --> statement-breakpoint
 ALTER TABLE "businesses" ADD COLUMN "google_place_id" text;--> statement-breakpoint
 ALTER TABLE "businesses" ADD COLUMN "google_maps_url" text;--> statement-breakpoint
-ALTER TABLE "businesses" ADD COLUMN "website_domain" text GENERATED ALWAYS AS (substring(lower(btrim("website")) from '^(?:[a-z][a-z0-9+.-]*://)?(?:[^/?#@]*@)?(?:www\.)?([a-z0-9-]+(?:\.[a-z0-9-]+)+)\.?(?::[0-9]*)?(?:[/?#]|$)')) STORED;--> statement-breakpoint
+ALTER TABLE "businesses" ADD COLUMN "website_domain" text GENERATED ALWAYS AS (substring(lower(btrim("website")) from '^(?:[a-z][a-z0-9+.-]*://(?:[^/?#@]*@)?)?(?:www\.)?([a-z0-9-]+(?:\.[a-z0-9-]+)+)\.?(?::[0-9]*)?(?:[/?#]|$)')) STORED;--> statement-breakpoint
 ALTER TABLE "search_jobs" ADD COLUMN "source" "business_source" DEFAULT 'yelp' NOT NULL;--> statement-breakpoint
 ALTER TABLE "search_jobs" ADD COLUMN "plan" jsonb;--> statement-breakpoint
 ALTER TABLE "search_jobs" ADD COLUMN "queries_total" integer DEFAULT 0 NOT NULL;--> statement-breakpoint

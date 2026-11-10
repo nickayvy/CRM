@@ -31,6 +31,7 @@ export const LEAD_STATUS_LABELS: Record<LeadStatus, string> = {
 export const SOURCE_LABELS: Record<BusinessSource, string> = {
   trustpilot: "Trustpilot",
   yelp: "Yelp",
+  google: "Google",
 };
 
 const SOURCE_ORDER: BusinessSource[] = ["trustpilot", "yelp"];
