@@ -1,6 +1,8 @@
 // External-links backfill: drains rows pending link enrichment (website,
 // social profiles, email, phone from each business's own site) against the DB
-// the env points to. Requires FIRECRAWL_API_KEY. ~1–2 Firecrawl credits per row.
+// the env points to. Websites are read directly; with FIRECRAWL_API_KEY set,
+// Firecrawl is the fallback for sites the direct fetch cannot read (about
+// 1 credit per such page). Runs without the key.
 //   npm run enrich:links -- [--limit 200] [--budget-seconds 1800]
 import { parseArgs } from "node:util";
 import { closeDb, getDb } from "@/db/client";
@@ -9,6 +11,7 @@ import { countPendingLinks } from "@/db/repo/discovery";
 import { env } from "@/lib/env";
 import { createFirecrawl } from "@/lib/firecrawl/client";
 import { enrichPendingLinks } from "@/lib/firecrawl/enrich";
+import { createPageSource } from "@/lib/web/page-source";
 
 const USAGE = "Usage: npm run enrich:links -- [--limit 200] [--budget-seconds 1800]";
 /** Rows per enrichPendingLinks call, so progress prints as the drain goes. */
@@ -42,15 +45,13 @@ async function main() {
   const limit = intArg(values.limit, "limit", 1, 100_000, 200);
   const budgetSeconds = intArg(values["budget-seconds"], "budget-seconds", 1, 86_400, 86_400);
 
-  if (!env.FIRECRAWL_API_KEY) {
-    console.error("Discovery is not configured: set FIRECRAWL_API_KEY");
-    process.exit(2);
-  }
   const db = getDb();
   await runMigrations(db);
-  const fc = createFirecrawl(env.FIRECRAWL_API_KEY);
+  const key = env.FIRECRAWL_API_KEY;
+  const fc = createPageSource({ firecrawl: key ? createFirecrawl(key) : null });
   const target = env.DATABASE_URL ? "Postgres (DATABASE_URL)" : `PGlite at ${env.PGLITE_DATA_DIR}`;
   console.log(`Database: ${target}`);
+  console.log(`Pages: direct fetch${key ? ", Firecrawl fallback" : " only (FIRECRAWL_API_KEY not set)"}`);
   console.log(`Pending: ${await countPendingLinks(db)} · limit ${limit} · budget ${budgetSeconds}s`);
 
   const started = Date.now();

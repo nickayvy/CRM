@@ -7,6 +7,7 @@ import { env } from "@/lib/env";
 import { DiscoveryUnavailable, createFirecrawl } from "@/lib/firecrawl/client";
 import { enrichPendingLinks } from "@/lib/firecrawl/enrich";
 import { scrapeTrustpilotCategory, syncStale } from "@/lib/firecrawl/trustpilot";
+import { createPageSource } from "@/lib/web/page-source";
 import { TRUSTPILOT_CATEGORIES } from "@/lib/trustpilot-categories";
 
 export const dynamic = "force-dynamic";
@@ -15,7 +16,12 @@ export const maxDuration = 300;
 const SYNC_LIMIT = 12;
 const SYNC_BUDGET_MS = 30_000;
 const SEED_MAX_PER_CATEGORY = 20;
-const LINKS_LIMIT = 40;
+/**
+ * Links stage row cap. Websites are read directly (6 rows at a time, not paced
+ * by Firecrawl's 10 a minute), so a weekday's 180 s clears a few hundred rows;
+ * on Sundays the 60 s budget ends the stage first.
+ */
+const LINKS_LIMIT = 300;
 /** Links stage cap: most of the discovery budget on weekdays; Sundays leave the rest to the seed. */
 const LINKS_BUDGET_MS = 180_000;
 const LINKS_BUDGET_SUNDAY_MS = 60_000;
@@ -42,10 +48,12 @@ type Seeded =
 /**
  * The single Vercel cron (0 13 * * *): call-campaign evaluation, due email
  * steps, stale Trustpilot sync (12 rows / 30 s), external-links enrichment of
- * pending rows (40 rows; the remaining discovery budget capped at 180 s, or
+ * pending rows (300 rows; the remaining discovery budget capped at 180 s, or
  * 60 s on Sundays), and on Sundays (UTC) a 20-per-category seed of all 22
  * categories inside the remaining budget. Firecrawl requests are paced to the
- * plan's requests per minute (see lib/firecrawl/client).
+ * plan's requests per minute (see lib/firecrawl/client). The links stage reads
+ * websites directly and runs without FIRECRAWL_API_KEY (Firecrawl is only its
+ * fallback); sync and seed need the key and report skipped without it.
  * Each stage reports its own result or error; one failing stage does not stop the rest.
  */
 export async function GET(req: Request) {
@@ -70,23 +78,18 @@ export async function GET(req: Request) {
   }
 
   const sunday = new Date().getUTCDay() === 0;
-  if (!env.FIRECRAWL_API_KEY) {
-    return Response.json({
-      campaigns,
-      emails,
-      sync: { skipped: SKIPPED },
-      links: { skipped: SKIPPED },
-      seeded: sunday ? { skipped: SKIPPED } : null,
-    });
-  }
+  const fc = env.FIRECRAWL_API_KEY ? createFirecrawl(env.FIRECRAWL_API_KEY) : null;
 
-  const fc = createFirecrawl(env.FIRECRAWL_API_KEY);
-  let sync: Awaited<ReturnType<typeof syncStale>> | { error: string };
-  try {
-    sync = await syncStale(db, fc, { limit: SYNC_LIMIT, budgetMs: SYNC_BUDGET_MS });
-  } catch (err) {
-    console.error("[cron/daily] sync failed", err);
-    sync = { error: message(err) };
+  let sync: Awaited<ReturnType<typeof syncStale>> | { error: string } | { skipped: string };
+  if (!fc) {
+    sync = { skipped: SKIPPED };
+  } else {
+    try {
+      sync = await syncStale(db, fc, { limit: SYNC_LIMIT, budgetMs: SYNC_BUDGET_MS });
+    } catch (err) {
+      console.error("[cron/daily] sync failed", err);
+      sync = { error: message(err) };
+    }
   }
 
   let links: Links;
@@ -95,11 +98,15 @@ export async function GET(req: Request) {
     links = { skipped: "out of budget" };
   } else {
     try {
-      links = await enrichPendingLinks(db, fc, { limit: LINKS_LIMIT, budgetMs: linksBudgetMs });
+      links = await enrichPendingLinks(db, createPageSource({ firecrawl: fc }), { limit: LINKS_LIMIT, budgetMs: linksBudgetMs });
     } catch (err) {
       console.error("[cron/daily] links failed", err);
       links = { error: message(err) };
     }
+  }
+
+  if (!fc) {
+    return Response.json({ campaigns, emails, sync, links, seeded: sunday ? { skipped: SKIPPED } : null });
   }
 
   let seeded: Seeded | null = null;

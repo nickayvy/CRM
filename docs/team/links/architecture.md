@@ -51,7 +51,8 @@ default `{}`), `enriched_at timestamptz`, `slug`, `trustpilot_id`.
 
 **Pending** (eligible for enrichment): a row with a non-empty `website`, or a
 domain-like `slug`, and either `enriched_at IS NULL`, or `enriched_at` older
-than 7 days with `social_links = '{}'`. Order: never-enriched first (oldest
+than 7 days with `social_links = '{}'`; and not rejected for a reason a
+website cannot cure (see §Direct fetch, qualify before enrich). Order: never-enriched first (oldest
 `created_at` first), then the stale-empty ones (oldest `enriched_at` first).
 
 ## Interfaces (frozen)
@@ -189,6 +190,71 @@ minute with HTTP 429 and `retry-after`. So:
 
 At 10 requests a minute a 240 s seed enriches roughly 20 to 35 of its rows;
 the rest stay pending for the cron (about 25 rows a day).
+
+## Direct fetch (added by WP-19, Google Maps discovery)
+
+Websites are read over plain HTTP first; Firecrawl is only the fallback.
+Every caller that enriches links builds its `FirecrawlLike` with
+`createPageSource({ firecrawl })` (`src/lib/web/page-source.ts`): the
+paste-a-URL add, the category seed, `enrichTrustpilotAction`, the cron
+`links` stage and `npm run enrich:links`. The links step needs no
+`FIRECRAWL_API_KEY`; Trustpilot scraping (`scrapeUrlAction`,
+`seedCategoryAction`, the cron's `sync` and `seeded`) still does.
+
+**Order and fallback rule** (`scrapePage`):
+1. `fetchPage(url)` (`src/lib/web/fetch-page.ts`), capped at 10 s so a
+   fallback still fits the row's 45 s.
+2. Use its page unless it is *thin*: under 200 characters of visible text
+   **and** no `mailto:`, `tel:` or social-profile link (script-rendered
+   shells, parking pages, bot walls).
+3. With a Firecrawl client, call `firecrawl.scrapePage` when the direct fetch
+   rejected, resolved null, or was thin. Not when it rejected with
+   `UnsafeUrlError` (final) or HTTP 404/410 (the site's own answer).
+   A thin direct page is kept if Firecrawl returns null or fails;
+   `FirecrawlRateLimited` and `DiscoveryUnavailable` propagate as before.
+4. Without Firecrawl the direct result, or its failure, stands.
+
+**fetchPage.** GET with a generic browser `User-Agent` (names no person or
+project) and `Accept: text/html`; redirects followed by hand, at most 5;
+whole-page timeout; body read up to 1.5 MB and then cut (the cut page is still
+parsed); only `text/html` and `application/xhtml+xml` (else null). Output is a
+`ScrapedPage`: `finalUrl` = last hop, `links` = every `<a>`/`<area>` href
+resolved against the page (or `<base href>`), `mailto:`/`tel:` kept,
+`markdown` = visible text (scripts, styles, comments, `noscript`, `svg`
+removed, entities decoded). Cloudflare email protection (`data-cfemail`,
+`/cdn-cgi/l/email-protection#…`) is decoded into `mailto:` links and into the
+text. At most 2 requests in flight per host, process-wide.
+
+**SSRF guard** (`src/lib/web/ssrf.ts`), on the first URL and every redirect
+target before the request: `http`/`https` only, no credentials, port
+80/443/default only, no `localhost` or `.localhost`/`.local`/`.internal`/
+`.localdomain`/`.home.arpa`/`.lan`/`.intranet` names; the host is resolved and
+refused when **any** address is unspecified, loopback, private (10/8,
+172.16/12, 192.168/16), CGNAT (100.64/10), link-local (169.254/16 including
+the metadata address, fe80::/10), unique-local (fc00::/7), site-local,
+multicast, reserved/benchmark/documentation, or an IPv4-mapped, NAT64 or
+6to4 form of those. Literal IPs (any spelling the URL parser accepts) get the
+same check. The default transport (`src/lib/web/pinned-fetch.ts`, node
+`http`/`https`) repeats the address check inside the socket's own DNS lookup,
+so the address connected to is the address checked (no DNS rebinding between
+the check and the connection). A refusal is `UnsafeUrlError`; enrichment
+counts it as a site failure (`failed`, row stamped, not retried every run).
+
+**Limits.**
+
+| Path | Before | Now |
+|---|---|---|
+| Drain concurrency through a page source | 2 | 6 (`DIRECT_DRAIN_CONCURRENCY`; never above 8; a bare Firecrawl client keeps 2) |
+| Direct fetch pacing | n/a | none (only the Firecrawl fallback is paced: 2 in flight, 10 a minute) |
+| Per-host direct requests | n/a | 2 in flight |
+| Cron `links` limit | 40 | 300 (budget unchanged: 180 s weekdays, 60 s Sundays) |
+| Seed enrichment limit | 60 | 60 (unchanged) |
+| Direct per-page timeout | n/a | 10 s; the Firecrawl fallback keeps 30 s; row cap 45 s |
+
+**Qualify before enrich.** A row is not pending when `qualification =
+'rejected'` and `rejection_reasons` holds any code other than `no_phone`,
+`unclaimed`, `low_score` (a website may cure `no_phone`; the other two are
+soft). Applies to every source and to `countPendingLinks`.
 
 ## Files
 

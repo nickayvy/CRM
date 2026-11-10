@@ -18,6 +18,7 @@ import {
 } from "@/lib/firecrawl/client";
 import { enrichBusinessLinks, enrichPendingLinks } from "@/lib/firecrawl/enrich";
 import { scrapeTrustpilotBusiness, scrapeTrustpilotCategory, slugFromTrustpilotUrl } from "@/lib/firecrawl/trustpilot";
+import { createPageSource } from "@/lib/web/page-source";
 import { TRUSTPILOT_CATEGORIES } from "@/lib/trustpilot-categories";
 
 const SEED_MAX = 50;
@@ -41,7 +42,7 @@ function errorResult(prefix: string, err: unknown) {
 /**
  * Scrapes one Trustpilot profile (`https://www.trustpilot.com/review/<slug>`)
  * into the CRM, then pulls the business's external links from its own website
- * (capped at 45 s). A failed link step is logged; the add still succeeds. If
+ * (capped at 45 s; direct fetch first, Firecrawl as fallback). A failed link step is logged; the add still succeeds. If
  * the link step is rate limited or runs out of time, the row is left unstamped
  * and stays pending for the next drain.
  */
@@ -57,7 +58,9 @@ export async function scrapeUrlAction(url: string): Promise<ActionResult<{ busin
     const fc = createFirecrawl(env.FIRECRAWL_API_KEY);
     const b = await scrapeTrustpilotBusiness(db, fc, url);
     try {
-      const { status } = await enrichBusinessLinks(db, fc, b.id, { timeoutMs: ADD_ENRICH_TIMEOUT_MS });
+      const { status } = await enrichBusinessLinks(db, createPageSource({ firecrawl: fc }), b.id, {
+        timeoutMs: ADD_ENRICH_TIMEOUT_MS,
+      });
       console.info(`[discovery] links for ${b.trustpilotId}: ${status}`);
     } catch (err) {
       console.warn(`[discovery] links for ${b.trustpilotId} failed:`, err);
@@ -100,7 +103,11 @@ export async function seedCategoryAction(slug: string): Promise<ActionResult<See
     const budgetMs = SEED_TOTAL_BUDGET_MS - (Date.now() - started);
     if (budgetMs <= 0) return;
     try {
-      const links = await enrichPendingLinks(db, fc, { limit: SEED_ENRICH_LIMIT, budgetMs, ids: insertedIds });
+      const links = await enrichPendingLinks(db, createPageSource({ firecrawl: fc }), {
+        limit: SEED_ENRICH_LIMIT,
+        budgetMs,
+        ids: insertedIds,
+      });
       console.info(
         `[discovery] links after seeding ${slug}: ${links.enriched} enriched, ${links.empty} empty, ${links.failed} failed, ${links.remaining} pending`,
       );
@@ -113,13 +120,16 @@ export async function seedCategoryAction(slug: string): Promise<ActionResult<See
 
 /**
  * Fills missing phone/email and merges social links from the business's own
- * website (the same deterministic pipeline as the add and the seed).
+ * website (the same deterministic pipeline as the add and the seed). Works
+ * without FIRECRAWL_API_KEY: the website is read directly, and Firecrawl is
+ * only the fallback when a key is set.
  */
 export async function enrichTrustpilotAction(businessId: string): Promise<ActionResult<Business>> {
-  if (!env.FIRECRAWL_API_KEY) return fail(DISCOVERY_NOT_CONFIGURED);
   if (!z.uuid().safeParse(businessId).success) return fail("Invalid business id");
   try {
-    const { status, business: b } = await enrichBusinessLinks(getDb(), createFirecrawl(env.FIRECRAWL_API_KEY), businessId);
+    const key = env.FIRECRAWL_API_KEY;
+    const source = createPageSource({ firecrawl: key ? createFirecrawl(key) : null });
+    const { status, business: b } = await enrichBusinessLinks(getDb(), source, businessId);
     if (status === "skipped") return fail(`Enrichment failed: ${b.name} has no website to enrich from`);
     revalidatePath("/lookup");
     revalidatePath(`/businesses/${businessId}`);
