@@ -5,7 +5,7 @@
 // needs hrefs and loose text.
 
 const NAMED_ENTITIES: Record<string, string> = {
-  amp: "&", lt: "<", gt: ">", quot: '"', apos: "'", nbsp: " ", copy: "©", reg: "®", trade: "™",
+  amp: "&", lt: "<", gt: ">", quot: '"', apos: "'", nbsp: "\u00a0", copy: "©", reg: "®", trade: "™",
   ndash: "–", mdash: "—", hellip: "…", lsquo: "‘", rsquo: "’", ldquo: "“", rdquo: "”", bull: "•",
   middot: "·", laquo: "«", raquo: "»", deg: "°", times: "×", euro: "€", pound: "£", cent: "¢",
   sect: "§", para: "¶", shy: "", zwnj: "", zwj: "", commat: "@", period: ".", colon: ":", sol: "/",
@@ -43,7 +43,7 @@ const CF_PATH_RE = /\/cdn-cgi\/l\/email-protection#([0-9a-f]+)/i;
 
 /** Attribute value of `name` inside one tag's source, entity-decoded; null when absent. */
 function attr(tag: string, name: string): string | null {
-  const re = new RegExp(`[\\s"'/]${name}\\s*=\\s*(?:"([^"]*)"|'([^']*)'|([^\\s"'=<>\`]+))`, "i");
+  const re = new RegExp(`[\\s"'/]${name}\\s*=\\s*(?:"([^"]*)"|'([^']*)'|([^\\s"'<>\`]+))`, "i");
   const m = re.exec(tag);
   if (!m) return null;
   return decodeEntities(m[1] ?? m[2] ?? m[3] ?? "");
