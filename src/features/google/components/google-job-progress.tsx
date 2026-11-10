@@ -166,7 +166,10 @@ export function GoogleJobProgress({ initial, pricePer1000 }: Props) {
         <KeyValue label="Search terms">{plan?.terms.join(", ") ?? job.term ?? "—"}</KeyValue>
         <KeyValue label="Pages per search">{String(maxPages)}</KeyValue>
         <KeyValue label="Places processed">{n(job.fetchedCount)}</KeyValue>
-        <KeyValue label="Duration">{jobDuration(job)}</KeyValue>
+        <KeyValue label="Duration">
+          {/* Runs on the clock while active, so the server's and the browser's values differ. */}
+          <span suppressHydrationWarning>{jobDuration(job, active ? new Date(clock) : undefined)}</span>
+        </KeyValue>
         <KeyValue label="Place types counted on-target">{plan?.acceptTypes.length ? plan.acceptTypes.join(", ") : "Any (custom terms)"}</KeyValue>
       </KeyValueList>
 

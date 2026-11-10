@@ -189,7 +189,7 @@ export function GoogleSearchForm({ defaultNicheId = "roofing" }: { defaultNicheI
         <Field data-invalid={inv("maxPagesPerQuery")}>
           <FieldLabel id="google-pages-label">Pages per search</FieldLabel>
           <Select value={pages} onValueChange={setPages}>
-            <SelectTrigger className="w-full sm:w-48" aria-labelledby="google-pages-label">
+            <SelectTrigger className="w-full sm:w-64" aria-labelledby="google-pages-label">
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
