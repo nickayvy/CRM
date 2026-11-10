@@ -75,13 +75,27 @@ export function NetworkGraph({ nodes, links, categoryOrder, onNodeClick, onNodeH
       .attr("fill", "#6b7280");
 
     const g = svg.append("g");
+    // While a node is being dragged, trackpads keep emitting wheel events
+    // (a resting second finger, scroll momentum). d3-zoom would read those as
+    // a slow zoom, so zoom input is ignored — and the page kept from
+    // scrolling — until the drag ends.
+    let draggingNode = false;
     svg.call(
       d3
         .zoom<SVGSVGElement, unknown>()
         .scaleExtent([0.1, 8])
+        // d3-zoom's default filter, plus the drag guard.
+        .filter((event: MouseEvent) => !draggingNode && (!event.ctrlKey || event.type === "wheel") && !event.button)
         .on("zoom", (event: d3.D3ZoomEvent<SVGSVGElement, unknown>) => {
           g.attr("transform", event.transform.toString());
         }),
+    );
+    svg.on(
+      "wheel.drag-guard",
+      (event: WheelEvent) => {
+        if (draggingNode) event.preventDefault();
+      },
+      { passive: false },
     );
 
     const link = g
@@ -141,6 +155,7 @@ export function NetworkGraph({ nodes, links, categoryOrder, onNodeClick, onNodeH
       d3
         .drag<SVGCircleElement, SimNode>()
         .on("start", (event: d3.D3DragEvent<SVGCircleElement, SimNode, SimNode>, d) => {
+          draggingNode = true;
           if (!event.active) simulation.alphaTarget(0.05).restart();
           d.fx = d.x;
           d.fy = d.y;
@@ -150,6 +165,7 @@ export function NetworkGraph({ nodes, links, categoryOrder, onNodeClick, onNodeH
           d.fy = event.y;
         })
         .on("end", (event: d3.D3DragEvent<SVGCircleElement, SimNode, SimNode>, d) => {
+          draggingNode = false;
           if (!event.active) simulation.alphaTarget(0);
           d.fx = null;
           d.fy = null;
