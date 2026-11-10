@@ -1,7 +1,9 @@
 // External-links enrichment: read the business's own website (non-LLM page
 // scrape), pick out website, social profiles, email and phone, persist them
 // under the write rules, and drain the pending backlog inside a time budget.
-// See docs/team/links/architecture.md §Write rules, §Budgets.
+// Callers pass a page source (lib/web/page-source: direct fetch first,
+// Firecrawl as fallback); a bare Firecrawl client works too.
+// See docs/team/links/architecture.md §Write rules, §Budgets, §Direct fetch.
 import { eq } from "drizzle-orm";
 import type { Db } from "@/db/client";
 import { getBusiness } from "@/db/repo/businesses";
@@ -28,6 +30,18 @@ const MIN_PAGE_MS = 5_000;
 const MIN_ROW_MS = 10_000;
 /** A drain only waits out a rate limit when this much budget is left beyond the wait. */
 export const RATE_LIMIT_MARGIN_MS = 10_000;
+/** Upper bound on drain concurrency, whatever the caller or the source asks for. */
+export const MAX_DRAIN_CONCURRENCY = 8;
+
+/**
+ * Default rows in flight for a drain over `fc`: a page source
+ * (lib/web/page-source) says how many it can take; a bare Firecrawl client
+ * keeps the plan's 2.
+ */
+function defaultConcurrency(fc: FirecrawlLike): number {
+  const n = (fc as { drainConcurrency?: unknown }).drainConcurrency;
+  return typeof n === "number" && Number.isFinite(n) ? n : WEBSITE_CONCURRENCY;
+}
 
 /**
  * Our own time cap ran out (queue wait included) before the row reached a
@@ -172,7 +186,8 @@ export async function enrichBusinessLinks(
 /**
  * Drains rows pending link enrichment: `ids` first (those still pending, in
  * the given order), then never-enriched rows (oldest first), then stale-empty
- * rows, up to `limit`, `concurrency` (default 2) at a time. No new row starts
+ * rows, up to `limit`, `concurrency` at a time (default: the source's
+ * `drainConcurrency` for a page source, else 2; never above 8). No new row starts
  * once `budgetMs` has elapsed on the `now` clock. On FirecrawlRateLimited the
  * drain waits `retryAfterMs` (via `sleep`) and retries that row when the wait
  * plus 10 s still fits the budget, else it stops starting rows; rate-limited
@@ -198,7 +213,7 @@ export async function enrichPendingLinks(
   const started = clock();
   const left = () => opts.budgetMs - (clock() - started);
   const limit = Math.max(0, Math.floor(opts.limit));
-  const concurrency = Math.max(1, Math.floor(opts.concurrency ?? WEBSITE_CONCURRENCY));
+  const concurrency = Math.min(MAX_DRAIN_CONCURRENCY, Math.max(1, Math.floor(opts.concurrency ?? defaultConcurrency(fc))));
 
   let queue: string[] = [];
   if (limit > 0) {

@@ -26,6 +26,26 @@ vi.mock("@/lib/firecrawl/client", async (importOriginal) => {
   return { ...real, createFirecrawl: (key?: string) => (key ? fake : real.createFirecrawl(key)) };
 });
 
+// The direct website fetch never reaches the network either. By default it
+// fails, so every page falls back to the fake Firecrawl exactly as before the
+// page source existed; a test serves a direct page with `direct.pages.set`.
+const direct = vi.hoisted(() => ({
+  pages: new Map<string, { links: string[]; markdown: string | null; finalUrl?: string }>(),
+  calls: [] as string[],
+}));
+vi.mock("@/lib/web/fetch-page", async (importOriginal) => {
+  const real = await importOriginal<typeof import("@/lib/web/fetch-page")>();
+  return {
+    ...real,
+    fetchPage: async (url: string) => {
+      direct.calls.push(url);
+      const page = direct.pages.get(url);
+      if (!page) throw new Error(`no direct page for ${url}`);
+      return { url, finalUrl: page.finalUrl ?? url, links: [...page.links], markdown: page.markdown };
+    },
+  };
+});
+
 // Pass-through spy so tests can see the budget each caller hands the drain.
 const drainSpy = vi.hoisted(() => ({ calls: [] as { limit: number; budgetMs: number }[] }));
 vi.mock("@/lib/firecrawl/enrich", async (importOriginal) => {
@@ -61,26 +81,55 @@ beforeEach(async () => {
   await db.execute(sql`TRUNCATE TABLE businesses RESTART IDENTITY CASCADE`);
   fake = createFakeFirecrawl();
   drainSpy.calls.length = 0;
+  direct.pages.clear();
+  direct.calls.length = 0;
+  vi.spyOn(console, "info").mockImplementation(() => {});
   vi.stubEnv("FIRECRAWL_API_KEY", "fc-test");
   vi.stubEnv("CRON_SECRET", "");
 });
 afterEach(() => {
   vi.unstubAllEnvs();
   vi.useRealTimers();
+  vi.restoreAllMocks();
 });
 
 describe("AC-13.5 without FIRECRAWL_API_KEY", () => {
   beforeEach(() => vi.stubEnv("FIRECRAWL_API_KEY", ""));
 
-  it("discoveryConfigured() is false and every action fails clearly without scraping", async () => {
+  it("discoveryConfigured() is false and the Trustpilot actions fail clearly without scraping", async () => {
     expect(discoveryConfigured()).toBe(false);
     expect(await scrapeUrlAction("https://www.trustpilot.com/review/acme.com")).toEqual({ ok: false, message: NOT_CONFIGURED });
     expect(await seedCategoryAction("sports")).toMatchObject({ ok: false, message: NOT_CONFIGURED });
-    expect(await enrichTrustpilotAction("00000000-0000-4000-8000-000000000000")).toMatchObject({
-      ok: false,
-      message: NOT_CONFIGURED,
-    });
+    // WP-19: link enrichment no longer needs the key; an unknown id is just not found.
+    const res = await enrichTrustpilotAction("00000000-0000-4000-8000-000000000000");
+    expect(res.ok).toBe(false);
+    expect(res.ok === false && res.message).not.toBe(NOT_CONFIGURED);
     expect(fake.calls).toEqual([]);
+    expect(fake.pageCalls).toEqual([]);
+  });
+
+  it("AC-19.7 enrichTrustpilotAction enriches through the direct fetch with no key", async () => {
+    const { business } = await upsertBusinessByTrustpilotId(
+      db,
+      makeTrustpilotRow({ trustpilotId: "acme.com", website: "https://acme.com", email: null, phone: null }),
+    );
+    direct.pages.set("https://acme.com", {
+      links: ["mailto:info@acme.com", "tel:+1-512-555-0100", "https://www.facebook.com/acmeplumbing"],
+      markdown: "Acme Plumbing. Family owned since 1982.",
+    });
+
+    const res = await enrichTrustpilotAction(business.id);
+
+    expect(res.ok).toBe(true);
+    expect(res.ok && res.data).toMatchObject({
+      email: "info@acme.com",
+      phone: "+1-512-555-0100",
+      socialLinks: { facebook: "https://www.facebook.com/acmeplumbing" },
+    });
+    expect(direct.calls).toEqual(["https://acme.com"]);
+    expect(fake.pageCalls).toEqual([]);
+    // The Trustpilot path still answers the not-configured message.
+    expect(await scrapeUrlAction("https://www.trustpilot.com/review/acme.com")).toEqual({ ok: false, message: NOT_CONFIGURED });
   });
 });
 
@@ -283,7 +332,7 @@ describe("GET /api/cron/daily", () => {
     expect(fake.calls.some((u) => u.includes("page=2"))).toBe(false);
   });
 
-  it("skips sync and seed when discovery is unconfigured", async () => {
+  it("skips sync and seed when discovery is unconfigured; links still runs (WP-19)", async () => {
     vi.stubEnv("FIRECRAWL_API_KEY", "");
     vi.useFakeTimers({ toFake: ["Date"] });
     vi.setSystemTime(new Date("2026-11-08T13:00:00Z")); // Sunday
@@ -293,12 +342,39 @@ describe("GET /api/cron/daily", () => {
       campaigns: 0,
       emails: 0,
       sync: { skipped: "FIRECRAWL_API_KEY not set" },
-      links: { skipped: "FIRECRAWL_API_KEY not set" },
+      links: { enriched: 0, empty: 0, failed: 0, remaining: 0, rateLimited: false },
       seeded: { skipped: "FIRECRAWL_API_KEY not set" },
     });
   });
 
-  it("AC-17.8 the links stage drains at most 40 pending rows", async () => {
+  it("AC-19.8 without a key the links stage enriches through the direct fetch and reports its counts", async () => {
+    vi.stubEnv("FIRECRAWL_API_KEY", "");
+    vi.useFakeTimers({ toFake: ["Date"] });
+    vi.setSystemTime(new Date("2026-11-09T13:00:00Z")); // Monday
+    const now = new Date();
+    for (const name of ["one", "two", "three"]) {
+      await upsertBusinessByTrustpilotId(db, makeTrustpilotRow({ trustpilotId: `${name}.com`, lastScrapedAt: now, enrichedAt: null }));
+    }
+    direct.pages.set("https://one.com", { links: ["mailto:hi@one.com"], markdown: "One" });
+    direct.pages.set("https://two.com", { links: [], markdown: "Two" });
+    // three.com has no direct page: the fetch fails and there is no fallback.
+
+    const body = await (await call()).json();
+
+    expect(body).toEqual({
+      campaigns: 0,
+      emails: 0,
+      sync: { skipped: "FIRECRAWL_API_KEY not set" },
+      links: { enriched: 1, empty: 1, failed: 1, remaining: 0, rateLimited: false },
+      seeded: null,
+    });
+    expect(direct.calls.sort()).toEqual(["https://one.com", "https://three.com", "https://two.com"]);
+    expect(fake.calls).toEqual([]);
+    expect(fake.pageCalls).toEqual([]);
+    expect(drainSpy.calls).toEqual([{ limit: 300, budgetMs: 180_000 }]);
+  });
+
+  it("AC-17.8 (WP-19: limit 300) the links stage drains at most its limit of pending rows", async () => {
     vi.useFakeTimers({ toFake: ["Date"] });
     vi.setSystemTime(new Date("2026-11-09T13:00:00Z")); // Monday
     const now = new Date();
@@ -311,8 +387,9 @@ describe("GET /api/cron/daily", () => {
     }
     const body = await (await call()).json();
     expect(body.sync).toEqual({ scraped: 0, failed: 0, remaining: 0 });
-    expect(body.links).toEqual({ enriched: 0, empty: 40, failed: 0, remaining: 5, rateLimited: false });
-    expect(fake.pageCalls).toHaveLength(40);
+    expect(drainSpy.calls).toEqual([{ limit: 300, budgetMs: 180_000 }]);
+    expect(body.links).toEqual({ enriched: 0, empty: 45, failed: 0, remaining: 0, rateLimited: false });
+    expect(fake.pageCalls).toHaveLength(45);
   });
 
   it("AC-17.8 a throwing links stage leaves campaigns, emails and sync intact", async () => {
@@ -389,7 +466,7 @@ describe("WP-17 round 1: rate limits in the actions and the cron", () => {
 
     const body = await (await call()).json();
 
-    expect(drainSpy.calls).toEqual([{ limit: 40, budgetMs: 180_000 }]);
+    expect(drainSpy.calls).toEqual([{ limit: 300, budgetMs: 180_000 }]);
     expect(body.links).toEqual({ enriched: 0, empty: 0, failed: 0, remaining: 1, rateLimited: true });
     expect(body.campaigns).toBe(0);
     expect(body.sync).toEqual({ scraped: 0, failed: 0, remaining: 0 });
@@ -403,7 +480,7 @@ describe("WP-17 round 1: rate limits in the actions and the cron", () => {
 
     const body = await (await call()).json();
 
-    expect(drainSpy.calls).toEqual([{ limit: 40, budgetMs: 60_000 }]);
+    expect(drainSpy.calls).toEqual([{ limit: 300, budgetMs: 60_000 }]);
     expect(body.links).toEqual({ enriched: 0, empty: 0, failed: 0, remaining: 0, rateLimited: false });
     expect(body.seeded).toMatchObject({ categories: 22, errors: [] });
   });

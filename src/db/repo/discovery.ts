@@ -173,9 +173,18 @@ export async function markScrapeFailed(db: Db, id: string, now: Date = new Date(
 export const LINKS_RETRY_AFTER_DAYS = 7;
 
 /**
+ * Rejection reasons a website visit can cure (`no_phone`: the site may list
+ * one) or that are only soft flags. A rejected row whose reasons are all in
+ * this list is still enriched; any other reason rules it out.
+ */
+export const ENRICHABLE_REJECTION_REASONS = ["no_phone", "unclaimed", "low_score"] as const;
+
+/**
  * SQL: a row is pending link enrichment when it has a website or a domain-like
  * slug, and was never enriched, or was enriched over 7 days ago with no social
- * links (docs/team/links/architecture.md §Data model).
+ * links (docs/team/links/architecture.md §Data model); and it is not
+ * rejected for a reason outside ENRICHABLE_REJECTION_REASONS (qualify before
+ * enrich, docs/team/google/architecture.md §Page source).
  */
 function pendingLinksWhere(now: Date) {
   const cutoff = new Date(now.getTime() - LINKS_RETRY_AFTER_DAYS * 24 * 3_600_000);
@@ -187,7 +196,12 @@ function pendingLinksWhere(now: Date) {
     isNull(businesses.enrichedAt),
     and(lt(businesses.enrichedAt, cutoff), sql`${businesses.socialLinks} = '{}'::jsonb`),
   );
-  return and(hasTarget, due);
+  const allowed = sql.join(
+    ENRICHABLE_REJECTION_REASONS.map((r) => sql`${r}`),
+    sql`, `,
+  );
+  const worthIt = sql`NOT (${businesses.qualification} = 'rejected' AND NOT (${businesses.rejectionReasons} <@ ARRAY[${allowed}]::text[]))`;
+  return and(hasTarget, due, worthIt);
 }
 
 /**
