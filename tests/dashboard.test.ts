@@ -275,8 +275,8 @@ describe("overview tiles (WP-16, AC-16.5)", () => {
 
     const bySource = await q<{ source: string; n: string | number }>(sql`SELECT source, count(*) AS n FROM businesses GROUP BY source`);
     const expSource = Object.fromEntries(bySource.map((r) => [r.source, Number(r.n)]));
-    expect(tiles.businessesBySource.map((r) => r.source)).toEqual(["trustpilot", "yelp"]);
+    expect(tiles.businessesBySource.map((r) => r.source)).toEqual(["trustpilot", "yelp", "google"]);
     for (const r of tiles.businessesBySource) expect(r.count, r.source).toBe(expSource[r.source] ?? 0);
-    expect(Object.fromEntries(tiles.businessesBySource.map((r) => [r.source, r.count]))).toEqual({ trustpilot: 2, yelp: 9 });
+    expect(Object.fromEntries(tiles.businessesBySource.map((r) => [r.source, r.count]))).toEqual({ trustpilot: 2, yelp: 9, google: 0 });
   });
 });

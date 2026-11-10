@@ -83,7 +83,7 @@ describe("v1 trap table on 40 built records", () => {
     const row = normalizeYelpBusiness(dusty, { searchCategory: "plumbing", searchLocation: "Houston, TX" });
     const r = qualify(
       { ...row, isClaimed: null, distanceM: row.distanceM ?? null, rating: row.rating ?? null, reviewCount: row.reviewCount ?? 0, isClosed: false, phoneDigits: row.phoneDigits ?? null, primaryCategory: row.primaryCategory ?? null, state: row.state ?? null },
-      { searchCategory: "plumbing", categoryAliases: ["plumbing"], radiusM: 20000, locationState: "TX", sameNameCityCount: 1, phoneDuplicate: false },
+      { searchCategory: "plumbing", categoryAliases: ["plumbing"], radiusM: 20000, locationState: "TX", sameNameCityCount: 1, phoneDuplicate: false, websiteDuplicate: false, emailDuplicate: false },
       rules,
     );
     expect(r).toEqual({ qualification: "qualified", score: 69, reasons: [] });

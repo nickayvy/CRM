@@ -31,6 +31,12 @@ export type Env = {
   ELEVENLABS_WEBHOOK_SECRET?: string;
   /** Public base URL of the deployment (absolute links, auth redirects). */
   NEXT_PUBLIC_APP_URL?: string;
+  /** Absent → Google Maps search is disabled. */
+  GOOGLE_PLACES_API_KEY?: string;
+  /** Geocoding API key for areas the offline zip data cannot resolve; falls back to GOOGLE_PLACES_API_KEY. */
+  GOOGLE_GEOCODING_API_KEY?: string;
+  /** Google Places requests allowed per calendar month (UTC); default 1000, minimum 0. */
+  GOOGLE_PLACES_MONTHLY_REQUEST_CAP: number;
 };
 
 export const env: Env = {
@@ -76,5 +82,15 @@ export const env: Env = {
   },
   get NEXT_PUBLIC_APP_URL() {
     return str("NEXT_PUBLIC_APP_URL");
+  },
+  get GOOGLE_PLACES_API_KEY() {
+    return str("GOOGLE_PLACES_API_KEY");
+  },
+  get GOOGLE_GEOCODING_API_KEY() {
+    return str("GOOGLE_GEOCODING_API_KEY") ?? str("GOOGLE_PLACES_API_KEY");
+  },
+  get GOOGLE_PLACES_MONTHLY_REQUEST_CAP() {
+    const n = Number(str("GOOGLE_PLACES_MONTHLY_REQUEST_CAP") ?? 1000);
+    return Number.isFinite(n) ? Math.max(0, Math.floor(n)) : 1000;
   },
 };

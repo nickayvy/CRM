@@ -23,7 +23,7 @@ export function VelocityBadge({ l30d, className }: { l30d: number; className?: s
   );
 }
 
-const SOURCE_LABEL: Record<BusinessSource, string> = { yelp: "Yelp", trustpilot: "Trustpilot" };
+const SOURCE_LABEL: Record<BusinessSource, string> = { yelp: "Yelp", trustpilot: "Trustpilot", google: "Google" };
 
 /** Small Yelp/Trustpilot provenance chip. */
 export function SourceChip({ source, className }: { source: BusinessSource; className?: string }) {

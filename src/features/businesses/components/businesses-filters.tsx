@@ -8,7 +8,7 @@ import type { BusinessSource, BusinessStatus, Qualification } from "@/db/schema"
 import { QUALIFICATION_LABELS, STATUS_LABELS } from "@/lib/labels";
 import { SOURCES, patchSearchParams } from "../search-params";
 
-const SOURCE_LABELS: Record<BusinessSource, string> = { trustpilot: "Trustpilot", yelp: "Yelp" };
+const SOURCE_LABELS: Record<BusinessSource, string> = { trustpilot: "Trustpilot", yelp: "Yelp", google: "Google" };
 
 export type BusinessesFiltersProps = {
   filter: BusinessFilter;

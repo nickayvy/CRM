@@ -35,6 +35,8 @@ const CTX: QualifyContext = {
   locationState: "TX",
   sameNameCityCount: 1,
   phoneDuplicate: false,
+  websiteDuplicate: false,
+  emailDuplicate: false,
 };
 
 /** A clean, qualified plumber, claim unknown (score 50+15+10+5+0+10+5 = 95). */
@@ -196,6 +198,16 @@ describe("qualify — every rule has a positive and a negative case", () => {
       hit: () => qualify(biz(), ctx({ phoneDuplicate: true }), RULES),
       miss: () => qualify(biz(), ctx({ phoneDuplicate: false }), RULES),
     },
+    {
+      code: "duplicate_website",
+      hit: () => qualify(biz(), ctx({ websiteDuplicate: true }), RULES),
+      miss: () => qualify(biz(), ctx({ websiteDuplicate: false }), RULES),
+    },
+    {
+      code: "duplicate_email",
+      hit: () => qualify(biz(), ctx({ emailDuplicate: true }), RULES),
+      miss: () => qualify(biz(), ctx({ emailDuplicate: false }), RULES),
+    },
   ];
 
   it.each(cases)("$code", ({ code, hit, miss }) => {
@@ -237,7 +249,11 @@ describe("qualify — every rule has a positive and a negative case", () => {
       reviewCount: 1,
       isClaimed: false,
     });
-    const r = qualify(b, ctx({ sameNameCityCount: 4, phoneDuplicate: true }), rules({ maxReviews: 0 }));
+    const r = qualify(
+      b,
+      ctx({ sameNameCityCount: 4, phoneDuplicate: true, websiteDuplicate: true, emailDuplicate: true }),
+      rules({ maxReviews: 0 }),
+    );
     expect(r.qualification).toBe("rejected");
     expect(r.reasons).toEqual([
       "closed",
@@ -250,6 +266,8 @@ describe("qualify — every rule has a positive and a negative case", () => {
       "too_few_reviews",
       "too_many_reviews",
       "duplicate_phone",
+      "duplicate_website",
+      "duplicate_email",
       "unclaimed",
     ]);
   });
@@ -309,12 +327,18 @@ describe("REASON_LABELS", () => {
       "too_few_reviews",
       "too_many_reviews",
       "duplicate_phone",
+      "duplicate_website",
+      "duplicate_email",
       "unclaimed",
       "low_score",
     ];
     expect(Object.keys(REASON_LABELS).sort()).toEqual([...codes].sort());
     for (const c of codes) expect(REASON_LABELS[c]).toMatch(/^[A-Z][a-z].*[^.]$/);
     expect(REASON_LABELS.chain).toBe("Matches a known chain or franchise name");
+    expect(REASON_LABELS.duplicate_website).toBe("Shares a website with another business");
+    expect(REASON_LABELS.duplicate_email).toBe("Shares an email address with another business");
+    // Source-neutral: Google rows show these too.
+    for (const c of codes) expect(REASON_LABELS[c]).not.toMatch(/yelp/i);
   });
 });
 
