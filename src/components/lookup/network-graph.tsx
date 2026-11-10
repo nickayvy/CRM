@@ -146,21 +146,34 @@ export function NetworkGraph({ nodes, links, categoryOrder, onNodeClick, onNodeH
           .id((d) => d.id)
           .distance(180),
       )
-      .force("charge", d3.forceManyBody().strength(-250))
+      // Repulsion is capped and a weak pull toward the middle balances it.
+      // Without these, unlinked nodes push each other apart forever, so the
+      // graph kept spreading out whenever the simulation was running (e.g.
+      // while a node was held).
+      .force("charge", d3.forceManyBody().strength(-250).distanceMax(400))
       .force("center", d3.forceCenter(width / 2, height / 2))
+      .force("x", d3.forceX<SimNode>(width / 2).strength(0.05))
+      .force("y", d3.forceY<SimNode>(height / 2).strength(0.05))
       .force("collide", d3.forceCollide<SimNode>().radius((d) => radius(d) + 16));
     simulationRef.current = simulation;
 
+    // Only reheat the simulation once the pointer actually moves, so a plain
+    // click-and-hold leaves the layout still.
+    let reheated = false;
     node.call(
       d3
         .drag<SVGCircleElement, SimNode>()
-        .on("start", (event: d3.D3DragEvent<SVGCircleElement, SimNode, SimNode>, d) => {
+        .on("start", (_event: d3.D3DragEvent<SVGCircleElement, SimNode, SimNode>, d) => {
           draggingNode = true;
-          if (!event.active) simulation.alphaTarget(0.05).restart();
+          reheated = false;
           d.fx = d.x;
           d.fy = d.y;
         })
         .on("drag", (event: d3.D3DragEvent<SVGCircleElement, SimNode, SimNode>, d) => {
+          if (!reheated) {
+            reheated = true;
+            simulation.alphaTarget(0.05).restart();
+          }
           d.fx = event.x;
           d.fy = event.y;
         })
@@ -215,7 +228,12 @@ export function NetworkGraph({ nodes, links, categoryOrder, onNodeClick, onNodeH
       if (!svg) return;
       const { width, height } = getSize();
       d3.select(svg).attr("width", width).attr("height", height);
-      simulationRef.current?.force("center", d3.forceCenter(width / 2, height / 2)).alpha(0.1).restart();
+      simulationRef.current
+        ?.force("center", d3.forceCenter(width / 2, height / 2))
+        .force("x", d3.forceX<SimNode>(width / 2).strength(0.05))
+        .force("y", d3.forceY<SimNode>(height / 2).strength(0.05))
+        .alpha(0.1)
+        .restart();
     });
     observer.observe(container);
     return () => observer.disconnect();
