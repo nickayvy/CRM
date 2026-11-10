@@ -10,7 +10,7 @@ import {
   planGoogleSearch,
   searchAt,
 } from "@/lib/google-places/plan";
-import { AreaError, resolveArea, zipCentre } from "@/lib/google-places/zips";
+import { AreaError, collapseSharedCentres, resolveArea, zipCentre } from "@/lib/google-places/zips";
 import { TRUSTPILOT_CATEGORIES } from "@/lib/trustpilot-categories";
 
 describe("NICHES", () => {
@@ -57,6 +57,38 @@ describe("resolveArea", () => {
     }
     expect(geocode).not.toHaveBeenCalled();
     expect((await resolveArea("New York, NY")).zips.length).toBeGreaterThan(20);
+  });
+
+  it("AC-20.12 collapses zips that share a centre for a city, keeping the lowest zip", async () => {
+    const dallas = await resolveArea("Dallas, TX");
+    expect(dallas.zips.length).toBeLessThanOrEqual(70);
+    expect(dallas.zips.length).toBeGreaterThan(20);
+    expect(dallas.zips).toContain("75201");
+    const centres = dallas.zips.map((z) => JSON.stringify(zipCentre(z)));
+    expect(new Set(centres).size).toBe(dallas.zips.length);
+  });
+
+  it("collapseSharedCentres keeps the lowest zip of each centre and every zip with its own centre", () => {
+    // 75201 and 75202 have distinct centres; a zip repeated in the input counts once.
+    expect(collapseSharedCentres(["75202", "75201", "75201"])).toEqual(["75201", "75202"]);
+    // 75222 and 75250 sit on the same point: 75250 goes.
+    expect(zipCentre("75250")).toEqual(zipCentre("75222"));
+    expect(collapseSharedCentres(["75250", "75201", "75221", "75222"])).toEqual(["75201", "75221", "75222"]);
+  });
+
+  it("AC-20.12 keeps an explicit zip list exactly as typed, even when the zips share a centre", async () => {
+    const both = await resolveArea("75201, 75222");
+    expect(both.zips).toEqual(["75201", "75222"]);
+  });
+
+  it("AC-20.12 collapses shared centres for a radius and a geocoded area", async () => {
+    const radius = await resolveArea("75201 +10mi");
+    const rc = radius.zips.map((z) => JSON.stringify(zipCentre(z)));
+    expect(new Set(rc).size).toBe(radius.zips.length);
+    const geo = await resolveArea("Downtown Dallas", { geocode: async () => zipCentre("75201") });
+    const gc = geo.zips.map((z) => JSON.stringify(zipCentre(z)));
+    expect(new Set(gc).size).toBe(geo.zips.length);
+    expect(geo.zips).toContain("75201");
   });
 
   it("resolves \"<zip> +<n>mi\" around the zip centre", async () => {
