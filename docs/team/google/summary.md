@@ -3,13 +3,13 @@
 **Date:** 2026-11-10 · **PM:** Fable 5.2
 
 ## State in one line
-Built, reviewed and merged on `claude/dreamy-euler-y8cyj9`; the production
-database is migrated; **not deployed**, because GitHub refused every push
-from the build session (HTTP 403, the Claude GitHub App has no write access
-to `nickayvy/CRM`). No Google request has been made yet: the two API keys
-reached the session masked.
+Built, reviewed, merged and pushed. `main` is at `2335e0b` (fast-forward from
+`4448acf`) and Vercel is deploying it to production; the production database
+was migrated beforehand. No Google request has been made yet: the two API
+keys reached the session masked, and `GOOGLE_PLACES_API_KEY` is not in Vercel,
+so production shows "Google Maps search is not configured" until it is added.
 
-## Shipped (on the branch)
+## Shipped
 - **WP-18 Google Places core** — `wp-18-google-places-core`, merged `1cabd8f`,
   no revision round.
   - Places API (New) Text Search client; key in the header only, redacted
@@ -64,13 +64,10 @@ Code change, excluding docs and generated files: 80 files, +8267 / −112.
   The app does not read it; Text Search has no use for it.
 
 ## Still to do, in order
-1. **Reconnect GitHub** so the branch can be pushed and merged to `main`
-   (Vercel deploys `main`). Until then the work exists only in the build
-   container and in the bundle file handed to the user.
-2. **Add to Vercel** (production): `GOOGLE_PLACES_API_KEY`; optionally
-   `GOOGLE_GEOCODING_API_KEY` and `GOOGLE_PLACES_MONTHLY_REQUEST_CAP`.
-   The key's Google Cloud project needs "Places API (New)" enabled.
-3. **First live search**, small: one niche, one zip, one page (1 request).
+1. **Add to Vercel** (production): `GOOGLE_PLACES_API_KEY`; optionally
+   `GOOGLE_GEOCODING_API_KEY` and `GOOGLE_PLACES_MONTHLY_REQUEST_CAP`, then
+   redeploy. The key's Google Cloud project needs "Places API (New)" enabled.
+2. **First live search**, small: one niche, one zip, one page (1 request).
    This is the first real test of the field mapping (spec AC14).
 
 ## Cut or deferred
@@ -92,10 +89,11 @@ Code change, excluding docs and generated files: 80 files, +8267 / −112.
   unreachable from the build session. Endpoint, headers, field names, the
   60-result cap, the $35 per 1,000 price and the 1,000 free requests a month
   are unverified until the first live call and a look at the billing page.
-- **Speed is unmeasured.** Each place costs about a dozen database round
-  trips. If the Vercel function and the Supabase project are in different
-  regions, a slice may finish only a few searches; the job still completes
-  through the open page and the daily cron.
+- **Speed is unmeasured and likely slow.** Each place costs about a dozen
+  database round trips, and the Vercel functions run in `iad1` (US East)
+  while the Supabase project is in `us-west-1`. A slice may finish only a few
+  searches; the job still completes through the open page and the daily cron.
+  Moving the functions next to the database would speed up the whole app.
 - **Storing Google Maps content.** Google's policy allows keeping place IDs
   and restricts caching other place content. LAR stores names, phones,
   websites, addresses and ratings. This is the user's call with their own key.

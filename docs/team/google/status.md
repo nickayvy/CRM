@@ -42,3 +42,6 @@
   lint, build clean, 1325 tests; ACCEPT; merged `eda0910`.
 - 2026-11-10 Integration on the merged branch: typecheck, lint, build clean,
   1325 tests. Run summary: summary.md. Not deployed.
+- 2026-11-10 The user restored the GitHub App's access. Branch pushed; `main`
+  fast-forwarded `4448acf..2335e0b`; Vercel production deployment
+  `dpl_6umVyjowbDJ5AqYme7hgwVxuAPks` started from that commit.
