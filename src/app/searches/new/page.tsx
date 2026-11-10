@@ -31,8 +31,8 @@ export default async function Page({ searchParams }: Props = {}) {
   const google = googleConfigured();
   const yelp = !!env.YELP_API_KEY;
   const asked = Array.isArray(sp.source) ? sp.source[0] : sp.source;
-  // Google is the default when it is configured (or when Yelp is not either).
-  const source: Source = asked === "google" || asked === "yelp" ? asked : google || !yelp ? "google" : "yelp";
+  // Google is the default when it is configured; the tabs switch either way.
+  const source: Source = asked === "google" || asked === "yelp" ? asked : google ? "google" : "yelp";
 
   return (
     <PageShell width="narrow">
