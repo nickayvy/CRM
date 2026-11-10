@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { PhoneIcon, SettingsIcon } from "lucide-react";
+import { ArrowRightIcon, BotIcon, ListIcon, PhoneIcon } from "lucide-react";
 import { ProgressBar, StatusBadge } from "@/components/primitives";
 import { Button } from "@/components/ui/button";
 import type { CampaignStats } from "@/db/repo/call-campaigns";
@@ -31,6 +31,7 @@ export function CampaignCard({ campaign: c }: CampaignCardProps) {
         {c.description ? <p className="line-clamp-2 text-sm text-muted-foreground">{c.description}</p> : null}
         <div className="mt-1 flex flex-wrap items-center gap-1.5">
           <StatusBadge label={CAMPAIGN_STATUS_LABELS[c.status]} />
+          <StatusBadge tone="neutral">{c.mode === "ai" ? "AI agent" : "Dialer"}</StatusBadge>
           {c.status === "paused" && c.pauseReason ? <StatusBadge label={PAUSE_REASON_LABELS[c.pauseReason]} /> : null}
         </div>
       </header>
@@ -61,18 +62,37 @@ export function CampaignCard({ campaign: c }: CampaignCardProps) {
         </p>
       </div>
       <footer className="flex flex-wrap gap-2">
-        <Button asChild size="sm">
-          <Link href={`/calling/${c.id}/dial`}>
-            <PhoneIcon aria-hidden />
-            Open dialer
-          </Link>
-        </Button>
-        <Button asChild size="sm" variant="outline">
-          <Link href={`/calling/${c.id}`}>
-            <SettingsIcon aria-hidden />
-            Manage
-          </Link>
-        </Button>
+        {c.status === "draft" ? (
+          // A draft cannot be dialed yet: its page walks through adding businesses and starting.
+          <Button asChild size="sm">
+            <Link href={`/calling/${c.id}`}>
+              Finish setup
+              <ArrowRightIcon aria-hidden />
+            </Link>
+          </Button>
+        ) : c.mode === "ai" ? (
+          <Button asChild size="sm">
+            <Link href={`/calling/${c.id}`}>
+              <BotIcon aria-hidden />
+              View AI calls
+            </Link>
+          </Button>
+        ) : (
+          <>
+            <Button asChild size="sm">
+              <Link href={`/calling/${c.id}/dial`}>
+                <PhoneIcon aria-hidden />
+                Open dialer
+              </Link>
+            </Button>
+            <Button asChild size="sm" variant="outline">
+              <Link href={`/calling/${c.id}`}>
+                <ListIcon aria-hidden />
+                Queue
+              </Link>
+            </Button>
+          </>
+        )}
       </footer>
     </article>
   );

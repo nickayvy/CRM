@@ -1,7 +1,10 @@
 "use client";
 
 import { useEffect, useState, useTransition } from "react";
+import Link from "next/link";
 import {
+  ArrowRight,
+  Check,
   ChevronDown,
   ExternalLink,
   Globe,
@@ -13,13 +16,23 @@ import {
   Phone,
   Plus,
   Star,
+  Trash2,
 } from "lucide-react";
 import { toast } from "sonner";
+import { AddToCampaignDialog } from "@/components/leads/add-to-campaign-dialog";
+import { useConfirm } from "@/components/primitives";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogDescription, DialogTitle } from "@/components/ui/dialog";
 import { Skeleton } from "@/components/ui/skeleton";
 import { ReasonChips } from "@/features/businesses/components/reason-chips";
-import { addToLeadsAction, getDossierAction } from "@/features/lookup/actions";
+import type { CampaignTarget } from "@/features/leads/types";
+import {
+  addToLeadsAction,
+  createCallCampaignAction,
+  deleteBusinessFromLookupAction,
+  getDossierAction,
+  queueBusinessForCallsAction,
+} from "@/features/lookup/actions";
 import type { Dossier } from "@/features/lookup/data";
 import { categoryLabel } from "@/features/lookup/graph-utils";
 import { absoluteUrl, hostOf, metaAdsLibraryUrl, socialLink, trustpilotUrl } from "@/features/lookup/links";
@@ -33,6 +46,16 @@ type Props = {
   /** The business to open; null closes the dialog. */
   businessId: string | null;
   onClose: () => void;
+  /** The row already on screen for `businessId`: shown at once while the full dossier loads. */
+  preview?: LookupBusiness | null;
+  /** Business ids already on the user's lead list. */
+  leadIds?: ReadonlySet<string>;
+  /** Told when this dossier adds a lead, so cards behind it update. */
+  onLeadAdded?: (businessId: string) => void;
+  /** Open call campaigns the lead can be queued in from here. */
+  callCampaigns?: CampaignTarget[];
+  /** Told after this dossier deletes the business (the dialog has already asked to close). */
+  onDeleted?: (businessId: string) => void;
 };
 
 function SectionDot() {
@@ -41,11 +64,11 @@ function SectionDot() {
 
 /**
  * Intel dossier (gtm dossier-modal.tsx): header with the real "Last synced",
- * overview + metrics box, "Add to Lead List", intel brief, external-link
- * tiles ("NO DATA" when empty) and similar companies that switch the dossier
- * in place.
+ * overview + metrics box, "Add to Lead List" (then the next steps: queue for
+ * calls, open Leads), intel brief, external-link tiles ("NO DATA" when empty)
+ * and similar companies that switch the dossier in place.
  */
-export function DossierModal({ businessId, onClose }: Props) {
+export function DossierModal({ businessId, onClose, preview = null, leadIds, onLeadAdded, callCampaigns, onDeleted }: Props) {
   const [viewingId, setViewingId] = useState(businessId);
   const [openedFor, setOpenedFor] = useState(businessId);
   if (openedFor !== businessId) {
@@ -66,7 +89,10 @@ export function DossierModal({ businessId, onClose }: Props) {
     };
   }, [viewingId]);
 
-  const current = loaded && loaded.id === viewingId ? loaded.result : null;
+  const fetched = loaded && loaded.id === viewingId ? loaded.result : null;
+  // Until the server answers, a card's own row fills the dossier (similar companies follow).
+  const fromPreview = !fetched && preview && preview.id === viewingId;
+  const current: ActionResult<Dossier> | null = fromPreview ? { ok: true, data: { business: preview, related: [] } } : fetched;
 
   return (
     <Dialog open={businessId !== null} onOpenChange={(open) => !open && onClose()}>
@@ -85,17 +111,45 @@ export function DossierModal({ businessId, onClose }: Props) {
             <DialogDescription className="mt-1 text-xs text-muted-foreground">{current.message ?? "Not found"}</DialogDescription>
           </div>
         ) : (
-          <DossierBody key={current.data.business.id} dossier={current.data} onNavigate={setViewingId} />
+          <DossierBody
+            key={current.data.business.id}
+            dossier={current.data}
+            relatedLoading={Boolean(fromPreview)}
+            isLead={leadIds?.has(current.data.business.id) ?? false}
+            onLeadAdded={onLeadAdded}
+            callCampaigns={callCampaigns}
+            onNavigate={setViewingId}
+            onDeleted={(id) => {
+              onClose();
+              onDeleted?.(id);
+            }}
+          />
         )}
       </DialogContent>
     </Dialog>
   );
 }
 
-function DossierBody({ dossier, onNavigate }: { dossier: Dossier; onNavigate: (id: string) => void }) {
+type BodyProps = {
+  dossier: Dossier;
+  onNavigate: (id: string) => void;
+  relatedLoading?: boolean;
+  isLead?: boolean;
+  onLeadAdded?: (businessId: string) => void;
+  callCampaigns?: CampaignTarget[];
+  onDeleted?: (businessId: string) => void;
+};
+
+function DossierBody({ dossier, onNavigate, relatedLoading = false, isLead = false, onLeadAdded, callCampaigns, onDeleted }: BodyProps) {
   const { business: b, related } = dossier;
   const [relatedOpen, setRelatedOpen] = useState(true);
   const [adding, startAdding] = useTransition();
+  const [addedHere, setAddedHere] = useState(false);
+  const [picking, setPicking] = useState(false);
+  const [queuedIn, setQueuedIn] = useState<{ id: string; name: string } | null>(null);
+  const [deleting, startDeleting] = useTransition();
+  const { confirm, dialog: confirmDialog } = useConfirm();
+  const inLeads = isLead || addedHere;
   const category = b.categoryTitle ?? (b.category ? categoryLabel(b.category) : null);
   const host = hostOf(b.website);
   const tp = trustpilotUrl(b);
@@ -104,10 +158,56 @@ function DossierBody({ dossier, onNavigate }: { dossier: Dossier; onNavigate: (i
   function addToLeads() {
     startAdding(async () => {
       const res = await addToLeadsAction(b.id);
-      if (!res.ok) toast.error("Failed to add lead", { description: res.message ?? "Unknown error" });
-      else if (res.data.created) toast.success("Lead added", { description: b.name });
+      if (!res.ok) {
+        toast.error("Failed to add lead", { description: res.message ?? "Unknown error" });
+        return;
+      }
+      setAddedHere(true);
+      onLeadAdded?.(b.id);
+      if (res.data.created) toast.success("Lead added", { description: b.name });
       else toast.info("Already in your leads", { description: b.name });
     });
+  }
+
+  async function remove() {
+    const yes = await confirm({
+      title: `Delete ${b.name}?`,
+      description:
+        "This permanently removes the business from your network, along with its activity history, lead entries and campaign memberships. It cannot be undone.",
+      confirmLabel: "Delete",
+      tone: "danger",
+    });
+    if (!yes) return;
+    startDeleting(async () => {
+      const res = await deleteBusinessFromLookupAction(b.id);
+      if (!res.ok) {
+        toast.error("Could not delete", { description: res.message ?? "Unknown error" });
+        return;
+      }
+      toast.success("Business deleted", { description: b.name });
+      onDeleted?.(b.id);
+    });
+  }
+
+  async function createCampaign(name: string): Promise<string | null> {
+    const res = await createCallCampaignAction(name);
+    if (!res.ok) {
+      toast.error(res.message ?? "Could not create the campaign.");
+      return null;
+    }
+    return res.data.id;
+  }
+
+  async function queueForCalls(campaignId: string): Promise<boolean> {
+    const res = await queueBusinessForCallsAction(campaignId, b.id);
+    if (!res.ok) {
+      toast.error(res.message ?? "Could not add to the campaign.");
+      return false;
+    }
+    setQueuedIn({ id: campaignId, name: res.data.campaignName });
+    if (res.data.added) toast.success(`Queued in ${res.data.campaignName}`, { description: b.name });
+    else toast.info(`Not added to ${res.data.campaignName}`, { description: "Already in its queue, or marked do not call." });
+    return true;
   }
 
   const twitter = socialLink(b.socialLinks, "twitter", "x");
@@ -131,8 +231,21 @@ function DossierBody({ dossier, onNavigate }: { dossier: Dossier; onNavigate: (i
           <SectionDot />
           Last synced: <time dateTime={b.lastSyncedAt}>{formatRelative(b.lastSyncedAt)}</time>
         </div>
-        <SourceChip source={b.source} />
+        <div className="flex items-center gap-2">
+          <SourceChip source={b.source} />
+          <Button
+            size="sm"
+            className="h-7 rounded-md bg-destructive px-2.5 text-xs text-white hover:bg-destructive/85"
+            onClick={() => void remove()}
+            disabled={deleting}
+            aria-label={`Delete ${b.name}`}
+          >
+            {deleting ? <Loader2 className="h-3.5 w-3.5 animate-spin" aria-hidden /> : <Trash2 className="h-3.5 w-3.5" aria-hidden />}
+            Delete
+          </Button>
+        </div>
       </div>
+      {confirmDialog}
 
       <div className="dossier-scroll min-h-0 flex-1 overflow-x-hidden overflow-y-auto">
         <div className="flex w-full flex-col gap-0 p-4">
@@ -209,10 +322,64 @@ function DossierBody({ dossier, onNavigate }: { dossier: Dossier; onNavigate: (i
             </div>
           </section>
 
-          <Button className="mt-2 w-full" onClick={addToLeads} disabled={adding}>
-            {adding ? <Loader2 className="mr-1.5 h-4 w-4 animate-spin" aria-hidden /> : <Plus className="mr-1.5 h-4 w-4" aria-hidden />}
-            Add to Lead List
-          </Button>
+          {inLeads ? (
+            <div
+              className="mt-2 flex flex-col gap-3 rounded-md border border-primary/25 bg-primary/5 px-3 py-2.5 sm:flex-row sm:items-center sm:justify-between"
+              data-testid="lead-next-steps"
+            >
+              <div className="min-w-0">
+                <p className="flex items-center gap-1.5 text-sm font-medium text-foreground">
+                  <Check className="h-4 w-4 shrink-0 text-primary" aria-hidden />
+                  In your leads
+                </p>
+                <p className="mt-0.5 text-xs text-muted-foreground">
+                  {queuedIn ? (
+                    <>
+                      Queued for calls in{" "}
+                      <Link href={`/calling/${queuedIn.id}`} className="text-primary underline underline-offset-2">
+                        {queuedIn.name}
+                      </Link>
+                      .
+                    </>
+                  ) : b.phone ? (
+                    "Next: queue it in a call campaign, or work it from Leads."
+                  ) : (
+                    "No phone number on file, so it cannot be queued for calls yet."
+                  )}
+                </p>
+              </div>
+              <div className="flex shrink-0 flex-wrap gap-2">
+                {b.phone && !queuedIn && (
+                  <Button size="sm" onClick={() => setPicking(true)}>
+                    <Phone className="h-3.5 w-3.5" aria-hidden />
+                    Add to call campaign…
+                  </Button>
+                )}
+                <Button size="sm" variant="outline" asChild>
+                  <Link href="/leads">
+                    Open Leads
+                    <ArrowRight className="h-3.5 w-3.5" aria-hidden />
+                  </Link>
+                </Button>
+              </div>
+            </div>
+          ) : (
+            <Button className="mt-2 w-full" onClick={addToLeads} disabled={adding}>
+              {adding ? <Loader2 className="mr-1.5 h-4 w-4 animate-spin" aria-hidden /> : <Plus className="mr-1.5 h-4 w-4" aria-hidden />}
+              Add to Lead List
+            </Button>
+          )}
+          {picking && (
+            <AddToCampaignDialog
+              kind="call"
+              count={1}
+              subject={b.name}
+              campaigns={callCampaigns ?? []}
+              onClose={() => setPicking(false)}
+              onCreate={createCampaign}
+              onSubmit={queueForCalls}
+            />
+          )}
 
           {b.aiSummary && (
             <section className="py-6" aria-label="Intel brief">
@@ -258,6 +425,13 @@ function DossierBody({ dossier, onNavigate }: { dossier: Dossier; onNavigate: (i
             </div>
           </section>
 
+          {relatedLoading && related.length === 0 && (
+            <div className="flex flex-col gap-1.5 py-6" data-testid="related-loading" aria-busy="true">
+              <Skeleton className="h-3 w-48" />
+              <Skeleton className="h-12 w-full rounded-md" />
+              <Skeleton className="h-12 w-full rounded-md" />
+            </div>
+          )}
           {related.length > 0 && (
             <section className="w-full py-6" aria-label="Similar companies">
               <button

@@ -55,10 +55,11 @@ export function categoryColor(category: string | null, order: readonly string[])
 export function graphSubset(
   nodes: GraphNode[],
   links: GraphLink[],
-  opts: { category?: string | null; max?: number } = {},
+  opts: { category?: string | null; categories?: readonly string[]; max?: number } = {},
 ): { nodes: GraphNode[]; links: GraphLink[]; total: number } {
   const max = opts.max ?? MAX_GRAPH_NODES;
-  const inCategory = opts.category ? nodes.filter((n) => n.category === opts.category) : nodes;
+  const wanted = new Set([...(opts.categories ?? []), ...(opts.category ? [opts.category] : [])]);
+  const inCategory = wanted.size ? nodes.filter((n) => n.category !== null && wanted.has(n.category)) : nodes;
   const capped = [...inCategory]
     .sort((a, b) => b.totalReviews - a.totalReviews || a.name.localeCompare(b.name) || a.id.localeCompare(b.id))
     .slice(0, max);

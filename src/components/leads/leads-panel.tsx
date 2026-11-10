@@ -11,6 +11,7 @@ import {
   addLeadsToCallCampaignAction,
   addLeadsToEmailCampaignAction,
   bulkRemoveLeadsAction,
+  createCallCampaignForLeadsAction,
   removeLeadAction,
   updateLeadAction,
 } from "@/features/leads/actions";
@@ -133,11 +134,23 @@ export function LeadsPanel({ leads: serverLeads, metrics, history, campaigns }: 
     }
     const verb = kind === "call" ? "Added" : "Enrolled";
     const why = kind === "call" ? "already queued, do not call, or no phone" : "already enrolled, do not email, or no owner email";
-    toast.success(`${verb} ${r.data.added} to ${r.data.campaignName}`, {
+    const href = `${kind === "call" ? "/calling" : "/email"}/${campaignId}`;
+    // Nothing went in: say so plainly instead of a green "Added 0".
+    (r.data.added > 0 ? toast.success : toast.info)(`${verb} ${r.data.added} to ${r.data.campaignName}`, {
       description: r.data.skipped ? `${r.data.skipped} skipped (${why}).` : undefined,
+      action: { label: "Open campaign", onClick: () => router.push(href) },
     });
     router.refresh();
     return true;
+  }
+
+  async function createCallCampaign(name: string): Promise<string | null> {
+    const r = await createCallCampaignForLeadsAction(name);
+    if (!r.ok) {
+      toast.error(r.message ?? "Could not create the campaign.");
+      return null;
+    }
+    return r.data.id;
   }
 
   return (
@@ -168,6 +181,7 @@ export function LeadsPanel({ leads: serverLeads, metrics, history, campaigns }: 
               onRemove={(id) => void remove([id])}
               onBulkRemove={bulkRemove}
               onAddToCampaign={addToCampaign}
+              onCreateCallCampaign={createCallCampaign}
             />
           ) : (
             <div className="flex flex-col items-center justify-center rounded-lg bg-surface py-16" data-testid="pipeline-empty">

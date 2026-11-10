@@ -150,7 +150,7 @@ describe("/lookup page (server render)", () => {
     await trustpilot({ name: "Acme Gadgets", reviewCount: 800 });
     const html = await render({ category: "electronics_technology" });
     expect(html).toContain("category-bubbles");
-    expect(html).toContain("title=\"Electronics &amp; Technology: 1 business. Click to filter.\"");
+    expect(html).toContain("title=\"Electronics &amp; Technology: 1 business. Click to add to the filter.\"");
     expect(html).toContain("Acme Gadgets");
     expect(html).toContain("1–1 of 1");
     expect(html).toContain("Page 1 of 1");

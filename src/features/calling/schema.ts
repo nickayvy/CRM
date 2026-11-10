@@ -123,6 +123,8 @@ export const addFilterSchema = z.object({
   category: z.string().trim().max(100).optional(),
   minScore: z.number().int().min(0).max(100).optional(),
   q: z.string().trim().max(200).optional(),
+  /** Restrict to businesses on the signed-in user's lead list. */
+  onlyMyLeads: z.boolean().optional(),
 });
 
 export type AddFilter = z.infer<typeof addFilterSchema>;

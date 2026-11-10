@@ -36,6 +36,7 @@ const {
   addLeadsToCallCampaignAction,
   addLeadsToEmailCampaignAction,
   bulkRemoveLeadsAction,
+  createCallCampaignForLeadsAction,
   removeLeadAction,
   updateLeadAction,
 } = await import("@/features/leads/actions");
@@ -247,6 +248,23 @@ describe("AC-15.3 bulk add to campaigns", () => {
     const l = await leadFor(USER_A, await insertBusiness(db, { ownerEmail: "o@x.example" }));
     const c = await emailCampaign("Old", "completed");
     expect(await addLeadsToEmailCampaignAction(c.id, [l.id])).toEqual({ ok: false, message: "That campaign is completed." });
+  });
+
+  it("a call campaign can be created from just a name, and queued leads carry their campaign", async () => {
+    expect(await createCallCampaignForLeadsAction("   ")).toEqual({ ok: false, message: "Name the campaign." });
+    const created = await createCallCampaignForLeadsAction("  Roofers  ");
+    if (!created.ok) throw new Error(created.message);
+    expect(created.data.name).toBe("Roofers");
+    const queued = await leadFor(USER_A, await insertBusiness(db, { name: "Queued Co", phone: "+17135550111" }));
+    const idle = await leadFor(USER_A, await insertBusiness(db, { name: "Idle Co", phone: "+17135550112" }));
+    expect(await addLeadsToCallCampaignAction(created.data.id, [queued.id])).toMatchObject({ ok: true, data: { added: 1, campaignName: "Roofers" } });
+
+    const v = await loadLeadsView(db, USER_A);
+    expect(v.campaigns.call).toEqual([{ id: created.data.id, name: "Roofers", status: "draft" }]);
+    expect(v.leads.find((l) => l.id === queued.id)?.callCampaigns).toEqual([{ id: created.data.id, name: "Roofers" }]);
+    expect(v.leads.find((l) => l.id === idle.id)?.callCampaigns).toBeUndefined();
+    // Another user's view of the same business does not exist, so nothing leaks.
+    expect((await loadLeadsView(db, USER_B)).leads).toEqual([]);
   });
 
   it("the page's campaign targets exclude completed campaigns", async () => {

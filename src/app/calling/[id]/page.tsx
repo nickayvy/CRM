@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { PhoneIcon, SettingsIcon } from "lucide-react";
+import { CheckIcon, PhoneIcon, SettingsIcon, TriangleAlertIcon } from "lucide-react";
 import {
   EmptyState,
   KeyValue,
@@ -16,7 +16,6 @@ import {
 } from "@/components/primitives";
 import { Button } from "@/components/ui/button";
 import { getDb } from "@/db/client";
-import { listCategories, listCities } from "@/db/repo/businesses";
 import {
   countCampaignOutcomes,
   evaluateCampaign,
@@ -64,17 +63,27 @@ export default async function CallCampaignPage({ params }: Props) {
   const now = new Date();
   const campaign = await evaluateCampaign(db, id, now);
   const isAi = campaign.mode === "ai";
-  const [stats, queue, due, upcoming, outcomes, cities, categories, aiCalls] = await Promise.all([
+  const [stats, queue, due, upcoming, outcomes, aiCalls] = await Promise.all([
     getCampaignStats(db, id, now),
     listQueue(db, id, { limit: QUEUE_LIMIT }),
     listDueCallbacks(db, now, { campaignId: id }),
     listUpcomingCallbacks(db, id, now, 10),
     countCampaignOutcomes(db, id),
-    listCities(db),
-    listCategories(db),
     isAi ? listAiCalls(db, id, 30) : Promise.resolve([]),
   ]);
   const missingConfig = isAi ? missingElevenLabsConfig() : [];
+  const callable = stats.pending + stats.callback;
+  const isDraft = campaign.status === "draft";
+  const controls = (
+    <CampaignControls
+      campaignId={id}
+      status={campaign.status}
+      pauseReason={campaign.pauseReason}
+      callable={callable}
+      autoResume={campaign.autoResume}
+    />
+  );
+  const addBusinesses = <AddBusinessesPanel campaignId={id} primary={isDraft && callable === 0} />;
 
   const rows: QueueTableRow[] = queue.rows.map((r) => ({
     id: r.id,
@@ -125,6 +134,22 @@ export default async function CallCampaignPage({ params }: Props) {
         }
       />
 
+      {isAi && missingConfig.length ? (
+        <p
+          role="alert"
+          className="flex items-start gap-2 rounded-lg border border-tone-warning/30 bg-tone-warning-soft px-3 py-2 text-sm"
+          data-testid="ai-config-warning"
+        >
+          <TriangleAlertIcon className="mt-0.5 size-4 shrink-0 text-tone-warning" aria-hidden />
+          <span>
+            AI calling is off: {missingConfig.join(", ")} {missingConfig.length === 1 ? "is" : "are"} not set. The campaign can be started, but
+            no calls will be placed until then.
+          </span>
+        </p>
+      ) : null}
+
+      {isDraft ? <SetupSteps ready={callable > 0} isAi={isAi} /> : null}
+
       <CampaignLive
         campaignId={id}
         initialStatus={campaign.status}
@@ -133,9 +158,18 @@ export default async function CallCampaignPage({ params }: Props) {
         initialStats={stats}
       >
         <Toolbar>
-          <ToolbarGroup>
-            <CampaignControls campaignId={id} status={campaign.status} pauseReason={campaign.pauseReason} />
-            <AddBusinessesPanel campaignId={id} cities={cities} categories={categories} />
+          <ToolbarGroup className="flex-wrap gap-2">
+            {isDraft ? (
+              <>
+                {addBusinesses}
+                {controls}
+              </>
+            ) : (
+              <>
+                {controls}
+                {addBusinesses}
+              </>
+            )}
           </ToolbarGroup>
         </Toolbar>
       </CampaignLive>
@@ -253,5 +287,53 @@ export default async function CallCampaignPage({ params }: Props) {
         </div>
       </div>
     </PageShell>
+  );
+}
+
+/** The three steps from a new draft to the first call, with the current one highlighted. */
+function SetupSteps({ ready, isAi }: { ready: boolean; isAi: boolean }) {
+  const steps = [
+    {
+      title: "Add businesses",
+      body: (
+        <>
+          Use <span className="font-medium text-foreground">Add businesses</span> below to queue your leads, or select them on{" "}
+          <Link href="/leads" className="text-primary underline underline-offset-2">
+            Leads
+          </Link>
+          .
+        </>
+      ),
+      done: ready,
+    },
+    { title: "Start the campaign", body: "Start opens the queue for calling within the hours and daily cap in Settings.", done: false },
+    {
+      title: isAi ? "The AI agent calls" : "Open the dialer",
+      body: isAi
+        ? "Start places the first calls; each result lands on this page."
+        : "The dialer hands you one business at a time and records each outcome.",
+      done: false,
+    },
+  ];
+  const current = ready ? 1 : 0;
+  return (
+    <ol className="grid gap-3 rounded-lg bg-surface p-4 shadow-[var(--shadow-elevated)] sm:grid-cols-3" aria-label="Getting this campaign calling" data-testid="setup-steps">
+      {steps.map((s, i) => (
+        <li key={s.title} aria-current={i === current ? "step" : undefined} className="flex min-w-0 gap-3">
+          <span
+            className={
+              "flex size-6 shrink-0 items-center justify-center rounded-full text-xs font-medium tabular-nums " +
+              (s.done ? "bg-primary/20 text-primary" : i === current ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground")
+            }
+          >
+            {s.done ? <CheckIcon className="size-3.5" aria-label="Done" /> : i + 1}
+          </span>
+          <div className="min-w-0">
+            <p className={"text-sm font-medium " + (i === current ? "text-foreground" : "text-muted-foreground")}>{s.title}</p>
+            <p className="mt-0.5 text-xs text-pretty text-muted-foreground">{s.body}</p>
+          </div>
+        </li>
+      ))}
+    </ol>
   );
 }

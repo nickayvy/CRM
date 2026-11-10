@@ -14,7 +14,7 @@ import {
   truncateLabel,
 } from "@/features/lookup/graph-utils";
 import { faviconUrl, hostOf, isTrustpilotReviewUrl, logoChain, metaAdsLibraryUrl, socialLink, trustpilotUrl } from "@/features/lookup/links";
-import { PAGE_SIZE, pageInfo, parseLookupQuery, patchLookupParams } from "@/features/lookup/search-params";
+import { PAGE_SIZE, categoryParam, pageInfo, parseCategories, parseLookupQuery, patchLookupParams, toggleCategory } from "@/features/lookup/search-params";
 
 function node(id: string, totalReviews: number, category: string | null = "plumbing"): GraphNode {
   return { id, name: `Biz ${id}`, category, totalReviews, rating: 4.2, reviewsLast30d: 0 };
@@ -51,6 +51,12 @@ describe("graphSubset", () => {
     const r = graphSubset(nodes, [], { category: "dental" });
     expect(r.total).toBe(30);
     expect(r.nodes.every((n) => n.category === "dental")).toBe(true);
+  });
+  it("keeps nodes in any of several categories", () => {
+    const mixed = [...nodes, node("x", 1, "hvac"), node("y", 1, null)];
+    const r = graphSubset(mixed, [], { categories: ["dental", "hvac"] });
+    expect(r.total).toBe(31);
+    expect(r.nodes.every((n) => n.category === "dental" || n.category === "hvac")).toBe(true);
   });
   it("drops links whose ends were cut, self-loops and duplicates", () => {
     const links = [
@@ -101,7 +107,7 @@ describe("search params", () => {
       offset: "100",
     });
     expect(q).toEqual({
-      filter: { q: "acme", category: "plumbing", source: "trustpilot", minReviews: 500, minL30d: 25, minRating: 4, hasPhone: true },
+      filter: { q: "acme", categories: ["plumbing"], source: "trustpilot", minReviews: 500, minL30d: 25, minRating: 4, hasPhone: true },
       offset: 100,
     });
     expect(parseLookupQuery({ source: "google", minReviews: "-3", minRating: "9", hasPhone: "false", offset: "abc" })).toEqual({
@@ -147,5 +153,22 @@ describe("links", () => {
     expect(isTrustpilotReviewUrl("https://www.trustpilot.com/review/acme.com")).toBe(true);
     expect(isTrustpilotReviewUrl("https://www.trustpilot.com/review/")).toBe(false);
     expect(isTrustpilotReviewUrl("https://example.com")).toBe(false);
+  });
+});
+
+describe("multi-category params", () => {
+  it("parses a comma-separated category param into distinct aliases", () => {
+    expect(parseCategories("dental, plumbing,,dental")).toEqual(["dental", "plumbing"]);
+    expect(parseCategories(null)).toEqual([]);
+    expect(parseLookupQuery({ category: "dental,plumbing" }).filter.categories).toEqual(["dental", "plumbing"]);
+    expect(parseLookupQuery({}).filter.categories).toBeUndefined();
+  });
+  it("toggles aliases in and out and serialises them", () => {
+    const one = toggleCategory([], "dental");
+    const two = toggleCategory(one, "plumbing");
+    expect(categoryParam(two)).toBe("dental,plumbing");
+    expect(toggleCategory(two, "dental")).toEqual(["plumbing"]);
+    expect(patchLookupParams("category=dental&offset=50", { category: categoryParam(two) })).toBe("category=dental%2Cplumbing");
+    expect(patchLookupParams("category=dental", { category: categoryParam([]) })).toBe("");
   });
 });

@@ -10,23 +10,31 @@ import { Field, FieldDescription, FieldGroup, FieldLabel } from "@/components/ui
 import { Input } from "@/components/ui/input";
 import type { Qualification } from "@/db/schema";
 import { QUALIFICATION_LABELS } from "@/lib/labels";
-import { addBusinessesAction, previewAddAction } from "../actions";
+import { type AddOptions, addBusinessesAction, loadAddOptionsAction, previewAddAction } from "../actions";
 import type { AddFilter } from "../schema";
 
 export type AddBusinessesPanelProps = {
   campaignId: string;
-  cities: { city: string; state: string; count: number }[];
-  categories: { alias: string; count: number }[];
+  /** Preloaded choices; otherwise they load when the panel first opens. */
+  options?: AddOptions;
+  /** Render the trigger as the primary button (a draft with an empty queue). */
+  primary?: boolean;
 };
+
+const SOURCE_BTN =
+  "flex-1 rounded-md px-3 py-1.5 text-sm transition-colors duration-200 aria-pressed:bg-accent aria-pressed:font-medium aria-pressed:text-foreground text-muted-foreground hover:text-foreground";
 
 const selectClass =
   "h-9 w-full min-w-0 rounded-lg border border-input bg-transparent px-3 text-sm shadow-xs outline-none focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50 dark:bg-input/30";
 
-type Preview = { matching: number; addable: number } | null;
+type Preview = { matching: number; addable: number } | "error" | null;
 
 /** "Add businesses" button + side panel: filter, live count, "Add N". */
-export function AddBusinessesPanel({ campaignId, cities, categories }: AddBusinessesPanelProps) {
+export function AddBusinessesPanel({ campaignId, options: preloaded, primary = false }: AddBusinessesPanelProps) {
   const [open, setOpen] = React.useState(false);
+  const [options, setOptions] = React.useState<AddOptions | null>(preloaded ?? null);
+  // null until the user (or the first load) picks: leads when they have any, else every business.
+  const [source, setSource] = React.useState<"leads" | "all" | null>(null);
   const [qualification, setQualification] = React.useState<string[]>(["qualified"]);
   const [hasPhone, setHasPhone] = React.useState(true);
   const [excludeDoNotCall, setExcludeDoNotCall] = React.useState(true);
@@ -37,9 +45,37 @@ export function AddBusinessesPanel({ campaignId, cities, categories }: AddBusine
   const [result, setResult] = React.useState<{ key: string; preview: Preview } | null>(null);
   const [adding, startAdding] = React.useTransition();
 
+  const leadCount = options?.leadCount ?? 0;
+  const fromLeads = (source ?? (leadCount > 0 ? "leads" : "all")) === "leads";
+  const cities = options?.cities ?? [];
+  const categories = options?.categories ?? [];
+
+  React.useEffect(() => {
+    if (!open || options) return;
+    let cancelled = false;
+    loadAddOptionsAction().then(
+      (r) => {
+        if (cancelled || !r.ok) return;
+        setOptions(r.data);
+        // Leads were hand-picked, so they are not held to the qualification rules by default.
+        if (r.data.leadCount > 0) setQualification([]);
+      },
+      () => {},
+    );
+    return () => {
+      cancelled = true;
+    };
+  }, [open, options]);
+
+  function pickSource(next: "leads" | "all") {
+    setSource(next);
+    setQualification(next === "leads" ? [] : ["qualified"]);
+  }
+
   const filter = React.useMemo<AddFilter>(() => {
     const score = Number(minScore);
     return {
+      ...(fromLeads ? { onlyMyLeads: true } : {}),
       qualification: qualification as Qualification[],
       hasPhone,
       excludeDoNotCall,
@@ -48,25 +84,26 @@ export function AddBusinessesPanel({ campaignId, cities, categories }: AddBusine
       ...(minScore !== "" && Number.isInteger(score) && score >= 0 && score <= 100 ? { minScore: score } : {}),
       ...(q.trim() ? { q: q.trim() } : {}),
     };
-  }, [qualification, hasPhone, excludeDoNotCall, city, category, minScore, q]);
+  }, [fromLeads, qualification, hasPhone, excludeDoNotCall, city, category, minScore, q]);
 
   // Live count, debounced; stale responses are dropped.
   const filterKey = JSON.stringify(filter);
+  const ready = open && options !== null;
   const counting = open && result?.key !== filterKey;
   const preview = result?.key === filterKey ? result.preview : null;
   React.useEffect(() => {
-    if (!open) return;
+    if (!ready) return;
     let cancelled = false;
     const t = window.setTimeout(async () => {
-      const r = await previewAddAction(campaignId, filter);
+      const r = await previewAddAction(campaignId, filter).catch(() => null);
       if (cancelled) return;
-      setResult({ key: JSON.stringify(filter), preview: r.ok ? r.data : null });
+      setResult({ key: JSON.stringify(filter), preview: r?.ok ? r.data : "error" });
     }, 250);
     return () => {
       cancelled = true;
       window.clearTimeout(t);
     };
-  }, [open, campaignId, filter]);
+  }, [ready, campaignId, filter]);
 
   function add() {
     startAdding(async () => {
@@ -84,26 +121,39 @@ export function AddBusinessesPanel({ campaignId, cities, categories }: AddBusine
     });
   }
 
-  const addable = preview?.addable ?? 0;
+  const counts = preview && preview !== "error" ? preview : null;
+  const addable = counts?.addable ?? 0;
+  // Why nothing can be added, with the way out.
+  const emptyHint = !counts
+    ? null
+    : counts.matching === 0
+      ? fromLeads && leadCount === 0
+        ? "You have no leads yet. Add some on Lookup, or switch to All businesses."
+        : `No ${fromLeads ? "leads" : "businesses"} match. Loosen a filter: clear Qualification, or untick “Has a phone number”.`
+      : counts.addable === 0
+        ? `All ${counts.matching} are already in this queue, marked do not call, or have no phone.`
+        : null;
 
   return (
     <>
-      <Button size="sm" variant="outline" onClick={() => setOpen(true)}>
+      <Button size="sm" variant={primary ? "default" : "outline"} onClick={() => setOpen(true)}>
         <PlusIcon aria-hidden /> Add businesses
       </Button>
       <SidePanel
         open={open}
         onOpenChange={setOpen}
         title="Add businesses"
-        description="Pick businesses by filter. Already-queued and do-not-call businesses, and those without a phone, are skipped."
+        description="Queue your leads, or any business that matches the filters. Already-queued and do-not-call businesses, and those without a phone, are skipped."
         footer={
           <div className="flex w-full flex-wrap items-center justify-between gap-2">
-            <p className="text-sm text-muted-foreground" aria-live="polite" data-testid="add-preview">
-              {preview === null
-                ? counting
-                  ? "Counting…"
-                  : ""
-                : `${preview.matching} match · ${preview.addable} new`}
+            <p className="min-w-0 flex-1 text-sm text-muted-foreground" aria-live="polite" data-testid="add-preview">
+              {preview === "error"
+                ? "Could not count matches. Change a filter to try again."
+                : counts === null
+                  ? counting
+                    ? "Counting…"
+                    : ""
+                  : (emptyHint ?? `${counts.matching} match · ${counts.addable} not in the queue yet`)}
             </p>
             <Button onClick={add} disabled={adding || counting || addable === 0}>
               {adding ? "Adding…" : `Add ${addable}`}
@@ -112,6 +162,17 @@ export function AddBusinessesPanel({ campaignId, cities, categories }: AddBusine
         }
       >
         <FieldGroup>
+          <Field>
+            <FieldLabel>From</FieldLabel>
+            <div role="group" aria-label="Source" className="flex gap-1 rounded-lg border border-input p-1">
+              <button type="button" aria-pressed={fromLeads} className={SOURCE_BTN} onClick={() => pickSource("leads")}>
+                My leads{options ? ` (${leadCount})` : ""}
+              </button>
+              <button type="button" aria-pressed={!fromLeads} className={SOURCE_BTN} onClick={() => pickSource("all")}>
+                All businesses
+              </button>
+            </div>
+          </Field>
           <Field>
             <FieldLabel>Qualification</FieldLabel>
             <div>

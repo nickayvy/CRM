@@ -1,17 +1,29 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
-import { RotateCcw, Search } from "lucide-react";
+import { ChevronDown, RotateCcw, Search } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
+import {
+  DropdownMenu,
+  DropdownMenuCheckboxItem,
+  DropdownMenuContent,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Slider } from "@/components/ui/slider";
 import { categoryLabel } from "@/features/lookup/graph-utils";
-import { type FilterKey, hrefFor, patchLookupParams } from "@/features/lookup/search-params";
+import { type FilterKey, categoryParam, hrefFor, parseCategories, patchLookupParams, toggleCategory } from "@/features/lookup/search-params";
 
-type Props = { categories: { alias: string; count: number }[]; titles?: Record<string, string> };
+type Props = {
+  categories: { alias: string; count: number }[];
+  titles?: Record<string, string>;
+  /** Replaces the plain `router.push` (the lookup view marks the grid busy while the page loads). */
+  onNavigate?: (href: string) => void;
+};
 
 const ALL = "__all__";
 
@@ -19,13 +31,32 @@ const ALL = "__all__";
  * "Refine" panel (gtm filter-panel.tsx). Every control writes its URL param
  * and drops `offset`; search is debounced 300 ms, sliders commit on release.
  */
-export function FilterPanel({ categories, titles }: Props) {
+export function FilterPanel({ categories, titles, onNavigate }: Props) {
   const router = useRouter();
+  const go = useCallback(
+    (href: string) => (onNavigate ? onNavigate(href) : router.push(href, { scroll: false })),
+    [onNavigate, router],
+  );
   const pathname = usePathname();
   const searchParams = useSearchParams();
   const qs = searchParams.toString();
 
-  const category = searchParams.get("category") ?? "";
+  const categoryValue = searchParams.get("category");
+  const selectedCategories = useMemo(() => parseCategories(categoryValue), [categoryValue]);
+  // Selected aliases missing from the list (e.g. from an old link) stay visible so they can be unticked.
+  const categoryOptions = useMemo(
+    () => [
+      ...selectedCategories.filter((a) => !categories.some((c) => c.alias === a)).map((alias) => ({ alias, count: null as number | null })),
+      ...categories.map((c) => ({ alias: c.alias, count: c.count as number | null })),
+    ],
+    [categories, selectedCategories],
+  );
+  const categorySummary =
+    selectedCategories.length === 0
+      ? "All categories"
+      : selectedCategories.length === 1
+        ? categoryLabel(selectedCategories[0], titles)
+        : `${selectedCategories.length} categories`;
   const source = searchParams.get("source") ?? "";
   const minReviews = Number(searchParams.get("minReviews") ?? "0") || 0;
   const minL30d = Number(searchParams.get("minL30d") ?? "0") || 0;
@@ -49,9 +80,9 @@ export function FilterPanel({ categories, titles }: Props) {
     (key: FilterKey, value: string) => {
       const next = patchLookupParams(qs, { [key]: value });
       if (next === qs) return;
-      router.push(hrefFor(pathname, next), { scroll: false });
+      go(hrefFor(pathname, next));
     },
-    [qs, router, pathname],
+    [qs, go, pathname],
   );
 
   const updateRef = useRef(update);
@@ -72,7 +103,7 @@ export function FilterPanel({ categories, titles }: Props) {
 
   const clearAll = () => {
     setSearchValue("");
-    router.push(pathname, { scroll: false });
+    go(pathname);
   };
 
   return (
@@ -121,22 +152,43 @@ export function FilterPanel({ categories, titles }: Props) {
         <span id="lookup-category-label" className="text-xs text-muted-foreground">
           Category
         </span>
-        <Select value={category || ALL} onValueChange={(v) => update("category", v === ALL ? "" : v)}>
-          <SelectTrigger className="h-8 w-full text-xs" aria-labelledby="lookup-category-label">
-            <SelectValue placeholder="All categories" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value={ALL}>All categories</SelectItem>
-            {category && !categories.some((c) => c.alias === category) && (
-              <SelectItem value={category}>{categoryLabel(category, titles)}</SelectItem>
-            )}
-            {categories.map((c) => (
-              <SelectItem key={c.alias} value={c.alias}>
-                {categoryLabel(c.alias, titles)} ({c.count})
-              </SelectItem>
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button
+              variant="outline"
+              size="sm"
+              className="h-8 w-full justify-between px-3 text-xs font-normal"
+              aria-labelledby="lookup-category-label"
+              data-testid="category-filter"
+            >
+              <span className="truncate">{categorySummary}</span>
+              <ChevronDown className="size-4 opacity-50" />
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="start" className="max-h-80 w-(--radix-dropdown-menu-trigger-width) overflow-y-auto">
+            <DropdownMenuCheckboxItem
+              className="text-xs"
+              checked={selectedCategories.length === 0}
+              onSelect={(e) => e.preventDefault()}
+              onCheckedChange={() => update("category", "")}
+            >
+              All categories
+            </DropdownMenuCheckboxItem>
+            <DropdownMenuSeparator />
+            {categoryOptions.map((c) => (
+              <DropdownMenuCheckboxItem
+                key={c.alias}
+                className="text-xs"
+                checked={selectedCategories.includes(c.alias)}
+                onSelect={(e) => e.preventDefault()}
+                onCheckedChange={() => update("category", categoryParam(toggleCategory(selectedCategories, c.alias)))}
+              >
+                {categoryLabel(c.alias, titles)}
+                {c.count !== null ? ` (${c.count})` : ""}
+              </DropdownMenuCheckboxItem>
             ))}
-          </SelectContent>
-        </Select>
+          </DropdownMenuContent>
+        </DropdownMenu>
       </div>
 
       <div className="space-y-2.5">

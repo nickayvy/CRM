@@ -463,7 +463,8 @@ export async function evaluateAllCampaigns(db: DbOrTx, now: Date = new Date()): 
     .select({ id: callCampaigns.id })
     .from(callCampaigns)
     .where(inArray(callCampaigns.status, ["running", "paused"]));
-  for (const r of rows) await evaluateCampaign(db, r.id, now);
+  // Each campaign only touches its own rows, so they can be evaluated side by side.
+  await Promise.all(rows.map((r) => evaluateCampaign(db, r.id, now)));
   return rows.length;
 }
 

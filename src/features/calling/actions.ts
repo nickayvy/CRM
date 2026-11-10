@@ -3,7 +3,9 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { listActivities } from "@/db/repo/activities";
-import { listBusinessIds } from "@/db/repo/businesses";
+import { listBusinessIds, listCategories, listCities } from "@/db/repo/businesses";
+import { leadBusinessIds } from "@/db/repo/leads";
+import { requireUser } from "@/lib/supabase/server";
 import {
   QueueItemError,
   addBusinessesToCampaign,
@@ -146,6 +148,35 @@ export async function deleteCampaignAction(id: string): Promise<ActionResult> {
 
 // ------------------------------------------------------------------ queue
 
+/** Ids matching the panel filter; with `onlyMyLeads`, narrowed to the signed-in user's leads. */
+async function idsForFilter(db: ReturnType<typeof getDb>, filter: AddFilter): Promise<string[]> {
+  const ids = await listBusinessIds(db, toBusinessFilter(filter));
+  if (!filter.onlyMyLeads) return ids;
+  const user = await requireUser();
+  const mine = new Set(await leadBusinessIds(db, user.id));
+  return ids.filter((id) => mine.has(id));
+}
+
+export type AddOptions = {
+  cities: { city: string; state: string; count: number }[];
+  categories: { alias: string; count: number }[];
+  /** How many leads the signed-in user has. */
+  leadCount: number;
+};
+
+/** Choices for the "Add businesses" panel, loaded when it first opens (not on every campaign-page render). */
+export async function loadAddOptionsAction(): Promise<ActionResult<AddOptions>> {
+  try {
+    const user = await requireUser();
+    const db = getDb();
+    const [cities, categories, mine] = await Promise.all([listCities(db), listCategories(db), leadBusinessIds(db, user.id)]);
+    return ok({ cities, categories, leadCount: mine.length });
+  } catch (err) {
+    console.error("[calling] loadAddOptionsAction failed", err);
+    return fail("Could not load the filters.");
+  }
+}
+
 /** Live count for the "Add businesses" panel: matches for the filter, and how many of those would be added. */
 export async function previewAddAction(
   campaignId: string,
@@ -155,7 +186,7 @@ export async function previewAddAction(
   if (!parsed.success) return fail("Invalid filter.");
   try {
     const db = getDb();
-    const ids = await listBusinessIds(db, toBusinessFilter(parsed.data));
+    const ids = await idsForFilter(db, parsed.data);
     const addable = await countAddable(db, campaignId, ids);
     return ok({ matching: ids.length, addable });
   } catch (err) {
@@ -174,7 +205,7 @@ export async function addBusinessesAction(
   try {
     const db = getDb();
     if (!(await getCallCampaign(db, campaignId))) return fail("Campaign not found.");
-    const ids = "ids" in parsed.data ? parsed.data.ids : await listBusinessIds(db, toBusinessFilter(parsed.data.filter));
+    const ids = "ids" in parsed.data ? parsed.data.ids : await idsForFilter(db, parsed.data.filter);
     const result = await addBusinessesToCampaign(db, campaignId, ids);
     revalidateCampaign(campaignId);
     return ok(result);
@@ -339,7 +370,8 @@ export async function recordOutcomeAction(
       callbackAt = parsed;
     }
     const updated = await recordOutcome(db, itemId, { outcome: outcome.data, notes, callbackAt, agent });
-    revalidateCampaign(item.campaignId);
+    // No revalidatePath: it would re-render /dial inside this response, and the
+    // dialer keeps its own state. The campaign page follows through its poll.
     return ok(updated);
   } catch (err) {
     if (err instanceof QueueItemError) return fail(err.message);
@@ -358,7 +390,6 @@ export async function skipAction(itemId: string): Promise<ActionResult> {
     if (!item) return fail("Queue item not found.");
     if (item.state !== "claimed" || item.claimedBy !== agent) return fail("This call is not yours to skip.");
     await releaseItem(db, itemId);
-    revalidateCampaign(item.campaignId);
     return ok(null);
   } catch (err) {
     console.error("[calling] skipAction failed", err);

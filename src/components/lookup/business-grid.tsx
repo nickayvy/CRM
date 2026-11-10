@@ -11,10 +11,15 @@ type Props = {
   onClearFilters?: () => void;
   /** True when any filter is active: the empty state then offers "Clear all filters". */
   filtered?: boolean;
+  /** Business ids already on the user's lead list (cards show "In leads"). */
+  leadIds?: ReadonlySet<string>;
+  addingIds?: ReadonlySet<string>;
+  /** One-click add from the card; without it cards show no lead control. */
+  onAddLead?: (business: { id: string; name: string }) => void;
 };
 
 /** Card grid (gtm business-grid.tsx) with the filter and empty-database empty states. */
-export function BusinessGrid({ businesses, onSelect, onClearFilters, filtered = false }: Props) {
+export function BusinessGrid({ businesses, onSelect, onClearFilters, filtered = false, leadIds, addingIds, onAddLead }: Props) {
   if (businesses.length === 0) {
     return (
       <div className="flex h-full min-h-48 items-center justify-center p-6" data-testid="grid-empty">
@@ -46,7 +51,14 @@ export function BusinessGrid({ businesses, onSelect, onClearFilters, filtered = 
     <div className="dossier-scroll h-full overflow-y-auto">
       <div className="grid grid-cols-1 gap-4 p-4 md:grid-cols-2">
         {businesses.map((b) => (
-          <BusinessCard key={b.id} business={b} onSelect={onSelect} />
+          <BusinessCard
+            key={b.id}
+            business={b}
+            onSelect={onSelect}
+            isLead={leadIds?.has(b.id)}
+            adding={addingIds?.has(b.id)}
+            onAddLead={onAddLead}
+          />
         ))}
       </div>
     </div>

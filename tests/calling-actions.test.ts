@@ -66,6 +66,11 @@ vi.mock("@/lib/elevenlabs/client", async (importOriginal) => {
 });
 
 vi.mock("next/cache", () => ({ revalidatePath: () => {} }));
+const SIGNED_IN = "99999999-9999-4999-8999-999999999999";
+vi.mock("@/lib/supabase/server", () => ({
+  requireUser: async () => ({ id: SIGNED_IN, email: null }),
+  getUser: async () => ({ id: SIGNED_IN, email: null }),
+}));
 vi.mock("next/navigation", () => ({
   redirect: (url: string) => {
     throw new Error("REDIRECT:" + url);
@@ -87,6 +92,7 @@ const {
   claimNextAction,
   createCampaignAction,
   deleteCampaignAction,
+  loadAddOptionsAction,
   pauseAction,
   previewAddAction,
   recordOutcomeAction,
@@ -699,6 +705,23 @@ describe("addBusinessesAction / previewAddAction / removeQueueItemAction", () =>
       ok: false,
       message: "Campaign not found.",
     });
+  });
+
+  it("onlyMyLeads narrows the filter to the signed-in user's leads, whatever their qualification", async () => {
+    const mine = await makeBusiness({ city: "Houston", qualification: "review" });
+    const minePhoneless = await makeBusiness({ city: "Houston", phone: null });
+    await makeBusiness({ city: "Houston" }); // qualified, but not a lead
+    const theirs = await makeBusiness({ city: "Houston" });
+    await addLead(db, SIGNED_IN, mine.id);
+    await addLead(db, SIGNED_IN, minePhoneless.id);
+    await addLead(db, "11111111-1111-4111-8111-111111111111", theirs.id);
+    const c = await createCallCampaign(db, { name: "Leads only", status: "draft", timezone: "America/Chicago" });
+    const leadsFilter = { onlyMyLeads: true, hasPhone: true, excludeDoNotCall: true };
+    expect(unwrap(await previewAddAction(c.id, leadsFilter))).toEqual({ matching: 1, addable: 1 });
+    expect(unwrap(await addBusinessesAction(c.id, { filter: leadsFilter }))).toEqual({ added: 1, skipped: 0 });
+    const { rows } = await listQueue(db, c.id);
+    expect(rows.map((r) => r.businessId)).toEqual([mine.id]);
+    expect(unwrap(await loadAddOptionsAction()).leadCount).toBe(2);
   });
 
   it("previewAddAction is consistent with adding: addable drops to 0 afterwards", async () => {

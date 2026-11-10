@@ -20,7 +20,13 @@ vi.mock("sonner", () => ({ toast: toasts }));
 const discovery = vi.hoisted(() => ({ scrapeUrlAction: vi.fn(), seedCategoryAction: vi.fn() }));
 vi.mock("@/features/discovery/actions", () => ({ ...discovery, discoveryConfigured: () => true }));
 
-const lookupActions = vi.hoisted(() => ({ addToLeadsAction: vi.fn(), getDossierAction: vi.fn() }));
+const lookupActions = vi.hoisted(() => ({
+  addToLeadsAction: vi.fn(),
+  getDossierAction: vi.fn(),
+  createCallCampaignAction: vi.fn(),
+  queueBusinessForCallsAction: vi.fn(),
+  deleteBusinessFromLookupAction: vi.fn(),
+}));
 vi.mock("@/features/lookup/actions", () => lookupActions);
 
 const { FilterPanel } = await import("@/components/lookup/filter-panel");
@@ -134,14 +140,32 @@ describe("FilterPanel", () => {
     await userEvent.click(await screen.findByRole("option", { name: "Trustpilot" }));
     expect(lastHref()).toBe("/lookup?source=trustpilot");
 
-    await userEvent.click(screen.getByRole("combobox", { name: "Category" }));
-    expect(screen.getByRole("option", { name: "Plumbing (1)" })).toBeTruthy();
-    await userEvent.click(await screen.findByRole("option", { name: "Electronics & Technology (3)" }));
+    await userEvent.click(screen.getByRole("button", { name: "Category" }));
+    expect(await screen.findByRole("menuitemcheckbox", { name: "Plumbing (1)" })).toBeTruthy();
+    await userEvent.click(screen.getByRole("menuitemcheckbox", { name: "Electronics & Technology (3)" }));
     expect(lastHref()).toBe("/lookup?category=electronics_technology");
+    await userEvent.keyboard("{Escape}");
 
     await userEvent.click(screen.getByRole("combobox", { name: "Min rating" }));
     await userEvent.click(await screen.findByRole("option", { name: "4+ stars" }));
     expect(lastHref()).toBe("/lookup?minRating=4");
+  });
+
+  it("category is a multi-select: ticking adds to the list, unticking removes, All clears", async () => {
+    nav.qs = "category=plumbing&offset=50";
+    render(<FilterPanel categories={CATEGORIES} titles={{ electronics_technology: "Electronics & Technology" }} />);
+    expect(screen.getByRole("button", { name: "Category" }).textContent).toContain("Plumbing");
+
+    await userEvent.click(screen.getByRole("button", { name: "Category" }));
+    const plumbing = await screen.findByRole("menuitemcheckbox", { name: "Plumbing (1)" });
+    expect(plumbing.getAttribute("aria-checked")).toBe("true");
+    await userEvent.click(screen.getByRole("menuitemcheckbox", { name: "Electronics & Technology (3)" }));
+    expect(lastHref()).toBe("/lookup?category=plumbing%2Celectronics_technology");
+    // The menu stays open so several categories can be ticked in a row.
+    await userEvent.click(screen.getByRole("menuitemcheckbox", { name: "Plumbing (1)" }));
+    expect(lastHref()).toBe("/lookup");
+    await userEvent.click(screen.getByRole("menuitemcheckbox", { name: "All categories" }));
+    expect(lastHref()).toBe("/lookup");
   });
 
   it("sliders commit minReviews / minL30d on release via keyboard", async () => {
@@ -228,6 +252,34 @@ describe("DossierModal", () => {
     );
   }
 
+  it("Delete asks for confirmation, deletes, closes and reports it", async () => {
+    lookupActions.getDossierAction.mockResolvedValue({ ok: true, data: { business: biz(), related: [] } });
+    lookupActions.deleteBusinessFromLookupAction.mockResolvedValue({ ok: true, data: null });
+    const onClose = vi.fn();
+    const onDeleted = vi.fn();
+    render(
+      <TooltipProvider>
+        <DossierModal businessId={ID_A} onClose={onClose} onDeleted={onDeleted} />
+      </TooltipProvider>,
+    );
+    const dialog = await screen.findByRole("dialog");
+    await within(dialog).findByRole("heading", { name: "Acme Gadgets" });
+
+    // Cancelling the confirm deletes nothing.
+    await userEvent.click(within(dialog).getByRole("button", { name: "Delete Acme Gadgets" }));
+    const cancel = await screen.findByRole("button", { name: "Cancel" });
+    expect(screen.getByRole("alertdialog").textContent).toContain("cannot be undone");
+    await userEvent.click(cancel);
+    expect(lookupActions.deleteBusinessFromLookupAction).not.toHaveBeenCalled();
+
+    await userEvent.click(within(dialog).getByRole("button", { name: "Delete Acme Gadgets" }));
+    await userEvent.click(within(await screen.findByRole("alertdialog")).getByRole("button", { name: "Delete" }));
+    await waitFor(() => expect(onDeleted).toHaveBeenCalledWith(ID_A));
+    expect(lookupActions.deleteBusinessFromLookupAction).toHaveBeenCalledWith(ID_A);
+    expect(onClose).toHaveBeenCalled();
+    expect(toasts.success).toHaveBeenCalledWith("Business deleted", { description: "Acme Gadgets" });
+  });
+
   it("renders header, overview, metrics, links with NO DATA tiles, and real Last synced", async () => {
     lookupActions.getDossierAction.mockResolvedValue({ ok: true, data: { business: biz(), related: [] } });
     renderDossier();
@@ -287,20 +339,66 @@ describe("DossierModal", () => {
     expect(within(dialog).getByText("Fast-growing gadget retailer.")).toBeTruthy();
   });
 
-  it("Add to Lead List toasts 'Lead added' then 'Already in your leads'", async () => {
+  it("Add to Lead List toasts 'Lead added', then shows the next steps instead of the button", async () => {
     lookupActions.getDossierAction.mockResolvedValue({ ok: true, data: { business: biz(), related: [] } });
-    lookupActions.addToLeadsAction
-      .mockResolvedValueOnce({ ok: true, data: { created: true } })
-      .mockResolvedValueOnce({ ok: true, data: { created: false } });
+    lookupActions.addToLeadsAction.mockResolvedValueOnce({ ok: true, data: { created: true } });
     renderDossier();
-    const button = await screen.findByRole("button", { name: "Add to Lead List" });
-    await userEvent.click(button);
+    await userEvent.click(await screen.findByRole("button", { name: "Add to Lead List" }));
     await waitFor(() => expect(toasts.success).toHaveBeenCalledWith("Lead added", { description: "Acme Gadgets" }));
-    await waitFor(() => expect((screen.getByRole("button", { name: "Add to Lead List" }) as HTMLButtonElement).disabled).toBe(false));
-    await userEvent.click(screen.getByRole("button", { name: "Add to Lead List" }));
+    const next = await screen.findByTestId("lead-next-steps");
+    expect(next.textContent).toContain("In your leads");
+    expect(within(next).getByRole("link", { name: /Open Leads/ }).getAttribute("href")).toEqual("/leads");
+    expect(screen.queryByRole("button", { name: "Add to Lead List" })).toBeNull();
+    expect(lookupActions.addToLeadsAction).toHaveBeenCalledTimes(1);
+    expect(lookupActions.addToLeadsAction).toHaveBeenCalledWith(ID_A);
+  });
+
+  it("a business that was already a lead toasts 'Already in your leads' and still shows the next steps", async () => {
+    lookupActions.getDossierAction.mockResolvedValue({ ok: true, data: { business: biz(), related: [] } });
+    lookupActions.addToLeadsAction.mockResolvedValueOnce({ ok: true, data: { created: false } });
+    renderDossier();
+    await userEvent.click(await screen.findByRole("button", { name: "Add to Lead List" }));
     await waitFor(() => expect(toasts.info).toHaveBeenCalledWith("Already in your leads", { description: "Acme Gadgets" }));
-    expect(lookupActions.addToLeadsAction).toHaveBeenNthCalledWith(1, ID_A);
-    expect(lookupActions.addToLeadsAction).toHaveBeenNthCalledWith(2, ID_A);
+    expect(await screen.findByTestId("lead-next-steps")).toBeTruthy();
+  });
+
+  it("a known lead opens with the next steps; a new campaign can be created and the business queued from the dossier", async () => {
+    lookupActions.getDossierAction.mockResolvedValue({ ok: true, data: { business: biz({ phone: "+17135550100" }), related: [] } });
+    lookupActions.createCallCampaignAction.mockResolvedValue({ ok: true, data: { id: ID_B, name: "Gadget shops" } });
+    lookupActions.queueBusinessForCallsAction.mockResolvedValue({ ok: true, data: { added: 1, skipped: 0, campaignName: "Gadget shops" } });
+    render(
+      <TooltipProvider>
+        <DossierModal businessId={ID_A} onClose={() => {}} leadIds={new Set([ID_A])} callCampaigns={[]} />
+      </TooltipProvider>,
+    );
+    const next = await screen.findByTestId("lead-next-steps");
+    expect(screen.queryByRole("button", { name: "Add to Lead List" })).toBeNull();
+    await userEvent.click(within(next).getByRole("button", { name: /Add to call campaign/ }));
+    const picker = await screen.findByRole("dialog", { name: "Add to call campaign" });
+    // No campaigns yet: the name field is offered straight away, no trip to /calling/new.
+    await userEvent.type(within(picker).getByLabelText("New campaign name"), "Gadget shops");
+    await userEvent.click(within(picker).getByRole("button", { name: "Create and add" }));
+    await waitFor(() => expect(lookupActions.queueBusinessForCallsAction).toHaveBeenCalledWith(ID_B, ID_A));
+    expect(lookupActions.createCallCampaignAction).toHaveBeenCalledWith("Gadget shops");
+    await waitFor(() => expect(toasts.success).toHaveBeenCalledWith("Queued in Gadget shops", { description: "Acme Gadgets" }));
+    const link = await screen.findByRole("link", { name: "Gadget shops" });
+    expect(link.getAttribute("href")).toEqual(`/calling/${ID_B}`);
+  });
+
+  it("opens at once from the row already on screen while the full dossier loads", async () => {
+    let resolve: (v: unknown) => void = () => {};
+    lookupActions.getDossierAction.mockReturnValue(new Promise((r) => (resolve = r)));
+    render(
+      <TooltipProvider>
+        <DossierModal businessId={ID_A} preview={biz()} onClose={() => {}} />
+      </TooltipProvider>,
+    );
+    expect(screen.getByRole("heading", { name: "Acme Gadgets" })).toBeTruthy();
+    expect(screen.queryByTestId("dossier-skeleton")).toBeNull();
+    expect(screen.getByTestId("related-loading")).toBeTruthy();
+    resolve({ ok: true, data: { business: biz(), related: [biz({ id: ID_B, name: "Beta Corp" })] } });
+    expect(await screen.findByText("Beta Corp")).toBeTruthy();
+    expect(screen.queryByTestId("related-loading")).toBeNull();
   });
 
   it("navigates in place to a similar company, and adds that one", async () => {
@@ -348,6 +446,24 @@ describe("LookupView", () => {
       </TooltipProvider>,
     );
   }
+
+  it("cards show lead status and add a lead in one click without opening the dossier", async () => {
+    lookupActions.addToLeadsAction.mockResolvedValue({ ok: true, data: { created: true } });
+    render(
+      <TooltipProvider>
+        <LookupView graph={{ nodes: [], links: [] }} categories={[]} categoryTitles={{}} discoveryEnabled leadBusinessIds={[ID_B]}>
+          <GridIsland rows={[biz(), biz({ id: ID_B, name: "Beta Corp" })]} total={2} offset={0} filtered={false} />
+        </LookupView>
+      </TooltipProvider>,
+    );
+    const cards = screen.getAllByTestId("business-card");
+    expect(within(cards[1]).getByTestId("lead-chip").textContent).toContain("In leads");
+    await userEvent.click(within(cards[0]).getByRole("button", { name: "Add Acme Gadgets to leads" }));
+    await waitFor(() => expect(lookupActions.addToLeadsAction).toHaveBeenCalledWith(ID_A));
+    await waitFor(() => expect(within(screen.getAllByTestId("business-card")[0]).getByTestId("lead-chip")).toBeTruthy());
+    expect(lookupActions.getDossierAction).not.toHaveBeenCalled();
+    expect(toasts.success).toHaveBeenCalledWith("Lead added", expect.objectContaining({ description: "Acme Gadgets" }));
+  });
 
   it("empty DB: graph and grid empty states with the discovery hint, no sample nodes", () => {
     renderView({ nodes: [], links: [] });

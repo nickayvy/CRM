@@ -8,15 +8,17 @@ type Props = {
   nodes: Pick<GraphNode, "category">[];
   /** Canonical order shared with the graph so colors match. */
   order: readonly string[];
-  selectedCategory: string | null;
+  /** Selected aliases; empty means All. */
+  selectedCategories: readonly string[];
   /** alias → display title. */
   titles?: Record<string, string>;
+  /** An alias toggles that category in or out of the selection; null (All) clears it. */
   onCategoryClick: (category: string | null) => void;
   className?: string;
 };
 
-/** "All" + the top 8 categories by node count (gtm category-bubbles.tsx); clicking the selected one clears it. */
-export function CategoryBubbles({ nodes, order, selectedCategory, titles, onCategoryClick, className = "" }: Props) {
+/** "All" + the top 8 categories by node count (gtm category-bubbles.tsx); each bubble toggles, so several can be on at once. */
+export function CategoryBubbles({ nodes, order, selectedCategories, titles, onCategoryClick, className = "" }: Props) {
   const top = useMemo(() => categoryCounts(nodes).slice(0, MAX_BUBBLES), [nodes]);
   if (top.length === 0) return null;
   return (
@@ -25,26 +27,26 @@ export function CategoryBubbles({ nodes, order, selectedCategory, titles, onCate
         <button
           type="button"
           onClick={() => onCategoryClick(null)}
-          aria-pressed={selectedCategory === null}
+          aria-pressed={selectedCategories.length === 0}
           className={`rounded-full px-2 py-1 text-[10px] transition-colors ${
-            selectedCategory === null ? "bg-white/20 text-slate-200" : "bg-white/5 text-slate-500 hover:bg-white/10 hover:text-slate-400"
+            selectedCategories.length === 0 ? "bg-white/20 text-slate-200" : "bg-white/5 text-slate-500 hover:bg-white/10 hover:text-slate-400"
           }`}
         >
           All
         </button>
         {top.map(({ category, count }) => {
           const color = categoryColor(category, order);
-          const selected = selectedCategory === category;
+          const selected = selectedCategories.includes(category);
           const label = categoryLabel(category, titles);
           return (
             <button
               key={category}
               type="button"
               aria-pressed={selected}
-              onClick={() => onCategoryClick(selected ? null : category)}
+              onClick={() => onCategoryClick(category)}
               className="flex items-center gap-1.5 rounded-full border px-1.5 py-0.5 transition-colors focus:ring-1 focus:ring-white/30 focus:outline-none"
               style={{ borderColor: selected ? color : "transparent", backgroundColor: selected ? `${color}20` : "transparent" }}
-              title={`${label}: ${count} business${count !== 1 ? "es" : ""}. Click to filter.`}
+              title={`${label}: ${count} business${count !== 1 ? "es" : ""}. ${selected ? "Click to remove from the filter." : "Click to add to the filter."}`}
             >
               <span className="h-2.5 w-2.5 shrink-0 rounded-full" style={{ backgroundColor: color, opacity: 0.9 }} />
               <span className="text-[10px] text-slate-400">

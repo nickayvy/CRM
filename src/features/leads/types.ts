@@ -2,6 +2,9 @@
 import type { CallOutcome, CampaignStatus, LeadStatus } from "@/db/schema";
 import type { LeadWithBusiness } from "@/db/repo/leads";
 
+/** A call campaign a lead's business is queued in. */
+export type LeadCampaignRef = { id: string; name: string };
+
 export type LeadRow = {
   id: string;
   businessId: string;
@@ -17,6 +20,8 @@ export type LeadRow = {
   rating: number | null;
   reviews: number;
   l30d: number;
+  /** Call campaigns this lead is queued in (absent or empty: not queued anywhere). */
+  callCampaigns?: LeadCampaignRef[];
 };
 
 export type CallHistoryRow = {
@@ -41,7 +46,7 @@ export function leadCategory(b: LeadWithBusiness["business"]): string | null {
   return title || b.primaryCategory?.trim() || null;
 }
 
-export function toLeadRow(l: LeadWithBusiness): LeadRow {
+export function toLeadRow(l: LeadWithBusiness, callCampaigns?: LeadCampaignRef[]): LeadRow {
   const b = l.business;
   const rating = b.rating === null ? null : Number(b.rating);
   return {
@@ -59,6 +64,7 @@ export function toLeadRow(l: LeadWithBusiness): LeadRow {
     rating: rating !== null && Number.isFinite(rating) ? rating : null,
     reviews: b.reviewCount,
     l30d: b.reviewsLast30d,
+    ...(callCampaigns?.length ? { callCampaigns } : {}),
   };
 }
 

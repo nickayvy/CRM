@@ -15,6 +15,8 @@ type Props = {
   enabled: boolean;
   /** Called after a successful scrape or seed (the page refreshes its data). */
   onSuccess?: () => void;
+  /** Called instead of `onSuccess` after a seed starts (its rows land over the next minute). */
+  onSeeded?: () => void;
 };
 
 /**
@@ -22,7 +24,7 @@ type Props = {
  * Trustpilot review URL → `scrapeUrlAction`; pick one of the 22 categories →
  * `seedCategoryAction`. Both are disabled with a notice without a key.
  */
-export function ManualScrapeInput({ enabled, onSuccess }: Props) {
+export function ManualScrapeInput({ enabled, onSuccess, onSeeded }: Props) {
   const [url, setUrl] = useState("");
   const [seedSlug, setSeedSlug] = useState("");
   const [scraping, startScrape] = useTransition();
@@ -55,9 +57,9 @@ export function ManualScrapeInput({ enabled, onSuccess }: Props) {
       const res = await seedCategoryAction(slug);
       if (res.ok) {
         toast.success("Seeding started", {
-          description: `${label}: up to 50 businesses land in the next minute. Refresh to see them.`,
+          description: `${label}: up to 50 businesses land in the next minute${onSeeded ? " and appear here on their own." : ". Refresh to see them."}`,
         });
-        onSuccess?.();
+        (onSeeded ?? onSuccess)?.();
       } else {
         toast.error("Seed failed", { description: res.message ?? "Unknown error" });
       }

@@ -1,16 +1,24 @@
 // Server-side reads for /leads (imported by the page only). Every function is
 // scoped by the user's id.
-import { and, count, desc, eq, gte } from "drizzle-orm";
+import { and, asc, count, desc, eq, gte, ne } from "drizzle-orm";
 import type { Db } from "@/db/client";
-import { listCallCampaigns } from "@/db/repo/call-campaigns";
-import { listEmailCampaigns } from "@/db/repo/email-campaigns";
 import { countLeadsByStatus, listLeads } from "@/db/repo/leads";
-import { type CallOutcome, activities, businesses, callOutcomeEnum, leads } from "@/db/schema";
+import {
+  type CallOutcome,
+  activities,
+  businesses,
+  callCampaigns,
+  callOutcomeEnum,
+  callQueueItems,
+  emailCampaigns,
+  leads,
+} from "@/db/schema";
 import { formatRelative } from "@/lib/format";
 import {
   type CallHistoryRow,
   type CampaignTarget,
   type LeadMetricsData,
+  type LeadCampaignRef,
   type LeadRow,
   toLeadRow,
 } from "./types";
@@ -71,14 +79,48 @@ export async function getLeadMetrics(db: Db, userId: string, now: Date = new Dat
   return { total, queued: counts.queued, success: counts.success, calls7d };
 }
 
+/** Non-completed call campaigns, newest first: id, name and status only (one query, no queue stats). */
+export async function listCallCampaignTargets(db: Db): Promise<CampaignTarget[]> {
+  return db
+    .select({ id: callCampaigns.id, name: callCampaigns.name, status: callCampaigns.status })
+    .from(callCampaigns)
+    .where(ne(callCampaigns.status, "completed"))
+    .orderBy(desc(callCampaigns.createdAt), asc(callCampaigns.id));
+}
+
 /** Non-completed call and email campaigns (targets for the bulk dialogs). */
-export async function listCampaignTargets(db: Db, now: Date = new Date()): Promise<{ call: CampaignTarget[]; email: CampaignTarget[] }> {
-  const [call, email] = await Promise.all([listCallCampaigns(db, now), listEmailCampaigns(db, now)]);
-  const toTarget = (c: CampaignTarget): CampaignTarget => ({ id: c.id, name: c.name, status: c.status });
-  return {
-    call: call.filter((c) => c.status !== "completed").map(toTarget),
-    email: email.filter((c) => c.status !== "completed").map(toTarget),
-  };
+export async function listCampaignTargets(db: Db): Promise<{ call: CampaignTarget[]; email: CampaignTarget[] }> {
+  const [call, email] = await Promise.all([
+    listCallCampaignTargets(db),
+    db
+      .select({ id: emailCampaigns.id, name: emailCampaigns.name, status: emailCampaigns.status })
+      .from(emailCampaigns)
+      .where(ne(emailCampaigns.status, "completed"))
+      .orderBy(desc(emailCampaigns.createdAt)),
+  ]);
+  return { call, email };
+}
+
+/**
+ * Call campaigns each of the user's lead businesses is queued in (any queue
+ * state), keyed by business id, so the pipeline can show where a lead is
+ * already lined up to be called.
+ */
+export async function listLeadCallCampaigns(db: Db, userId: string): Promise<Map<string, LeadCampaignRef[]>> {
+  const out = new Map<string, LeadCampaignRef[]>();
+  if (!UUID_RE.test(userId)) return out;
+  const rows = await db
+    .select({ businessId: callQueueItems.businessId, id: callCampaigns.id, name: callCampaigns.name })
+    .from(callQueueItems)
+    .innerJoin(leads, and(eq(leads.businessId, callQueueItems.businessId), eq(leads.userId, userId)))
+    .innerJoin(callCampaigns, eq(callCampaigns.id, callQueueItems.campaignId))
+    .orderBy(desc(callCampaigns.createdAt), asc(callCampaigns.id));
+  for (const r of rows) {
+    const list = out.get(r.businessId) ?? [];
+    if (!list.some((c) => c.id === r.id)) list.push({ id: r.id, name: r.name });
+    out.set(r.businessId, list);
+  }
+  return out;
 }
 
 export type LeadsView = {
@@ -90,11 +132,12 @@ export type LeadsView = {
 
 /** Everything the /leads page renders, for one user. */
 export async function loadLeadsView(db: Db, userId: string, now: Date = new Date()): Promise<LeadsView> {
-  const [rows, metrics, history, campaigns] = await Promise.all([
+  const [rows, metrics, history, campaigns, queuedIn] = await Promise.all([
     listLeads(db, userId),
     getLeadMetrics(db, userId, now),
     listLeadCallHistory(db, userId, { now }),
-    listCampaignTargets(db, now),
+    listCampaignTargets(db),
+    listLeadCallCampaigns(db, userId),
   ]);
-  return { leads: rows.map(toLeadRow), metrics, history, campaigns };
+  return { leads: rows.map((l) => toLeadRow(l, queuedIn.get(l.businessId))), metrics, history, campaigns };
 }

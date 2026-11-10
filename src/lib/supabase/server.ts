@@ -30,10 +30,27 @@ export type AuthUser = { id: string; email: string | null };
 /**
  * The signed-in user, or null (also null when Supabase is not configured).
  * Memoised per request, so the shell and the page can both ask.
+ *
+ * The proxy (`updateSession`) has already revalidated the session with
+ * Supabase Auth on this same request, so here the token is verified locally
+ * with `getClaims()` (signature against the project's cached JWKS) instead of
+ * a second network round trip. Projects on a symmetric JWT secret make
+ * `getClaims()` call Auth itself, and any failure falls back to `getUser()`,
+ * so the result is never weaker than before.
  */
 export const getUser: () => Promise<AuthUser | null> = cache(async () => {
   if (!supabaseConfigured()) return null;
   const supabase = await createClient();
+  try {
+    const { data, error } = await supabase.auth.getClaims();
+    const sub = !error ? data?.claims?.sub : undefined;
+    if (typeof sub === "string" && sub) {
+      const email = data?.claims?.email;
+      return { id: sub, email: typeof email === "string" && email ? email : null };
+    }
+  } catch {
+    // fall through to the network check
+  }
   const {
     data: { user },
   } = await supabase.auth.getUser();

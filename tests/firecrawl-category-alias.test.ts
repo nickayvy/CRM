@@ -32,7 +32,7 @@ beforeEach(async () => {
 
 function bubblesHtml(nodes: { category: string | null }[], titles: Record<string, string>): string {
   return renderToStaticMarkup(
-    createElement(CategoryBubbles, { nodes, order: categoryOrder(nodes), selectedCategory: null, titles, onCategoryClick: () => {} }),
+    createElement(CategoryBubbles, { nodes, order: categoryOrder(nodes), selectedCategories: [], titles, onCategoryClick: () => {} }),
   ).replaceAll("<!-- -->", "");
 }
 
@@ -60,7 +60,7 @@ describe("Trustpilot category alias alignment", () => {
     expect(nodes.map((n) => n.category)).toEqual([alias]);
     const html = bubblesHtml(nodes, await loadCategoryTitles(db));
     expect(html).toContain(`${title.replace("&", "&amp;")} <span`);
-    expect(html).toContain(`title="${title.replace("&", "&amp;")}: 1 business. Click to filter."`);
+    expect(html).toContain(`title="${title.replace("&", "&amp;")}: 1 business. Click to add to the filter."`);
 
     // Cards and the dossier read the title through toLookupBusiness.
     expect(toLookupBusiness(b)).toMatchObject({ category: alias, categoryTitle: title });
@@ -76,5 +76,18 @@ describe("Trustpilot category alias alignment", () => {
     expect(grid.rows[0]).toMatchObject({ name: "Fixit", category: "home_services", categoryTitle: "Home Services" });
     const { nodes } = await loadGraph(db);
     expect(bubblesHtml(nodes, await loadCategoryTitles(db))).toContain("Home Services <span");
+  });
+
+  it("category=a,b returns rows from either category", async () => {
+    const fc = createFakeFirecrawl();
+    fc.setCategoryPage("home_services", 1, [makeCategoryCard("fixit.com", { name: "Fixit" })]);
+    fc.setCategoryPage("sports", 1, [makeCategoryCard("kicks.com", { name: "Kicks" })]);
+    fc.setCategoryPage("animals_pets", 1, [makeCategoryCard("paws.com", { name: "Paws" })]);
+    for (const slug of ["home_services", "sports", "animals_pets"]) await scrapeTrustpilotCategory(db, fc, slug, { max: 20 });
+
+    const both = await loadGrid(db, parseLookupQuery({ category: "home_services,sports" }));
+    expect(both.rows.map((r) => r.name).sort()).toEqual(["Fixit", "Kicks"]);
+    expect((await loadGrid(db, parseLookupQuery({ category: "sports" }))).total).toBe(1);
+    expect((await loadGrid(db, parseLookupQuery({}))).total).toBe(3);
   });
 });

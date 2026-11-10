@@ -281,6 +281,16 @@
   background: var(--muted-foreground);
 }
 
+/* Indeterminate bar over the lookup grid while a filter/page change loads. */
+@keyframes lookup-busy {
+  0% {
+    transform: translateX(-100%);
+  }
+  100% {
+    transform: translateX(300%);
+  }
+}
+
 /* Reduced motion: CSS animations/transitions (tw-animate, Radix data-state
    animations, skeleton pulse, card-glow lift) collapse to instant. Motion
    components handle their own branch via useReducedMotion. */

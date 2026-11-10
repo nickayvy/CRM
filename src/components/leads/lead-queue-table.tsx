@@ -1,6 +1,7 @@
 "use client";
 
 import * as React from "react";
+import Link from "next/link";
 import { DownloadIcon, MailIcon, PhoneIcon, SearchIcon, SkipForwardIcon, Trash2Icon } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -34,6 +35,8 @@ export type LeadQueueTableProps = {
   onBulkRemove: (ids: string[]) => Promise<boolean>;
   /** Resolves true on success (the dialog closes and the selection clears). */
   onAddToCampaign: (kind: CampaignKind, campaignId: string, ids: string[]) => Promise<boolean>;
+  /** Creates a draft call campaign from a name and resolves its id; enables "New campaign" in the dialog. */
+  onCreateCallCampaign?: (name: string) => Promise<string | null>;
   /** Defaults to a browser CSV download of the visible rows. */
   onExport?: (rows: LeadRow[]) => void;
 };
@@ -51,13 +54,15 @@ export function LeadQueueTable({
   onRemove,
   onBulkRemove,
   onAddToCampaign,
+  onCreateCallCampaign,
   onExport,
 }: LeadQueueTableProps) {
   const [tab, setTab] = React.useState<LeadTab>("all");
   const [search, setSearch] = React.useState("");
   const [category, setCategory] = React.useState<string>(ALL_CATEGORIES);
   const [selected, setSelected] = React.useState<Set<string>>(() => new Set());
-  const [picking, setPicking] = React.useState<CampaignKind | null>(null);
+  // `ids` set: the dialog is for that one row; otherwise for the current selection.
+  const [picking, setPicking] = React.useState<{ kind: CampaignKind; ids?: string[] } | null>(null);
 
   const categories = React.useMemo(
     () => [...new Set(leads.map((l) => l.category).filter((c): c is string => !!c))].sort((a, b) => a.localeCompare(b)),
@@ -145,10 +150,10 @@ export function LeadQueueTable({
           {n > 0 ? (
             <>
               <span className="text-xs text-muted-foreground tabular-nums">{n} selected</span>
-              <Button size="sm" variant="outline" onClick={() => setPicking("call")}>
+              <Button size="sm" variant="outline" onClick={() => setPicking({ kind: "call" })}>
                 <PhoneIcon /> Add to call campaign…
               </Button>
-              <Button size="sm" variant="outline" onClick={() => setPicking("email")}>
+              <Button size="sm" variant="outline" onClick={() => setPicking({ kind: "email" })}>
                 <MailIcon /> Add to email sequence…
               </Button>
               <Button size="sm" variant="destructive" onClick={bulkRemove}>
@@ -191,7 +196,7 @@ export function LeadQueueTable({
               <TableHead>Rating</TableHead>
               <TableHead>L30D</TableHead>
               <TableHead>Notes</TableHead>
-              <TableHead className="w-20 text-right">Actions</TableHead>
+              <TableHead className="w-28 text-right">Actions</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -212,10 +217,32 @@ export function LeadQueueTable({
                     />
                   </TableCell>
                   <TableCell className="text-sm whitespace-nowrap tabular-nums">
-                    {lead.phone ? formatPhone(lead.phone) : <span className="text-muted-foreground">No phone</span>}
+                    {lead.phone ? (
+                      <a href={`tel:${lead.phone}`} className="underline-offset-4 hover:text-primary hover:underline">
+                        {formatPhone(lead.phone)}
+                      </a>
+                    ) : (
+                      <span className="text-muted-foreground">No phone</span>
+                    )}
                   </TableCell>
-                  <TableCell className="max-w-[200px] truncate" title={lead.name}>
-                    {lead.name}
+                  <TableCell className="max-w-[220px]">
+                    <p className="truncate" title={lead.name}>
+                      {lead.name}
+                    </p>
+                    {lead.callCampaigns?.length ? (
+                      <p className="flex min-w-0 items-center gap-1 truncate text-[11px] text-muted-foreground" data-testid="lead-campaigns">
+                        <PhoneIcon className="size-3 shrink-0" aria-hidden />
+                        <span className="sr-only">Queued for calls in</span>
+                        {lead.callCampaigns.map((c, i) => (
+                          <React.Fragment key={c.id}>
+                            {i > 0 && ", "}
+                            <Link href={`/calling/${c.id}`} className="truncate underline-offset-2 hover:text-primary hover:underline">
+                              {c.name}
+                            </Link>
+                          </React.Fragment>
+                        ))}
+                      </p>
+                    ) : null}
                   </TableCell>
                   <TableCell className="text-xs text-muted-foreground">{lead.category ?? "—"}</TableCell>
                   <TableCell>
@@ -228,6 +255,16 @@ export function LeadQueueTable({
                   </TableCell>
                   <TableCell>
                     <div className="flex items-center justify-end gap-1.5">
+                      <Button
+                        size="icon-xs"
+                        variant="ghost"
+                        title={lead.phone ? "Add to call campaign" : "No phone number to call"}
+                        aria-label={`Add ${lead.name} to a call campaign`}
+                        disabled={!lead.phone}
+                        onClick={() => setPicking({ kind: "call", ids: [lead.id] })}
+                      >
+                        <PhoneIcon />
+                      </Button>
                       <Button
                         size="icon-xs"
                         variant="ghost"
@@ -259,13 +296,15 @@ export function LeadQueueTable({
 
       {picking && (
         <AddToCampaignDialog
-          kind={picking}
-          count={n}
-          campaigns={campaigns[picking]}
+          kind={picking.kind}
+          count={picking.ids?.length ?? n}
+          subject={picking.ids?.length === 1 ? leads.find((l) => l.id === picking.ids?.[0])?.name : undefined}
+          campaigns={campaigns[picking.kind]}
           onClose={() => setPicking(null)}
+          onCreate={picking.kind === "call" ? onCreateCallCampaign : undefined}
           onSubmit={async (campaignId) => {
-            const done = await onAddToCampaign(picking, campaignId, selectedIds);
-            if (done) setSelected(new Set());
+            const done = await onAddToCampaign(picking.kind, campaignId, picking.ids ?? selectedIds);
+            if (done && !picking.ids) setSelected(new Set());
             return done;
           }}
         />

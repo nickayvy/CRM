@@ -317,8 +317,8 @@ describe("CategoryBubbles", () => {
   const nodes = spec.flatMap(([category, n]) => Array.from({ length: n }, () => ({ category })));
   const order = categoryOrder(nodes);
 
-  function renderBubbles(selected: string | null = null, onCategoryClick = vi.fn()) {
-    render(<CategoryBubbles nodes={nodes} order={order} selectedCategory={selected} onCategoryClick={onCategoryClick} />);
+  function renderBubbles(selected: string[] = [], onCategoryClick = vi.fn()) {
+    render(<CategoryBubbles nodes={nodes} order={order} selectedCategories={selected} onCategoryClick={onCategoryClick} />);
     return onCategoryClick;
   }
 
@@ -353,22 +353,30 @@ describe("CategoryBubbles", () => {
     expect(onCategoryClick).toHaveBeenCalledWith("home_services");
   });
 
-  it("clicking the selected category clears it", async () => {
-    const onCategoryClick = renderBubbles("plumbing");
+  it("clicking a selected category toggles that alias (the parent removes it)", async () => {
+    const onCategoryClick = renderBubbles(["plumbing"]);
     const selected = screen.getByRole("button", { name: /Plumbing/ });
     expect(selected.getAttribute("aria-pressed")).toBe("true");
     await userEvent.click(selected);
-    expect(onCategoryClick).toHaveBeenCalledWith(null);
+    expect(onCategoryClick).toHaveBeenCalledWith("plumbing");
+  });
+
+  it("marks every selected category as pressed and All as not pressed", () => {
+    renderBubbles(["plumbing", "dental"]);
+    expect(screen.getByRole("button", { name: /Plumbing/ }).getAttribute("aria-pressed")).toBe("true");
+    expect(screen.getByRole("button", { name: /Dental/ }).getAttribute("aria-pressed")).toBe("true");
+    expect(screen.getByRole("button", { name: /Hvac/ }).getAttribute("aria-pressed")).toBe("false");
+    expect(screen.getByRole("button", { name: "All" }).getAttribute("aria-pressed")).toBe("false");
   });
 
   it("All calls onCategoryClick(null)", async () => {
-    const onCategoryClick = renderBubbles("plumbing");
+    const onCategoryClick = renderBubbles(["plumbing"]);
     await userEvent.click(screen.getByRole("button", { name: "All" }));
     expect(onCategoryClick).toHaveBeenCalledWith(null);
   });
 
   it("renders nothing for an empty node list", () => {
-    const { container } = render(<CategoryBubbles nodes={[]} order={[]} selectedCategory={null} onCategoryClick={vi.fn()} />);
+    const { container } = render(<CategoryBubbles nodes={[]} order={[]} selectedCategories={[]} onCategoryClick={vi.fn()} />);
     expect(container.innerHTML).toBe("");
   });
 });

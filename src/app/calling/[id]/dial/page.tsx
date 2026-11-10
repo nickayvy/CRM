@@ -1,6 +1,9 @@
 import type { Metadata } from "next";
+import Link from "next/link";
 import { notFound } from "next/navigation";
-import { PageShell } from "@/components/primitives";
+import { BotIcon, PhoneIcon } from "lucide-react";
+import { EmptyState, PageShell } from "@/components/primitives";
+import { Button } from "@/components/ui/button";
 import { getDb } from "@/db/client";
 import { evaluateCampaign, getCallCampaign } from "@/db/repo/call-campaigns";
 import { AgentNameForm } from "@/features/calling/components/agent-name-form";
@@ -28,6 +31,41 @@ export default async function DialPage({ params }: Props) {
   if (!(await getCallCampaign(db, id))) notFound();
   const campaign = await evaluateCampaign(db, id);
   const agent = await getAgentName();
+
+  // Say why a campaign cannot be dialed before asking who is calling.
+  const blocked =
+    campaign.mode === "ai"
+      ? {
+          icon: <BotIcon />,
+          title: `${campaign.name} is called by the AI agent`,
+          description: "There is nothing to dial by hand. Its page shows each AI call and outcome.",
+          label: "View AI calls",
+        }
+      : campaign.status === "draft"
+        ? {
+            icon: <PhoneIcon />,
+            title: `${campaign.name} has not started`,
+            description: "Add businesses to its queue and press Start on the campaign page, then come back to dial.",
+            label: "Finish setup",
+          }
+        : null;
+  if (blocked) {
+    return (
+      <PageShell width="narrow">
+        <EmptyState
+          bordered
+          icon={blocked.icon}
+          title={blocked.title}
+          description={blocked.description}
+          action={
+            <Button asChild>
+              <Link href={`/calling/${campaign.id}`}>{blocked.label}</Link>
+            </Button>
+          }
+        />
+      </PageShell>
+    );
+  }
 
   return (
     <PageShell width="full">

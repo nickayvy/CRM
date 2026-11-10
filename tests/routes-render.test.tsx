@@ -77,6 +77,7 @@ let close: () => Promise<void>;
 let yelp: Business;
 let trustpilot: Business;
 let callCampaign: CallCampaign;
+let runningCampaign: CallCampaign;
 let emailCampaign: EmailCampaign;
 let job: SearchJob;
 
@@ -106,6 +107,8 @@ beforeAll(async () => {
   job = await createSearchJob(db, { location: "Houston, TX", categoryAliases: ["plumbing"] });
   callCampaign = await createCallCampaign(db, { name: "Houston plumbers", status: "draft" });
   await addBusinessesToCampaign(db, callCampaign.id, [yelp.id]);
+  runningCampaign = await createCallCampaign(db, { name: "Houston dialers", status: "running" });
+  await addBusinessesToCampaign(db, runningCampaign.id, [yelp.id]);
   emailCampaign = await createEmailCampaign(db, {
     name: "Intro sequence",
     status: "draft",
@@ -153,7 +156,8 @@ const ROUTES: Route[] = [
   { path: "/calling", render: () => CallingPage(), contains: () => ["Calling", "Houston plumbers"] },
   { path: "/calling/new", render: () => NewCallingPage(), contains: () => ["New call campaign"] },
   { path: "/calling/[id]", render: () => CallingCampaignPage(idParams(callCampaign.id)), contains: () => ["Houston plumbers", "Queue", "Open dialer"] },
-  { path: "/calling/[id]/dial (no agent)", render: () => DialPage(idParams(callCampaign.id)), contains: () => ["Houston plumbers", "Your name"] },
+  { path: "/calling/[id]/dial (no agent)", render: () => DialPage(idParams(runningCampaign.id)), contains: () => ["Houston dialers", "Your name"] },
+  { path: "/calling/[id]/dial (draft)", render: () => DialPage(idParams(callCampaign.id)), contains: () => ["Houston plumbers has not started", "Finish setup"] },
   { path: "/calling/[id]/settings", render: () => CallingSettingsPage(idParams(callCampaign.id)), contains: () => ["Settings", "Save changes"] },
   { path: "/email", render: () => EmailPage(), contains: () => ["Email", "Intro sequence"] },
   { path: "/email/new", render: () => NewEmailPage(), contains: () => ["New email campaign"] },
@@ -177,8 +181,8 @@ describe("route server render", () => {
 
   it("/calling/[id]/dial renders the dialer when the agent cookie is set", async () => {
     state.agent = "ann";
-    const out = await html(await DialPage(idParams(callCampaign.id)));
-    expect(out).toContain("Houston plumbers");
+    const out = await html(await DialPage(idParams(runningCampaign.id)));
+    expect(out).toContain("Houston dialers");
     expect(out).toMatch(/<\/svg> ann</);
     expect(out).not.toContain("agent-name");
     expectClean(out);
@@ -186,8 +190,8 @@ describe("route server render", () => {
 
   it("/calling/[id]/dial asks for the agent name without the cookie", async () => {
     state.agent = undefined;
-    const out = await html(await DialPage(idParams(callCampaign.id)));
-    expect(out).toContain("Houston plumbers");
+    const out = await html(await DialPage(idParams(runningCampaign.id)));
+    expect(out).toContain("Houston dialers");
     expect(out).toContain("Your name");
     expect(out).toContain("agent-name");
     expectClean(out);

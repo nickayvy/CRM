@@ -19,9 +19,9 @@ export type CampaignLiveProps = {
   intervalMs?: number;
 };
 
-const LiveContext = React.createContext<{ status: CampaignStatus; pauseReason: PauseReason | null } | null>(null);
+const LiveContext = React.createContext<{ status: CampaignStatus; pauseReason: PauseReason | null; stats: Stats } | null>(null);
 
-/** Current status from the 5-second poll (for controls rendered inside CampaignLive). */
+/** Current status and queue counts from the 5-second poll (for controls rendered inside CampaignLive). */
 export function useLiveStatus() {
   return React.useContext(LiveContext);
 }
@@ -82,7 +82,7 @@ export function CampaignLive({
 
   const s = data.stats;
   return (
-    <LiveContext.Provider value={{ status: data.status, pauseReason: data.pauseReason }}>
+    <LiveContext.Provider value={{ status: data.status, pauseReason: data.pauseReason, stats: data.stats }}>
       <div className="flex flex-wrap items-center gap-2" data-testid="campaign-status">
         <StatusBadge label={CAMPAIGN_STATUS_LABELS[data.status]} />
         {data.status === "paused" && data.pauseReason ? <StatusBadge label={PAUSE_REASON_LABELS[data.pauseReason]} /> : null}

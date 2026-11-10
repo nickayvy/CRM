@@ -7,8 +7,9 @@ import { z } from "zod";
 import { getDb } from "@/db/client";
 import { addBusinessesToCampaign, getCallCampaign } from "@/db/repo/call-campaigns";
 import { enrollBusinesses, getEmailCampaign } from "@/db/repo/email-campaigns";
-import { addLead, listLeads, removeLead, updateLead } from "@/db/repo/leads";
+import { addLead, leadBusinessIdsFor, removeLead, removeLeads, updateLead } from "@/db/repo/leads";
 import { leadStatusEnum } from "@/db/schema";
+import { quickCreateCallCampaign } from "@/features/calling/quick-create";
 import { type ActionResult, fail, ok } from "@/lib/action-result";
 import { requireUser } from "@/lib/supabase/server";
 
@@ -32,6 +33,9 @@ function firstIssue(e: z.ZodError): string {
   return e.issues[0]?.message ?? "Invalid input.";
 }
 
+// The /leads panel calls `router.refresh()` after its own mutations, so those
+// actions do not also revalidate (that would render the page a second time
+// inside the action response). Only actions used from elsewhere do.
 function revalidateLeads() {
   revalidatePath("/leads");
 }
@@ -67,7 +71,6 @@ export async function updateLeadAction(
   try {
     const row = await updateLead(getDb(), user.id, idP.data, { status: p.data.status, notes });
     if (!row) return fail("Lead not found.");
-    revalidateLeads();
     return ok({ id: row.id, status: row.status, notes: row.notes });
   } catch (err) {
     console.error("[leads] updateLeadAction failed", err);
@@ -82,7 +85,6 @@ export async function removeLeadAction(id: string): Promise<ActionResult> {
   try {
     const removed = await removeLead(getDb(), user.id, p.data);
     if (!removed) return fail("Lead not found.");
-    revalidateLeads();
     return ok(null);
   } catch (err) {
     console.error("[leads] removeLeadAction failed", err);
@@ -96,10 +98,7 @@ export async function bulkRemoveLeadsAction(ids: string[]): Promise<ActionResult
   const p = leadIds.safeParse(ids);
   if (!p.success) return fail(firstIssue(p.error));
   try {
-    const db = getDb();
-    let removed = 0;
-    for (const id of new Set(p.data)) if (await removeLead(db, user.id, id)) removed += 1;
-    revalidateLeads();
+    const removed = await removeLeads(getDb(), user.id, p.data);
     return ok({ removed });
   } catch (err) {
     console.error("[leads] bulkRemoveLeadsAction failed", err);
@@ -109,14 +108,24 @@ export async function bulkRemoveLeadsAction(ids: string[]): Promise<ActionResult
 
 /** Business ids behind the user's own leads among `ids` (others' and unknown ids drop out). */
 async function ownBusinessIds(userId: string, ids: string[]): Promise<string[]> {
-  const wanted = new Set(ids);
-  const mine = await listLeads(getDb(), userId);
-  return mine.filter((l) => wanted.has(l.id)).map((l) => l.businessId);
+  return leadBusinessIdsFor(getDb(), userId, ids);
 }
 
 const bulkInput = z.object({ campaignId: z.uuid({ error: "Choose a campaign." }), ids: leadIds });
 
 type BulkResult = ActionResult<{ added: number; skipped: number; campaignName: string }>;
+
+/** Creates a draft call campaign from just a name (the dialog's "New campaign" option). */
+export async function createCallCampaignForLeadsAction(name: string): Promise<ActionResult<{ id: string; name: string }>> {
+  await requireUser();
+  try {
+    const res = await quickCreateCallCampaign(getDb(), name);
+    return res;
+  } catch (err) {
+    console.error("[leads] createCallCampaignForLeadsAction failed", err);
+    return fail("Could not create the campaign.");
+  }
+}
 
 /** Appends the leads' businesses to a call campaign queue (skips queued, do-not-call, no phone). */
 export async function addLeadsToCallCampaignAction(campaignId: string, ids: string[]): Promise<BulkResult> {
@@ -131,9 +140,6 @@ export async function addLeadsToCallCampaignAction(campaignId: string, ids: stri
     const businessIds = await ownBusinessIds(user.id, p.data.ids);
     if (businessIds.length === 0) return fail("No matching leads.");
     const r = await addBusinessesToCampaign(db, campaign.id, businessIds);
-    revalidatePath("/calling");
-    revalidatePath(`/calling/${campaign.id}`);
-    revalidateLeads();
     return ok({ added: r.added, skipped: r.skipped, campaignName: campaign.name });
   } catch (err) {
     console.error("[leads] addLeadsToCallCampaignAction failed", err);
@@ -154,9 +160,6 @@ export async function addLeadsToEmailCampaignAction(campaignId: string, ids: str
     const businessIds = await ownBusinessIds(user.id, p.data.ids);
     if (businessIds.length === 0) return fail("No matching leads.");
     const r = await enrollBusinesses(db, campaign.id, businessIds);
-    revalidatePath("/email");
-    revalidatePath(`/email/${campaign.id}`);
-    revalidateLeads();
     return ok({ added: r.enrolled, skipped: r.skipped, campaignName: campaign.name });
   } catch (err) {
     console.error("[leads] addLeadsToEmailCampaignAction failed", err);

@@ -145,6 +145,28 @@ export async function removeLead(db: DbOrTx, userId: string, id: string): Promis
   return rows.length > 0;
 }
 
+/** Removes the user's own leads among `ids` in one statement; returns how many went. */
+export async function removeLeads(db: DbOrTx, userId: string, ids: string[]): Promise<number> {
+  const wanted = [...new Set(ids.filter(isUuid))];
+  if (!isUuid(userId) || wanted.length === 0) return 0;
+  const rows = await db
+    .delete(leads)
+    .where(and(eq(leads.userId, userId), inArray(leads.id, wanted)))
+    .returning({ id: leads.id });
+  return rows.length;
+}
+
+/** Business ids behind the user's own leads among `leadIds` (others' and unknown ids drop out). */
+export async function leadBusinessIdsFor(db: DbOrTx, userId: string, leadIds: string[]): Promise<string[]> {
+  const wanted = [...new Set(leadIds.filter(isUuid))];
+  if (!isUuid(userId) || wanted.length === 0) return [];
+  const rows = await db
+    .select({ id: leads.businessId })
+    .from(leads)
+    .where(and(eq(leads.userId, userId), inArray(leads.id, wanted)));
+  return rows.map((r) => r.id);
+}
+
 /** Every lead status with the user's count (zeros included). */
 export async function countLeadsByStatus(db: DbOrTx, userId: string): Promise<Record<LeadStatus, number>> {
   const out = Object.fromEntries(leadStatusEnum.enumValues.map((s) => [s, 0])) as Record<LeadStatus, number>;

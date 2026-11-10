@@ -398,6 +398,44 @@ describe("LeadQueueTable row actions", () => {
     expect(props.onUpdateStatus).toHaveBeenCalledWith(ID_B, "skipped");
   });
 
+  it("a row's phone button opens the call-campaign dialog for that one lead, with no selection needed", async () => {
+    const user = userEvent.setup();
+    const props = renderTable();
+    await user.click(within(rowOf(ID_B)).getByRole("button", { name: "Add Bayou Electric to a call campaign" }));
+    const dialog = await screen.findByRole("dialog");
+    expect(within(dialog).getByText(/Bayou Electric\./)).not.toBeNull();
+    await user.click(within(dialog).getByRole("radio", { name: /Spring Blitz/ }));
+    await user.click(within(dialog).getByRole("button", { name: "Add to queue" }));
+    await waitFor(() => expect(props.onAddToCampaign).toHaveBeenCalledWith("call", CALL_CAMPAIGNS[0].id, [ID_B]));
+  });
+
+  it("the row call action is disabled for a lead without a phone", () => {
+    renderTable({ leads: [makeLead({ id: ID_A, name: "Acme Plumbing", phone: null })] });
+    expect((screen.getByRole("button", { name: "Add Acme Plumbing to a call campaign" }) as HTMLButtonElement).disabled).toBe(true);
+  });
+
+  it("shows the call campaigns a lead is queued in, linked to each campaign", () => {
+    renderTable({ leads: [makeLead({ id: ID_A, name: "Acme Plumbing", callCampaigns: [{ id: ID_E, name: "Spring Blitz" }] })] });
+    const link = within(rowOf(ID_A)).getByRole("link", { name: "Spring Blitz" });
+    expect(link.getAttribute("href")).toEqual(`/calling/${ID_E}`);
+  });
+
+  it("with no call campaigns, one can be named and created in the dialog instead of leaving the page", async () => {
+    const user = userEvent.setup();
+    const onCreateCallCampaign = vi.fn().mockResolvedValue(ID_E);
+    const props = renderTable({ campaigns: { call: [], email: [] }, onCreateCallCampaign });
+    await user.click(screen.getByRole("checkbox", { name: "Select Acme Plumbing" }));
+    await user.click(screen.getByRole("button", { name: /Add to call campaign…/ }));
+    const dialog = await screen.findByRole("dialog");
+    expect(within(dialog).queryByRole("link", { name: "Create one" })).toBeNull();
+    const submit = within(dialog).getByRole("button", { name: "Create and add" }) as HTMLButtonElement;
+    expect(submit.disabled).toBe(true);
+    await user.type(within(dialog).getByLabelText("New campaign name"), "Roofers");
+    await user.click(submit);
+    await waitFor(() => expect(props.onAddToCampaign).toHaveBeenCalledWith("call", ID_E, [ID_A]));
+    expect(onCreateCallCampaign).toHaveBeenCalledWith("Roofers");
+  });
+
   it("disables Skip for an already skipped lead", () => {
     renderTable({ leads: [makeLead({ id: ID_A, status: "skipped" })] });
     expect((screen.getByRole("button", { name: "Skip Acme Plumbing" }) as HTMLButtonElement).disabled).toBe(true);

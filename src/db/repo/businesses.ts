@@ -37,6 +37,8 @@ export type BusinessFilter = {
   city?: string;
   state?: string;
   category?: string;
+  /** Any of these category aliases (OR). Combined with `category` by AND when both are set. */
+  categories?: string[];
   minScore?: number;
   maxScore?: number;
   hasPhone?: boolean;
@@ -109,6 +111,9 @@ function buildWhere(f: BusinessFilter = {}): SQL | undefined {
   if (f.state?.trim()) c.push(sql`lower(${businesses.state}) = ${f.state.trim().toLowerCase()}`);
   if (f.category?.trim())
     c.push(sql`${businesses.categories} @> ${JSON.stringify([{ alias: f.category.trim() }])}::jsonb`);
+  const anyOf = (f.categories ?? []).map((a) => a.trim()).filter(Boolean);
+  if (anyOf.length)
+    c.push(or(...anyOf.map((a) => sql`${businesses.categories} @> ${JSON.stringify([{ alias: a }])}::jsonb`)));
   if (f.minScore !== undefined) c.push(gte(businesses.score, f.minScore));
   if (f.maxScore !== undefined) c.push(lte(businesses.score, f.maxScore));
   if (f.hasPhone === true) c.push(isNotNull(businesses.phoneDigits));

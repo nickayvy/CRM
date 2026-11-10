@@ -1,5 +1,6 @@
 // URL <-> filter mapping for /lookup. Pure; used by the server page (parse)
-// and the client islands (build). Params: search, category, source,
+// and the client islands (build). Params: search, category (comma-separated
+// aliases, any of them matches), source,
 // minReviews, minL30d, minRating, hasPhone, offset.
 import type { BusinessFilter } from "@/db/repo/businesses";
 import type { BusinessSource } from "@/db/schema";
@@ -27,14 +28,30 @@ function positiveInt(v: string | undefined, max: number): number | undefined {
   return Math.min(max, Math.round(n));
 }
 
+/** `category` param value → distinct aliases, in order ("a,b" → ["a", "b"]). */
+export function parseCategories(value: string | null | undefined): string[] {
+  if (!value) return [];
+  return [...new Set(value.split(",").map((s) => s.trim()).filter(Boolean))];
+}
+
+/** Adds `alias` to the selection, or removes it when already there. */
+export function toggleCategory(selected: readonly string[], alias: string): string[] {
+  return selected.includes(alias) ? selected.filter((a) => a !== alias) : [...selected, alias];
+}
+
+/** Aliases → `category` param value; empty clears the param. */
+export function categoryParam(selected: readonly string[]): string {
+  return selected.join(",");
+}
+
 /** Parses Next's `searchParams` (or a URLSearchParams) into a repo filter and a page offset. */
 export function parseLookupQuery(sp: RawSearchParams | URLSearchParams): LookupQuery {
   const get = (k: string) => first(sp instanceof URLSearchParams ? sp.get(k) : sp[k]);
   const filter: BusinessFilter = {};
   const q = get("search");
   if (q) filter.q = q;
-  const category = get("category");
-  if (category) filter.category = category;
+  const categories = parseCategories(get("category"));
+  if (categories.length) filter.categories = categories;
   const source = get("source");
   if (source && (SOURCES as readonly string[]).includes(source)) filter.source = source as BusinessSource;
   const minReviews = positiveInt(get("minReviews"), 1_000_000);

@@ -30,9 +30,8 @@ export async function loadGrid(db: Db, q: LookupQuery): Promise<{ rows: LookupBu
 export type Dossier = { business: LookupBusiness; related: LookupBusiness[] };
 
 export async function loadDossier(db: Db, id: string): Promise<Dossier | null> {
-  const business = await getBusiness(db, id);
+  const [business, related] = await Promise.all([getBusiness(db, id), relatedBusinesses(db, id)]);
   if (!business) return null;
-  const related = await relatedBusinesses(db, id);
   return { business: toLookupBusiness(business), related: related.map(toLookupBusiness) };
 }
 
