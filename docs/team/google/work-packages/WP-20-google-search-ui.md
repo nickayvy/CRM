@@ -16,9 +16,10 @@
   `tests/google-actions.test.ts`; existing `tests/lookup-*.test.tsx`,
   `tests/routes-render.test.tsx`, cron tests)
 
-**Do not edit:** `src/lib/google-places/**`, `src/features/google/run.ts`,
-`src/db/**`, `src/lib/qualify/**`, `src/lib/web/**`, `src/lib/firecrawl/**`.
-If one of them needs a change, report it under "Needs PM decision".
+**Do not edit:** `src/lib/google-places/**` (except `zips.ts`, see scope item
+9), `src/features/google/run.ts`, `src/db/**`, `src/lib/qualify/**`,
+`src/lib/web/**`, `src/lib/firecrawl/**`. If one of them needs a change,
+report it under "Needs PM decision".
 
 **Delivers:** branch `wp-20-google-search-ui`
 
@@ -108,8 +109,19 @@ Google details. The daily cron finishes jobs nobody is watching.
    APIs; the cap; the cron stage; migration `0005`), `README.md` (one
    paragraph and the CLI commands).
 
+9. **PM-authorised fix in a WP-18 file** (found in the WP-18 review):
+   `src/lib/google-places/zips.ts` `resolveArea`. For the "City, ST", the
+   "<zip> +<n>mi" and the geocoded forms, zips that share a centre (PO-box and
+   single-building zips sit on the city centroid: Dallas has 120 zips but 60
+   distinct centres) are collapsed to one zip per centre, the lowest zip
+   number. They all run the same query at the same point, so they only add
+   cost. An explicit zip list is kept exactly as typed. Update
+   `tests/google-plan.test.ts` to match.
+10. **Run again on failed jobs** as well as completed ones (a database error
+    inside a slice marks a job failed, and a failed job cannot be continued).
+
 ### Out
-- Any change to plan arithmetic, the runner, storage or qualification.
+- Any other change to plan arithmetic, the runner, storage or qualification.
 - A map view. Review text. Bulk "add all to leads".
 
 ## Interfaces
@@ -147,6 +159,9 @@ AC-20.7 Cron (test): with an unfinished Google job and a fake client the
   records no request; without the key it reports `skipped`.
 AC-20.8 Auth: each of the four actions rejects when `requireUser` throws
   (test).
+AC-20.12 Zips: `resolveArea("Dallas, TX")` returns at most 70 zips with no two
+  sharing a centre and still includes 75201; `resolveArea("75201, 75222")`
+  returns both; a failed Google job's page shows Run again (tests).
 AC-20.9 `/searches/new`, `/searches`, `/searches/[id]` and `/lookup` still
   pass `tests/routes-render.test.tsx`; the Yelp form test is unchanged.
 AC-20.10 `npm test`, `npm run typecheck`, `npm run lint`, `npm run build` exit
