@@ -8,6 +8,8 @@ import { DiscoveryUnavailable, createFirecrawl } from "@/lib/firecrawl/client";
 import { enrichPendingLinks } from "@/lib/firecrawl/enrich";
 import { scrapeTrustpilotCategory, syncStale } from "@/lib/firecrawl/trustpilot";
 import { createPageSource } from "@/lib/web/page-source";
+import { type CronGoogle, GOOGLE_CRON_BUDGET_MS, continueUnfinishedGoogleJobs } from "@/features/google/drive";
+import { createPlacesClient } from "@/lib/google-places/client";
 import { TRUSTPILOT_CATEGORIES } from "@/lib/trustpilot-categories";
 
 export const dynamic = "force-dynamic";
@@ -28,6 +30,7 @@ const LINKS_BUDGET_SUNDAY_MS = 60_000;
 /** Total wall-clock budget for discovery work; leaves headroom under maxDuration. */
 const DISCOVERY_BUDGET_MS = 240_000;
 const SKIPPED = "FIRECRAWL_API_KEY not set";
+const GOOGLE_SKIPPED = "GOOGLE_PLACES_API_KEY not set";
 
 function authorized(req: Request): boolean {
   const secret = env.CRON_SECRET;
@@ -47,7 +50,8 @@ type Seeded =
 
 /**
  * The single Vercel cron (0 13 * * *): call-campaign evaluation, due email
- * steps, stale Trustpilot sync (12 rows / 30 s), external-links enrichment of
+ * steps, unfinished Google Maps jobs continued oldest first (60 s; skipped
+ * without GOOGLE_PLACES_API_KEY; stops at the monthly request cap), stale Trustpilot sync (12 rows / 30 s), external-links enrichment of
  * pending rows (300 rows; the remaining discovery budget capped at 180 s, or
  * 60 s on Sundays), and on Sundays (UTC) a 20-per-category seed of all 22
  * categories inside the remaining budget. Firecrawl requests are paced to the
@@ -77,8 +81,24 @@ export async function GET(req: Request) {
     emails = { error: message(err) };
   }
 
+  // Google: continue unfinished jobs, oldest first, inside 60 s of the discovery budget.
+  let google: CronGoogle | { skipped: string } | { error: string };
+  const googleKey = env.GOOGLE_PLACES_API_KEY;
+  if (!googleKey) {
+    google = { skipped: GOOGLE_SKIPPED };
+  } else {
+    try {
+      google = await continueUnfinishedGoogleJobs(db, createPlacesClient(googleKey), {
+        budgetMs: Math.min(GOOGLE_CRON_BUDGET_MS, DISCOVERY_BUDGET_MS - (Date.now() - start)),
+      });
+    } catch (err) {
+      console.error("[cron/daily] google failed", err);
+      google = { error: message(err) };
+    }
+  }
+
   const sunday = new Date().getUTCDay() === 0;
-  const fc = env.FIRECRAWL_API_KEY ? createFirecrawl(env.FIRECRAWL_API_KEY) : null;
+  const fc =env.FIRECRAWL_API_KEY ? createFirecrawl(env.FIRECRAWL_API_KEY) : null;
 
   let sync: Awaited<ReturnType<typeof syncStale>> | { error: string } | { skipped: string };
   if (!fc) {
@@ -106,7 +126,7 @@ export async function GET(req: Request) {
   }
 
   if (!fc) {
-    return Response.json({ campaigns, emails, sync, links, seeded: sunday ? { skipped: SKIPPED } : null });
+    return Response.json({ campaigns, emails, google, sync, links, seeded: sunday ? { skipped: SKIPPED } : null });
   }
 
   let seeded: Seeded | null = null;
@@ -130,5 +150,5 @@ export async function GET(req: Request) {
     seeded = s;
   }
 
-  return Response.json({ campaigns, emails, sync, links, seeded });
+  return Response.json({ campaigns, emails, google, sync, links, seeded });
 }
