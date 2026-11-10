@@ -110,10 +110,12 @@ describe("search params", () => {
       filter: { q: "acme", categories: ["plumbing"], source: "trustpilot", minReviews: 500, minL30d: 25, minRating: 4, hasPhone: true },
       offset: 100,
     });
-    expect(parseLookupQuery({ source: "google", minReviews: "-3", minRating: "9", hasPhone: "false", offset: "abc" })).toEqual({
+    expect(parseLookupQuery({ source: "facebook", minReviews: "-3", minRating: "9", hasPhone: "false", offset: "abc" })).toEqual({
       filter: {},
       offset: 0,
     });
+    // WP-20: Google is a source.
+    expect(parseLookupQuery({ source: "google" }).filter).toEqual({ source: "google" });
     expect(parseLookupQuery(new URLSearchParams("offset=75")).offset).toBe(50);
   });
   it("patching a filter resets offset; empty/0/false remove the key; offset patches page", () => {

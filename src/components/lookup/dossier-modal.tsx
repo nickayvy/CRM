@@ -15,6 +15,7 @@ import {
   Megaphone,
   Phone,
   Plus,
+  RefreshCw,
   Star,
   Trash2,
 } from "lucide-react";
@@ -34,6 +35,7 @@ import {
   queueBusinessForCallsAction,
 } from "@/features/lookup/actions";
 import type { Dossier } from "@/features/lookup/data";
+import { enrichTrustpilotAction } from "@/features/lookup/discovery-bridge";
 import { categoryLabel } from "@/features/lookup/graph-utils";
 import { absoluteUrl, hostOf, metaAdsLibraryUrl, socialLink, trustpilotUrl } from "@/features/lookup/links";
 import type { LookupBusiness } from "@/features/lookup/types";
@@ -77,6 +79,8 @@ export function DossierModal({ businessId, onClose, preview = null, leadIds, onL
   }
 
   const [loaded, setLoaded] = useState<{ id: string; result: ActionResult<Dossier> } | null>(null);
+  /** Bumped after "Refresh links" so the dossier reloads with what was found. */
+  const [version, setVersion] = useState(0);
   useEffect(() => {
     if (!viewingId) return;
     let cancelled = false;
@@ -87,7 +91,7 @@ export function DossierModal({ businessId, onClose, preview = null, leadIds, onL
     return () => {
       cancelled = true;
     };
-  }, [viewingId]);
+  }, [viewingId, version]);
 
   const fetched = loaded && loaded.id === viewingId ? loaded.result : null;
   // Until the server answers, a card's own row fills the dossier (similar companies follow).
@@ -119,6 +123,7 @@ export function DossierModal({ businessId, onClose, preview = null, leadIds, onL
             onLeadAdded={onLeadAdded}
             callCampaigns={callCampaigns}
             onNavigate={setViewingId}
+            onRefreshed={() => setVersion((v) => v + 1)}
             onDeleted={(id) => {
               onClose();
               onDeleted?.(id);
@@ -138,9 +143,20 @@ type BodyProps = {
   onLeadAdded?: (businessId: string) => void;
   callCampaigns?: CampaignTarget[];
   onDeleted?: (businessId: string) => void;
+  /** Told after "Refresh links" succeeds, so the dossier reloads. */
+  onRefreshed?: () => void;
 };
 
-function DossierBody({ dossier, onNavigate, relatedLoading = false, isLead = false, onLeadAdded, callCampaigns, onDeleted }: BodyProps) {
+function DossierBody({
+  dossier,
+  onNavigate,
+  relatedLoading = false,
+  isLead = false,
+  onLeadAdded,
+  callCampaigns,
+  onDeleted,
+  onRefreshed,
+}: BodyProps) {
   const { business: b, related } = dossier;
   const [relatedOpen, setRelatedOpen] = useState(true);
   const [adding, startAdding] = useTransition();
@@ -153,7 +169,20 @@ function DossierBody({ dossier, onNavigate, relatedLoading = false, isLead = fal
   const category = b.categoryTitle ?? (b.category ? categoryLabel(b.category) : null);
   const host = hostOf(b.website);
   const tp = trustpilotUrl(b);
-  const location = [b.city, b.country].filter(Boolean).join(", ");
+  const location = b.address ?? [b.city, b.country].filter(Boolean).join(", ");
+  const [refreshing, startRefresh] = useTransition();
+
+  function refreshLinks() {
+    startRefresh(async () => {
+      const res = await enrichTrustpilotAction(b.id);
+      if (res.ok) {
+        toast.success("Links refreshed", { description: `${b.name}: read again from its website.` });
+        onRefreshed?.();
+      } else {
+        toast.error("Could not refresh links", { description: res.message ?? "Unknown error" });
+      }
+    });
+  }
 
   function addToLeads() {
     startAdding(async () => {
@@ -221,6 +250,7 @@ function DossierBody({ dossier, onNavigate, relatedLoading = false, isLead = fal
     { label: "FOUNDER", icon: BriefcaseBusiness, value: linkedin, href: linkedin },
     { label: "EMAIL", icon: Mail, value: b.email, href: b.email ? `mailto:${b.email}` : null },
     { label: "PHONE", icon: Phone, value: b.phone ? formatPhone(b.phone) : null, href: b.phone ? `tel:${b.phone}` : null },
+    { label: "GOOGLE MAPS", icon: MapPin, value: b.googleMapsUrl ? "View listing" : null, href: b.googleMapsUrl },
   ];
 
   return (
@@ -284,8 +314,14 @@ function DossierBody({ dossier, onNavigate, relatedLoading = false, isLead = fal
                       <span>Yelp</span>
                     </a>
                   )}
+                  {b.googleMapsUrl && (
+                    <a href={b.googleMapsUrl} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 font-medium transition-colors hover:text-foreground">
+                      <MapPin className="h-4 w-4 shrink-0 text-primary" aria-hidden />
+                      <span>Google Maps</span>
+                    </a>
+                  )}
                   {location && (
-                    <span className="flex min-w-0 items-center gap-1">
+                    <span className="flex min-w-0 items-center gap-1" data-testid="dossier-address">
                       <MapPin className="h-4 w-4 shrink-0" aria-hidden />
                       <span className="truncate">{location}</span>
                     </span>
@@ -400,6 +436,19 @@ function DossierBody({ dossier, onNavigate, relatedLoading = false, isLead = fal
             <div className="mb-2 flex items-center gap-2 text-xs tracking-wider text-foreground uppercase">
               <SectionDot />
               EXTERNAL LINKS
+              {host && (
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  className="ml-auto h-6 px-2 text-[11px] tracking-normal normal-case"
+                  onClick={refreshLinks}
+                  disabled={refreshing}
+                  title="Read the business's website again for email, phone and social links"
+                >
+                  {refreshing ? <Loader2 className="h-3 w-3 animate-spin" aria-hidden /> : <RefreshCw className="h-3 w-3" aria-hidden />}
+                  Refresh links
+                </Button>
+              )}
             </div>
             <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
               {tiles.map(({ label, icon: Icon, value, href }) => (

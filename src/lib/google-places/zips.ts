@@ -85,8 +85,25 @@ const STATE_NAMES: Record<string, string> = {
   "west virginia": "WV", wisconsin: "WI", wyoming: "WY",
 };
 
-function build(zips: string[], baseLabel: string): ResolvedArea {
-  const unique = [...new Set(zips)].sort();
+/**
+ * One zip per distinct centre, the lowest zip number. PO-box and
+ * single-building zips sit on their city's centroid, so a text search at their
+ * centre repeats another zip's search exactly and only adds cost (Dallas, TX
+ * has 120 zips but 60 distinct centres).
+ */
+export function collapseSharedCentres(zips: string[]): string[] {
+  const byCentre = new Map<string, string>();
+  for (const zip of [...new Set(zips)].sort()) {
+    const info = zipInfo(zip);
+    const key = info ? `${info.latitude},${info.longitude}` : `zip:${zip}`;
+    if (!byCentre.has(key)) byCentre.set(key, zip);
+  }
+  return [...byCentre.values()];
+}
+
+/** `collapse`: drop zips that share a centre (city, radius and geocoded areas; never an explicit zip list). */
+function build(zips: string[], baseLabel: string, opts: { collapse?: boolean } = {}): ResolvedArea {
+  const unique = (opts.collapse ? collapseSharedCentres(zips) : [...new Set(zips)]).sort();
   const states = [...new Set(unique.map((z) => zipInfo(z)?.state).filter((s): s is string => !!s))].sort();
   const endsWithState = /,\s*[A-Za-z]{2}\s*$/.test(baseLabel);
   const label = states.length === 1 && !endsWithState ? `${baseLabel}, ${states[0]}` : baseLabel;
@@ -108,7 +125,7 @@ function resolveCity(text: string): ResolvedArea | null {
   }
   for (const [city, state] of tries) {
     const hits = load().byCity.get(cityKey(city.replace(/,$/, ""), state));
-    if (hits?.length) return build(hits.map((h) => h.zip), `${hits[0].city}, ${state}`);
+    if (hits?.length) return build(hits.map((h) => h.zip), `${hits[0].city}, ${state}`, { collapse: true });
   }
   return null;
 }
@@ -128,7 +145,7 @@ export async function resolveArea(input: string, opts: { geocode?: Geocode } = {
     const miles = Number(radius[2]);
     if (!(miles > 0) || miles > MAX_RADIUS_MILES) throw new AreaError(`The radius must be between 1 and ${MAX_RADIUS_MILES} miles.`);
     const zips = zipsNear(centre, miles);
-    return build([radius[1], ...zips], `${radius[1]} +${radius[2]}mi`);
+    return build([radius[1], ...zips], `${radius[1]} +${radius[2]}mi`, { collapse: true });
   }
 
   // A list of zips (ZIP+4 accepted), separated by commas, spaces or semicolons.
@@ -161,7 +178,7 @@ export async function resolveArea(input: string, opts: { geocode?: Geocode } = {
         }
         if (best && bestD <= 50) zips.push(best.zip);
       }
-      if (zips.length) return build(zips, text);
+      if (zips.length) return build(zips, text, { collapse: true });
     }
     throw new AreaError(`Could not find "${text}". Try zip codes or "City, ST".`);
   }

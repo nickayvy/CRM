@@ -38,6 +38,7 @@ starts empty: businesses arrive from Trustpilot discovery or Yelp searches.
 | `npm run db:migrate` | Apply `./drizzle/*.sql` to the active database |
 | `npm run db:seed` | Ensure the qualification-rules row exists (no demo data) |
 | `npm run ingest` | Run a Yelp search job from the CLI (needs `YELP_API_KEY`) |
+| `npm run google:search` | Plan, run, probe or resume a Google Maps search from the CLI (see [Google Maps search](#google-maps-search)) |
 
 ## Environment
 
@@ -48,6 +49,9 @@ what you need; the example file documents each one.
 |---|---|---|
 | `DATABASE_URL` | unset → PGlite | Postgres connection string. When set, the app uses postgres-js. |
 | `PGLITE_DATA_DIR` | `.data/pglite` | Local PGlite directory. |
+| `GOOGLE_PLACES_API_KEY` | unset → Google Maps search disabled | Places API (New) key. Without it, `/searches/new` says "Google Maps search is not configured: set GOOGLE_PLACES_API_KEY". |
+| `GOOGLE_GEOCODING_API_KEY` | unset → uses `GOOGLE_PLACES_API_KEY` | Geocoding for free-text areas only. |
+| `GOOGLE_PLACES_MONTHLY_REQUEST_CAP` | `1000` | Most Google Places requests per month; searches pause at the cap. |
 | `YELP_API_KEY` | unset → Yelp disabled | Yelp Fusion key. Without it, `/searches` says "Yelp search is not configured". |
 | `FIRECRAWL_API_KEY` | unset → discovery disabled | Firecrawl key for Trustpilot discovery (scrape, seed, daily sync). |
 | `NEXT_PUBLIC_SUPABASE_URL` | unset | Supabase project URL. Required for sign-in; unset → every page redirects to `/login`. |
@@ -91,6 +95,28 @@ Setup:
    immediately.
 4. You can also create users in the dashboard: Authentication → Users → Add
    user, with "Auto Confirm" ticked.
+
+## Google Maps search
+
+`/searches/new` (also reached from the "Google Maps" button in Lookup)
+searches Google Maps through Google's Places API (New): pick a niche (its
+search terms fill in and stay editable) and an area (zip codes, "City, ST" or
+"75201 +10mi"), and the form shows terms × zips = searches, the maximum
+requests, an estimated maximum cost and the requests left this month before
+anything is spent. Each term is searched in every zip (up to 3 pages, 60
+places); results are cleaned, deduplicated against Yelp and Trustpilot rows,
+qualified with the usual rules, and their websites read for email and social
+links. Long searches run in slices: the open job page and the daily cron
+continue them, and every request counts against
+`GOOGLE_PLACES_MONTHLY_REQUEST_CAP`. Key setup is in
+[docs/deploy.md](docs/deploy.md#google-maps-search). From a terminal:
+
+```bash
+npm run google:search -- --niche roofing --area "75201,75202" --dry-run   # plan and cost, no request
+npm run google:search -- --niche roofing --area "Dallas, TX" --max-pages 1  # run a job
+npm run google:search -- --probe "roofer 75201"                            # one request, prints rows, writes nothing
+npm run google:search -- --resume <jobId>                                  # continue a paused or unfinished job
+```
 
 ## Deploying
 

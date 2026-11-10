@@ -1,6 +1,6 @@
 "use client";
 
-import { Check, ExternalLink, Loader2, Plus, Star, TrendingUp } from "lucide-react";
+import { Check, ExternalLink, Loader2, MapPin, Plus, Star, TrendingUp } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { categoryLabel } from "@/features/lookup/graph-utils";
 import { absoluteUrl, hostOf } from "@/features/lookup/links";
@@ -69,6 +69,13 @@ export function BusinessCard({ business: b, onSelect, isLead = false, adding = f
         )}
       </div>
 
+      {b.address && (
+        <p className="mt-1.5 flex min-w-0 items-center gap-1 text-[11px] text-muted-foreground" data-testid="card-address">
+          <MapPin className="h-3 w-3 shrink-0" aria-hidden />
+          <span className="truncate">{b.address}</span>
+        </p>
+      )}
+
       <div className="mt-2 flex min-h-6 items-center justify-between gap-2">
         {b.website && host ? (
           <a
@@ -83,6 +90,22 @@ export function BusinessCard({ business: b, onSelect, isLead = false, adding = f
           </a>
         ) : (
           <span />
+        )}
+        {b.googleMapsUrl && (
+          <a
+            href={b.googleMapsUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            aria-label={`Open ${b.name} on Google Maps`}
+            title="Open on Google Maps"
+            className="ml-auto inline-flex shrink-0 items-center gap-1 text-[10px] text-muted-foreground transition-colors hover:text-primary"
+            onClick={(e) => e.stopPropagation()}
+            onKeyDown={(e) => e.stopPropagation()}
+            data-testid="card-maps-link"
+          >
+            <MapPin className="h-3 w-3" aria-hidden />
+            Maps
+          </a>
         )}
         {isLead ? (
           <span className="inline-flex shrink-0 items-center gap-1 rounded-full bg-primary/15 px-2 py-0.5 text-[10px] font-medium text-primary" data-testid="lead-chip">

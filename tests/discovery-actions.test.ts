@@ -86,6 +86,7 @@ beforeEach(async () => {
   vi.spyOn(console, "info").mockImplementation(() => {});
   vi.stubEnv("FIRECRAWL_API_KEY", "fc-test");
   vi.stubEnv("CRON_SECRET", "");
+  vi.stubEnv("GOOGLE_PLACES_API_KEY", "");
 });
 afterEach(() => {
   vi.unstubAllEnvs();
@@ -310,6 +311,7 @@ describe("GET /api/cron/daily", () => {
     expect(body).toEqual({
       campaigns: 0,
       emails: 0,
+      google: { skipped: "GOOGLE_PLACES_API_KEY not set" },
       sync: { scraped: 1, failed: 0, remaining: 0 },
       links: { enriched: 1, empty: 0, failed: 0, remaining: 0, rateLimited: false },
       seeded: null,
@@ -341,6 +343,7 @@ describe("GET /api/cron/daily", () => {
     expect(await res.json()).toEqual({
       campaigns: 0,
       emails: 0,
+      google: { skipped: "GOOGLE_PLACES_API_KEY not set" },
       sync: { skipped: "FIRECRAWL_API_KEY not set" },
       links: { enriched: 0, empty: 0, failed: 0, remaining: 0, rateLimited: false },
       seeded: { skipped: "FIRECRAWL_API_KEY not set" },
@@ -364,6 +367,7 @@ describe("GET /api/cron/daily", () => {
     expect(body).toEqual({
       campaigns: 0,
       emails: 0,
+      google: { skipped: "GOOGLE_PLACES_API_KEY not set" },
       sync: { skipped: "FIRECRAWL_API_KEY not set" },
       links: { enriched: 1, empty: 1, failed: 1, remaining: 0, rateLimited: false },
       seeded: null,
@@ -406,6 +410,7 @@ describe("GET /api/cron/daily", () => {
     expect(await res.json()).toEqual({
       campaigns: 0,
       emails: 0,
+      google: { skipped: "GOOGLE_PLACES_API_KEY not set" },
       sync: { scraped: 1, failed: 0, remaining: 0 },
       links: { error: "Firecrawl credits exhausted" },
       seeded: null,
