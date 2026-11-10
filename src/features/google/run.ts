@@ -113,6 +113,22 @@ export async function ingestGooglePlace(
 
 // ------------------------------------------------------------ one slice
 
+/** Reported after every finished search (CLI progress lines). */
+export type SearchEvent = {
+  /** 0-based search index; `total` searches in the job. */
+  index: number;
+  total: number;
+  term: string;
+  zip: string;
+  /** Requests sent for this search, retries included. */
+  requests: number;
+  /** Places newly processed by this job. */
+  places: number;
+  saturated: boolean;
+  /** Set when the search was skipped after its retry. */
+  error?: string;
+};
+
 type SearchResult =
   | { kind: "ok"; saturated: boolean }
   | { kind: "capped" }
@@ -137,7 +153,7 @@ export async function runGoogleJobSlice(
   db: Db,
   client: PlacesClient,
   jobId: string,
-  opts: { budgetMs: number; cap?: number; now?: () => number },
+  opts: { budgetMs: number; cap?: number; now?: () => number; onSearch?: (e: SearchEvent) => void },
 ): Promise<{ job: SearchJob; outcome: SliceOutcome }> {
   const clock = opts.now ?? Date.now;
   const started = clock();
@@ -222,6 +238,7 @@ export async function runGoogleJobSlice(
     while (queriesDone < total) {
       if (opts.budgetMs - (clock() - started) < MIN_SEARCH_BUDGET_MS) return await finish("more");
       const { term, zip } = searchAt(plan, queriesDone);
+      const before = { requests: counts.apiCalls, places: counts.fetchedCount };
 
       let r = await runSearch(term, zip);
       const retryable = (x: SearchResult) =>
@@ -237,12 +254,24 @@ export async function runGoogleJobSlice(
         if (e instanceof GooglePlacesError && e.fatal) {
           return await finish("failed", { status: "failed", error: e.message, finishedAt: new Date() });
         }
-        // Failed twice: record and move on.
-        const message = e instanceof Error ? e.message : String(e);
-        plan.errors = [...plan.errors, { term, zip, message }].slice(-MAX_PLAN_ERRORS);
-      } else if (r.saturated) {
-        plan.saturated = [...plan.saturated, { term, zip }];
       }
+      const message = r.kind === "error" ? (r.error instanceof Error ? r.error.message : String(r.error)) : undefined;
+      if (message !== undefined) {
+        // Failed twice: record and move on.
+        plan.errors = [...plan.errors, { term, zip, message }].slice(-MAX_PLAN_ERRORS);
+      }
+      const saturated = r.kind === "ok" && r.saturated;
+      if (saturated) plan.saturated = [...plan.saturated, { term, zip }];
+      opts.onSearch?.({
+        index: queriesDone,
+        total,
+        term,
+        zip,
+        requests: counts.apiCalls - before.requests,
+        places: counts.fetchedCount - before.places,
+        saturated,
+        ...(message !== undefined ? { error: message } : {}),
+      });
       queriesDone++;
       await persist({ error: null });
       lease = (await renewJobLease(db, jobId, lease)) ?? lease;

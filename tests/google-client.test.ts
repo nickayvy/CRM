@@ -15,7 +15,7 @@ import { createGeocoder } from "@/lib/google-places/geocode";
 const KEY = "AIzaTESTKEY0000000000000000000000000000"; // fake, 39 chars like a real key
 
 function stubFetch(status: number, body: unknown) {
-  return vi.fn(async (_url: string | URL | Request, _init?: RequestInit) =>
+  return vi.fn<(url: string | URL | Request, init?: RequestInit) => Promise<Response>>(async () =>
     new Response(typeof body === "string" ? body : JSON.stringify(body), {
       status,
       headers: { "Content-Type": "application/json" },

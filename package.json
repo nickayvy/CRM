@@ -14,7 +14,8 @@
     "db:migrate": "tsx scripts/migrate.ts",
     "db:seed": "tsx scripts/seed.ts",
     "ingest": "tsx scripts/ingest.ts",
-    "enrich:links": "tsx scripts/enrich-links.ts"
+    "enrich:links": "tsx scripts/enrich-links.ts",
+    "google:search": "tsx scripts/google-search.ts"
   },
   "dependencies": {
     "@electric-sql/pglite": "^0.5.15",
