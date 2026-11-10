@@ -205,6 +205,12 @@ export const businesses = pgTable(
      * in step; `websiteDomain()` in src/lib/domain.ts applies the same pattern.
      */
     websiteDomain: text("website_domain").generatedAlwaysAs(sql.raw(WEBSITE_DOMAIN_SQL)),
+    /**
+     * Contact fields the user edited by hand ("phone", "email", "website",
+     * "socialLinks", "googleMapsUrl"); re-syncs and enrichment never overwrite
+     * them. See EDITABLE_FIELDS in src/db/repo/businesses.ts.
+     */
+    editedFields: text("edited_fields").array().notNull().default(sql`'{}'::text[]`),
   },
   (t) => [
     index("businesses_phone_digits_idx").on(t.phoneDigits),

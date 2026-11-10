@@ -63,7 +63,8 @@ describe("0005_google_places on a populated 0004 database", () => {
 
     await migrate(asPglite(db), { migrationsFolder: MIGRATIONS_FOLDER });
     const applied = await q<{ n: number | string }>(sql`SELECT count(*) AS n FROM drizzle.__drizzle_migrations`);
-    expect(Number(applied[0].n)).toBe(6);
+    // 0005 and every later migration.
+    expect(Number(applied[0].n)).toBe(7);
 
     const after = await q<Record<string, unknown>>(sql`SELECT * FROM businesses ORDER BY id`);
     expect(after).toHaveLength(2);

@@ -6,7 +6,7 @@
 // See docs/team/links/architecture.md §Write rules, §Budgets, §Direct fetch.
 import { eq } from "drizzle-orm";
 import type { Db } from "@/db/client";
-import { getBusiness } from "@/db/repo/businesses";
+import { getBusiness, withoutEdited } from "@/db/repo/businesses";
 import { countPendingLinks, listPendingLinkIds } from "@/db/repo/discovery";
 import { type Business, type NewBusiness, businesses } from "@/db/schema";
 import { qualifyOne } from "@/features/ingest/run";
@@ -176,7 +176,8 @@ export async function enrichBusinessLinks(
     if (blank(b.email) && links.email) patch.email = links.email;
     if (Object.keys(links.socialLinks).length > 0) patch.socialLinks = { ...(b.socialLinks ?? {}), ...links.socialLinks };
   }
-  await db.update(businesses).set(patch).where(eq(businesses.id, b.id));
+  // Fields the user edited by hand are theirs; enrichment never overwrites them.
+  await db.update(businesses).set(withoutEdited(patch, b.editedFields)).where(eq(businesses.id, b.id));
 
   const updated = (await getBusiness(db, b.id))!;
   await qualifyOne(db, updated);

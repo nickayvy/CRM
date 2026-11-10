@@ -13,7 +13,7 @@ import {
   reviewSnapshots,
 } from "../schema";
 import { DOMAIN_SLUG_PATTERN } from "@/lib/firecrawl/external-links";
-import { CRM_FIELDS } from "./businesses";
+import { CRM_FIELDS, guardEditedOnConflict } from "./businesses";
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
@@ -47,7 +47,7 @@ export async function upsertBusinessByTrustpilotId(
   const [res] = await db
     .insert(businesses)
     .values(values)
-    .onConflictDoUpdate({ target: businesses.trustpilotId, set })
+    .onConflictDoUpdate({ target: businesses.trustpilotId, set: guardEditedOnConflict(set) })
     .returning({ ...getTableColumns(businesses), __inserted: sql<boolean>`(xmax = 0)` });
   const { __inserted, ...business } = res;
   return { business: business as Business, created: Boolean(__inserted) };

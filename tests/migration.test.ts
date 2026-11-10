@@ -33,7 +33,7 @@ async function columns(table: string): Promise<Map<string, Col>> {
 }
 
 describe("migrations", () => {
-  it("ships exactly 0000_init through 0005_google_places, and all are applied", async () => {
+  it("ships exactly 0000_init through 0006_edited_fields, and all are applied", async () => {
     const files = readdirSync(MIGRATIONS_FOLDER).filter((f) => f.endsWith(".sql")).sort();
     expect(files).toEqual([
       "0000_init.sql",
@@ -42,9 +42,19 @@ describe("migrations", () => {
       "0003_ai_calls.sql",
       "0004_campaign_agent.sql",
       "0005_google_places.sql",
+      "0006_edited_fields.sql",
     ]);
     const applied = await q<{ n: number | string }>(sql`SELECT count(*) AS n FROM drizzle.__drizzle_migrations`);
-    expect(Number(applied[0].n)).toBe(6);
+    expect(Number(applied[0].n)).toBe(7);
+  });
+
+  it("0006_edited_fields only adds businesses.edited_fields, non-null and empty by default", async () => {
+    const text = readFileSync(path.join(MIGRATIONS_FOLDER, "0006_edited_fields.sql"), "utf8");
+    expect(text).not.toMatch(/DROP |RENAME |ALTER COLUMN/i);
+    const col = (await columns("businesses")).get("edited_fields");
+    expect(col?.is_nullable).toBe("NO");
+    expect(col?.data_type).toBe("ARRAY");
+    expect(col?.column_default).toMatch(/'\{\}'/);
   });
 
   it("0003_ai_calls is additive: two enums, the ai_calls table, and call_campaigns.mode defaulting to human", async () => {

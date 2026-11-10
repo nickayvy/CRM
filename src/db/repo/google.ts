@@ -13,7 +13,7 @@ import {
   reviewSnapshots,
   searchJobs,
 } from "../schema";
-import { CRM_FIELDS } from "./businesses";
+import { CRM_FIELDS, guardEditedOnConflict, withoutEdited } from "./businesses";
 
 export const GOOGLE_PLACES_PROVIDER = "google_places";
 /** Slice lease length; renewed after every search. */
@@ -105,7 +105,7 @@ export async function upsertGooglePlace(db: Db, row: NewBusiness & { googlePlace
   const now = new Date();
   const [existing] = await db.select().from(businesses).where(eq(businesses.googlePlaceId, row.googlePlaceId));
   if (existing) {
-    const set = existing.source === "google" ? refresh(row) : fillEmpty(existing, row);
+    const set = withoutEdited(existing.source === "google" ? refresh(row) : fillEmpty(existing, row), existing.editedFields);
     const [business] = await db
       .update(businesses)
       .set({ ...set, updatedAt: now })
@@ -118,7 +118,7 @@ export async function upsertGooglePlace(db: Db, row: NewBusiness & { googlePlace
   if (match) {
     const [business] = await db
       .update(businesses)
-      .set({ ...fillEmpty(match, row), googlePlaceId: row.googlePlaceId, updatedAt: now })
+      .set({ ...withoutEdited(fillEmpty(match, row), match.editedFields), googlePlaceId: row.googlePlaceId, updatedAt: now })
       // Guard against a concurrent attach of another place to the same row.
       .where(and(eq(businesses.id, match.id), isNull(businesses.googlePlaceId)))
       .returning();
@@ -129,7 +129,7 @@ export async function upsertGooglePlace(db: Db, row: NewBusiness & { googlePlace
   const [res] = await db
     .insert(businesses)
     .values(values)
-    .onConflictDoUpdate({ target: businesses.googlePlaceId, set: { ...refresh(row), updatedAt: now } })
+    .onConflictDoUpdate({ target: businesses.googlePlaceId, set: { ...guardEditedOnConflict(refresh(row)), updatedAt: now } })
     .returning({ ...getTableColumns(businesses), __inserted: sql<boolean>`(xmax = 0)` });
   const { __inserted, ...business } = res;
   return { business: business as Business, outcome: __inserted ? "created" : "updated" };

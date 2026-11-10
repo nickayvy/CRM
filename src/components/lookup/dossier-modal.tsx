@@ -13,6 +13,7 @@ import {
   Mail,
   MapPin,
   Megaphone,
+  Pencil,
   Phone,
   Plus,
   RefreshCw,
@@ -43,6 +44,7 @@ import type { ActionResult } from "@/lib/action-result";
 import { formatPhone, formatRelative } from "@/lib/format";
 import { velocityTier } from "@/lib/velocity";
 import { BusinessLogo, SourceChip } from "./badges";
+import { EditContactForm } from "./edit-contact-form";
 
 type Props = {
   /** The business to open; null closes the dialog. */
@@ -171,6 +173,7 @@ function DossierBody({
   const tp = trustpilotUrl(b);
   const location = b.address ?? [b.city, b.country].filter(Boolean).join(", ");
   const [refreshing, startRefresh] = useTransition();
+  const [editing, setEditing] = useState(false);
 
   function refreshLinks() {
     startRefresh(async () => {
@@ -436,11 +439,23 @@ function DossierBody({
             <div className="mb-2 flex items-center gap-2 text-xs tracking-wider text-foreground uppercase">
               <SectionDot />
               EXTERNAL LINKS
-              {host && (
+              {!editing && (
                 <Button
                   size="sm"
                   variant="ghost"
                   className="ml-auto h-6 px-2 text-[11px] tracking-normal normal-case"
+                  onClick={() => setEditing(true)}
+                  title="Correct the phone, email, website or social links"
+                >
+                  <Pencil className="h-3 w-3" aria-hidden />
+                  Edit
+                </Button>
+              )}
+              {host && !editing && (
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  className="h-6 px-2 text-[11px] tracking-normal normal-case"
                   onClick={refreshLinks}
                   disabled={refreshing}
                   title="Read the business's website again for email, phone and social links"
@@ -450,28 +465,39 @@ function DossierBody({
                 </Button>
               )}
             </div>
-            <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
-              {tiles.map(({ label, icon: Icon, value, href }) => (
-                <div key={label} className="flex min-w-0 items-center gap-2 rounded-md bg-surface px-2.5 py-2" data-testid="link-tile">
-                  <Icon className="h-3.5 w-3.5 shrink-0 text-primary" aria-hidden />
-                  <div className="min-w-0 flex-1">
-                    <p className="text-[10px] text-muted-foreground uppercase">{label}</p>
-                    {href && value ? (
-                      <a
-                        href={href}
-                        target={href.startsWith("http") ? "_blank" : undefined}
-                        rel={href.startsWith("http") ? "noopener noreferrer" : undefined}
-                        className="block truncate text-xs font-medium text-foreground hover:underline"
-                      >
-                        {value}
-                      </a>
-                    ) : (
-                      <p className="text-xs text-muted-foreground">NO DATA</p>
-                    )}
+            {editing ? (
+              <EditContactForm
+                business={b}
+                onCancel={() => setEditing(false)}
+                onSaved={() => {
+                  setEditing(false);
+                  onRefreshed?.();
+                }}
+              />
+            ) : (
+              <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
+                {tiles.map(({ label, icon: Icon, value, href }) => (
+                  <div key={label} className="flex min-w-0 items-center gap-2 rounded-md bg-surface px-2.5 py-2" data-testid="link-tile">
+                    <Icon className="h-3.5 w-3.5 shrink-0 text-primary" aria-hidden />
+                    <div className="min-w-0 flex-1">
+                      <p className="text-[10px] text-muted-foreground uppercase">{label}</p>
+                      {href && value ? (
+                        <a
+                          href={href}
+                          target={href.startsWith("http") ? "_blank" : undefined}
+                          rel={href.startsWith("http") ? "noopener noreferrer" : undefined}
+                          className="block truncate text-xs font-medium text-foreground hover:underline"
+                        >
+                          {value}
+                        </a>
+                      ) : (
+                        <p className="text-xs text-muted-foreground">NO DATA</p>
+                      )}
+                    </div>
                   </div>
-                </div>
-              ))}
-            </div>
+                ))}
+              </div>
+            )}
           </section>
 
           {relatedLoading && related.length === 0 && (

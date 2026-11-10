@@ -17,6 +17,7 @@ import {
   or,
   sql,
 } from "drizzle-orm";
+import { phoneDigits } from "@/lib/format";
 import type { QualifyResult } from "@/lib/qualify";
 import type { Db } from "../client";
 import {
@@ -82,7 +83,59 @@ export const CRM_FIELDS = [
   "doNotEmail",
   "lastContactedAt",
   "nextFollowUpAt",
+  "editedFields",
 ] as const satisfies readonly (keyof Business)[];
+
+/**
+ * Contact fields the user can edit from the dossier, each with the columns it
+ * owns. Once a field is in `businesses.edited_fields`, Yelp/Trustpilot/Google
+ * re-syncs and link enrichment leave those columns alone.
+ */
+export const EDITABLE_FIELDS = {
+  phone: ["phone", "phoneDigits", "displayPhone"],
+  email: ["email"],
+  website: ["website"],
+  socialLinks: ["socialLinks"],
+  googleMapsUrl: ["googleMapsUrl"],
+} as const satisfies Record<string, readonly (keyof Business)[]>;
+export type EditableField = keyof typeof EDITABLE_FIELDS;
+
+/** Column (camelCase key) → the editable field that owns it. */
+const FIELD_OF_COLUMN: Record<string, EditableField> = Object.fromEntries(
+  (Object.entries(EDITABLE_FIELDS) as [EditableField, readonly string[]][]).flatMap(([f, cols]) => cols.map((c) => [c, f])),
+);
+
+/** Drops the keys of `set` that belong to a field the user edited on this row. */
+export function withoutEdited<T extends Record<string, unknown>>(set: T, editedFields: readonly string[] | null | undefined): T {
+  if (!editedFields?.length) return set;
+  const out: Record<string, unknown> = {};
+  for (const [k, v] of Object.entries(set)) {
+    const f = FIELD_OF_COLUMN[k];
+    if (f && editedFields.includes(f)) continue;
+    out[k] = v;
+  }
+  return out as T;
+}
+
+/**
+ * For an `ON CONFLICT DO UPDATE` set: each editable column keeps the stored
+ * value when the conflicting row has that field in edited_fields, else takes
+ * the incoming (`excluded`) value. Other keys pass through unchanged.
+ */
+export function guardEditedOnConflict(set: Record<string, unknown>): Record<string, unknown> {
+  const out: Record<string, unknown> = {};
+  for (const [k, v] of Object.entries(set)) {
+    const f = FIELD_OF_COLUMN[k];
+    if (!f) {
+      out[k] = v;
+      continue;
+    }
+    const col = businesses[k as keyof typeof businesses.$inferSelect] as AnyColumn;
+    const name = sql.identifier(col.name);
+    out[k] = sql`CASE WHEN ${f} = ANY(${businesses.editedFields}) THEN ${col} ELSE excluded.${name} END`;
+  }
+  return out;
+}
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
@@ -216,7 +269,7 @@ export async function upsertBusinessByYelpId(
   const [res] = await db
     .insert(businesses)
     .values(row)
-    .onConflictDoUpdate({ target: businesses.yelpId, set })
+    .onConflictDoUpdate({ target: businesses.yelpId, set: guardEditedOnConflict(set) })
     .returning({ ...getTableColumns(businesses), __inserted: sql<boolean>`(xmax = 0)` });
   const { __inserted, ...business } = res;
   return { business: business as Business, created: Boolean(__inserted) };
@@ -236,6 +289,68 @@ export async function updateBusinessCrm(
   set.updatedAt = new Date();
   const [row] = await db.update(businesses).set(set).where(eq(businesses.id, id)).returning();
   return row ?? null;
+}
+
+export type ContactPatch = {
+  /** E.164 (or null to clear); phoneDigits and displayPhone follow. */
+  phone?: string | null;
+  email?: string | null;
+  website?: string | null;
+  /** Merged into social_links; a null value removes that key. */
+  socialLinks?: Record<string, string | null>;
+  googleMapsUrl?: string | null;
+};
+
+/**
+ * Writes the user's edits to a business's contact fields and records each
+ * edited field in `edited_fields`, so later syncs keep the user's value.
+ * Fields absent from `patch` are untouched. Null when the business is gone.
+ */
+export async function updateBusinessContact(
+  db: Db,
+  id: string,
+  patch: ContactPatch,
+  displayPhone: (e164: string) => string = (p) => p,
+): Promise<{ before: Business; after: Business; changed: EditableField[] } | null> {
+  if (!UUID_RE.test(id)) return null;
+  const before = await getBusiness(db, id);
+  if (!before) return null;
+  const set: Record<string, unknown> = {};
+  const changed: EditableField[] = [];
+  if (patch.phone !== undefined && patch.phone !== before.phone) {
+    set.phone = patch.phone;
+    set.phoneDigits = phoneDigits(patch.phone);
+    set.displayPhone = patch.phone ? displayPhone(patch.phone) : null;
+    changed.push("phone");
+  }
+  if (patch.email !== undefined && patch.email !== before.email) {
+    set.email = patch.email;
+    changed.push("email");
+  }
+  if (patch.website !== undefined && patch.website !== before.website) {
+    set.website = patch.website;
+    changed.push("website");
+  }
+  if (patch.googleMapsUrl !== undefined && patch.googleMapsUrl !== before.googleMapsUrl) {
+    set.googleMapsUrl = patch.googleMapsUrl;
+    changed.push("googleMapsUrl");
+  }
+  if (patch.socialLinks) {
+    const next: Record<string, string> = { ...(before.socialLinks ?? {}) };
+    for (const [k, v] of Object.entries(patch.socialLinks)) {
+      if (v) next[k] = v;
+      else delete next[k];
+    }
+    if (JSON.stringify(next) !== JSON.stringify(before.socialLinks ?? {})) {
+      set.socialLinks = next;
+      changed.push("socialLinks");
+    }
+  }
+  if (changed.length === 0) return { before, after: before, changed };
+  set.editedFields = [...new Set([...(before.editedFields ?? []), ...changed])];
+  set.updatedAt = new Date();
+  const [after] = await db.update(businesses).set(set).where(eq(businesses.id, id)).returning();
+  return after ? { before, after, changed } : null;
 }
 
 export async function setQualification(db: Db, id: string, r: QualifyResult): Promise<void> {

@@ -1,0 +1,1 @@
+ALTER TABLE "businesses" ADD COLUMN "edited_fields" text[] DEFAULT '{}'::text[] NOT NULL;

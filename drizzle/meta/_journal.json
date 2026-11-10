@@ -43,6 +43,13 @@
       "when": 1794283407655,
       "tag": "0005_google_places",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1794338148553,
+      "tag": "0006_edited_fields",
+      "breakpoints": true
     }
   ]
 }
