@@ -12,6 +12,7 @@ import {
   businesses,
   reviewSnapshots,
 } from "../schema";
+import { DOMAIN_SLUG_PATTERN } from "@/lib/firecrawl/external-links";
 import { CRM_FIELDS } from "./businesses";
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
@@ -164,6 +165,68 @@ export async function markScrapeFailed(db: Db, id: string, now: Date = new Date(
     .update(businesses)
     .set({ scrapeFailedAt: now, scrapeAttempts: sql`${businesses.scrapeAttempts} + 1` })
     .where(eq(businesses.id, id));
+}
+
+// ------------------------------------------------------------ external-links enrichment
+
+/** An enriched row with no social links is retried once its attempt is this old. */
+export const LINKS_RETRY_AFTER_DAYS = 7;
+
+/**
+ * SQL: a row is pending link enrichment when it has a website or a domain-like
+ * slug, and was never enriched, or was enriched over 7 days ago with no social
+ * links (docs/team/links/architecture.md §Data model).
+ */
+function pendingLinksWhere(now: Date) {
+  const cutoff = new Date(now.getTime() - LINKS_RETRY_AFTER_DAYS * 24 * 3_600_000);
+  const hasTarget = or(
+    sql`btrim(coalesce(${businesses.website}, '')) <> ''`,
+    sql`lower(btrim(coalesce(${businesses.slug}, ''))) ~ ${DOMAIN_SLUG_PATTERN}`,
+  );
+  const due = or(
+    isNull(businesses.enrichedAt),
+    and(lt(businesses.enrichedAt, cutoff), sql`${businesses.socialLinks} = '{}'::jsonb`),
+  );
+  return and(hasTarget, due);
+}
+
+/**
+ * Ids of rows pending link enrichment: never enriched first (oldest
+ * `createdAt` first), then stale-empty ones (oldest `enrichedAt` first).
+ * `ids` narrows the set to those rows; `exclude` leaves rows out.
+ */
+export async function listPendingLinkIds(
+  db: Db,
+  opts: { limit: number; now?: Date; ids?: string[]; exclude?: string[] },
+): Promise<string[]> {
+  const conds = [pendingLinksWhere(opts.now ?? new Date())];
+  if (opts.ids) {
+    const ids = opts.ids.filter((id) => UUID_RE.test(id));
+    if (ids.length === 0) return [];
+    conds.push(inArray(businesses.id, ids));
+  }
+  const exclude = (opts.exclude ?? []).filter((id) => UUID_RE.test(id));
+  if (exclude.length > 0) conds.push(sql`${businesses.id} NOT IN (${sql.join(exclude.map((id) => sql`${id}::uuid`), sql`, `)})`);
+  const rows = await db
+    .select({ id: businesses.id })
+    .from(businesses)
+    .where(and(...conds))
+    .orderBy(
+      sql`${businesses.enrichedAt} ASC NULLS FIRST`,
+      asc(businesses.createdAt),
+      asc(businesses.id),
+    )
+    .limit(Math.max(0, opts.limit));
+  return rows.map((r) => r.id);
+}
+
+/** How many rows are pending link enrichment. */
+export async function countPendingLinks(db: Db, opts: { now?: Date } = {}): Promise<number> {
+  const [r] = await db
+    .select({ n: sql<number>`count(*)::int` })
+    .from(businesses)
+    .where(pendingLinksWhere(opts.now ?? new Date()));
+  return Number(r?.n ?? 0);
 }
 
 /** Graph nodes for the lookup network, most-reviewed first. */

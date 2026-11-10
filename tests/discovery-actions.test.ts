@@ -5,7 +5,8 @@ import { getBusinessByTrustpilotId, upsertBusinessByTrustpilotId } from "@/db/re
 import { createTestDb } from "@/db/test-utils";
 import { TRUSTPILOT_CATEGORIES, trustpilotReviewUrl } from "@/lib/trustpilot-categories";
 import { makeTrustpilotProfile, makeTrustpilotRow } from "./helpers/builders";
-import { type FakeFirecrawl, createFakeFirecrawl, makeCategoryCard } from "./helpers/fake-firecrawl";
+import { DiscoveryUnavailable } from "@/lib/firecrawl/client";
+import { type FakeFirecrawl, createFakeFirecrawl, makeCategoryCard, makeSitePage } from "./helpers/fake-firecrawl";
 
 let fake: FakeFirecrawl = createFakeFirecrawl();
 vi.mock("next/cache", () => ({ revalidatePath: () => {} }));
@@ -120,10 +121,101 @@ describe("discovery actions with a key", () => {
       db,
       makeTrustpilotRow({ trustpilotId: "acme.com", website: "https://acme.com", email: null }),
     );
-    fake.set("https://acme.com", { email: "sales@acme.com" });
+    fake.setSite("https://acme.com", { links: ["mailto:sales@acme.com", "https://www.facebook.com/acme"] });
     const res = await enrichTrustpilotAction(business.id);
     expect(res.ok && res.data.email).toBe("sales@acme.com");
+    expect(res.ok && res.data.socialLinks).toEqual({ facebook: "https://www.facebook.com/acme" });
     expect(await enrichTrustpilotAction("not-a-uuid")).toEqual({ ok: false, message: "Invalid business id" });
+  });
+
+  it("enrichTrustpilotAction reports a site that cannot be loaded or a row with no website", async () => {
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+    const { business } = await upsertBusinessByTrustpilotId(db, makeTrustpilotRow({ trustpilotId: "down.com", website: "https://down.com" }));
+    fake.setSite("https://down.com", new Error("Firecrawl 502"));
+    expect(await enrichTrustpilotAction(business.id)).toEqual({ ok: false, message: "Enrichment failed: could not load https://down.com" });
+    const { business: bare } = await upsertBusinessByTrustpilotId(
+      db,
+      makeTrustpilotRow({ trustpilotId: "nodomain", slug: "nodomain", website: null, name: "Bare" }),
+    );
+    expect(await enrichTrustpilotAction(bare.id)).toEqual({ ok: false, message: "Enrichment failed: Bare has no website to enrich from" });
+    warn.mockRestore();
+  });
+});
+
+describe("WP-17 links pulled at add time", () => {
+  it("AC-17.4 scrapeUrlAction stores a clean website, social links and enrichedAt", async () => {
+    fake.setProfile(
+      "acme.com",
+      makeTrustpilotProfile({
+        displayName: "Acme",
+        websiteUrl: "https://www.acme.com?utm_medium=company_profile&utm_source=trustpilot",
+        email: undefined,
+        phone: undefined,
+      }),
+    );
+    fake.setSite("https://www.acme.com", makeSitePage("https://www.acme.com"));
+
+    const res = await scrapeUrlAction("https://www.trustpilot.com/review/acme.com");
+
+    expect(res.ok).toBe(true);
+    const stored = (await getBusinessByTrustpilotId(db, "acme.com"))!;
+    expect(stored).toMatchObject({
+      website: "https://www.acme.com",
+      email: "hello@acme.com",
+      phone: "+1-512-555-0142",
+      phoneDigits: "15125550142",
+      socialLinks: {
+        facebook: "https://www.facebook.com/acme",
+        twitter: "https://twitter.com/acme",
+        linkedin: "https://www.linkedin.com/company/acme",
+        instagram: "https://www.instagram.com/acme",
+      },
+    });
+    expect(stored.enrichedAt).toBeInstanceOf(Date);
+    // Email and phone both came from the homepage: no contact-page scrape.
+    expect(fake.pageCalls).toEqual(["https://www.acme.com"]);
+  });
+
+  it("AC-17.4 a rejecting page scrape still returns ok and keeps the profile data", async () => {
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+    fake.setProfile("acme.com", makeTrustpilotProfile({ displayName: "Acme", websiteUrl: "https://acme.com", phone: "+1 512 555 0101" }));
+    fake.setSite("https://acme.com", new Error("Firecrawl 502"));
+
+    const res = await scrapeUrlAction("https://www.trustpilot.com/review/acme.com");
+
+    const stored = (await getBusinessByTrustpilotId(db, "acme.com"))!;
+    expect(res).toEqual({ ok: true, data: { businessId: stored.id, name: "Acme" } });
+    expect(stored).toMatchObject({ name: "Acme", website: "https://acme.com", phone: "+1 512 555 0101", socialLinks: {} });
+    expect(stored.enrichedAt).toBeInstanceOf(Date); // the failed attempt is stamped
+    warn.mockRestore();
+  });
+
+  it("the seed enriches the inserted rows first, inside the same after() task", async () => {
+    const { business: older } = await upsertBusinessByTrustpilotId(
+      db,
+      makeTrustpilotRow({ trustpilotId: "older.com", website: "https://older.com", socialLinks: {} }),
+    );
+    fake.setCategoryPage("sports", 1, [makeCategoryCard("a.com"), makeCategoryCard("b.com")]);
+    fake.setCategoryPage("sports", 2, []);
+    fake.setSite("https://a.com", makeSitePage("https://a.com"));
+    fake.setSite("https://b.com", { links: [] , markdown: "nothing here" });
+    fake.setSite("https://older.com", makeSitePage("https://older.com"));
+
+    await seedCategoryAction("sports");
+    expect(fake.pageCalls).toEqual([]);
+    await drainAfter();
+
+    // New rows first (in insert order), then the older pending row.
+    expect(fake.pageCalls.slice(0, 2).sort()).toEqual(["https://a.com", "https://b.com"]);
+    expect(fake.pageCalls[2]).toBe("https://older.com");
+    const a = (await getBusinessByTrustpilotId(db, "a.com"))!;
+    expect(a.website).toBe("https://a.com");
+    expect(a.socialLinks.facebook).toBe("https://www.facebook.com/a");
+    const b = (await getBusinessByTrustpilotId(db, "b.com"))!;
+    expect(b.enrichedAt).toBeInstanceOf(Date);
+    expect(b.socialLinks).toEqual({});
+    expect((await getBusinessByTrustpilotId(db, "older.com"))!.id).toBe(older.id);
+    expect((await getBusinessByTrustpilotId(db, "older.com"))!.socialLinks.twitter).toBe("https://twitter.com/older");
   });
 });
 
@@ -147,12 +239,20 @@ describe("GET /api/cron/daily", () => {
     vi.useFakeTimers({ toFake: ["Date"] });
     vi.setSystemTime(new Date("2026-11-09T13:00:00Z")); // Monday
     await upsertBusinessByTrustpilotId(db, makeTrustpilotRow({ trustpilotId: "stale.com", lastScrapedAt: null }));
-    fake.setProfile("stale.com", makeTrustpilotProfile());
+    fake.setProfile("stale.com", makeTrustpilotProfile({ websiteUrl: "https://stale.com" }));
+    fake.setSite("https://stale.com", makeSitePage("https://stale.com"));
 
     const body = await (await call()).json();
 
-    expect(body).toEqual({ campaigns: 0, emails: 0, sync: { scraped: 1, failed: 0, remaining: 0 }, seeded: null });
+    expect(body).toEqual({
+      campaigns: 0,
+      emails: 0,
+      sync: { scraped: 1, failed: 0, remaining: 0 },
+      links: { enriched: 1, empty: 0, failed: 0, remaining: 0 },
+      seeded: null,
+    });
     expect(fake.calls).toEqual([trustpilotReviewUrl("stale.com")]);
+    expect(fake.pageCalls).toEqual(["https://stale.com"]);
   });
 
   it("seeds every category with max 20 on Sundays (UTC)", async () => {
@@ -179,7 +279,46 @@ describe("GET /api/cron/daily", () => {
       campaigns: 0,
       emails: 0,
       sync: { skipped: "FIRECRAWL_API_KEY not set" },
+      links: { skipped: "FIRECRAWL_API_KEY not set" },
       seeded: { skipped: "FIRECRAWL_API_KEY not set" },
     });
+  });
+
+  it("AC-17.8 the links stage drains at most 40 pending rows", async () => {
+    vi.useFakeTimers({ toFake: ["Date"] });
+    vi.setSystemTime(new Date("2026-11-09T13:00:00Z")); // Monday
+    const now = new Date();
+    for (let i = 0; i < 45; i++) {
+      await upsertBusinessByTrustpilotId(
+        db,
+        makeTrustpilotRow({ trustpilotId: `site${i}.com`, lastScrapedAt: now, enrichedAt: null }),
+      );
+      fake.setSite(`https://site${i}.com`, { links: [], markdown: "x" });
+    }
+    const body = await (await call()).json();
+    expect(body.sync).toEqual({ scraped: 0, failed: 0, remaining: 0 });
+    expect(body.links).toEqual({ enriched: 0, empty: 40, failed: 0, remaining: 5 });
+    expect(fake.pageCalls).toHaveLength(40);
+  });
+
+  it("AC-17.8 a throwing links stage leaves campaigns, emails and sync intact", async () => {
+    const err = vi.spyOn(console, "error").mockImplementation(() => {});
+    vi.useFakeTimers({ toFake: ["Date"] });
+    vi.setSystemTime(new Date("2026-11-09T13:00:00Z")); // Monday
+    await upsertBusinessByTrustpilotId(db, makeTrustpilotRow({ trustpilotId: "stale.com", lastScrapedAt: null }));
+    fake.setProfile("stale.com", makeTrustpilotProfile({ websiteUrl: "https://stale.com" }));
+    vi.spyOn(fake, "scrapePage").mockRejectedValue(new DiscoveryUnavailable("Firecrawl credits exhausted"));
+
+    const res = await call();
+
+    expect(res.status).toBe(200);
+    expect(await res.json()).toEqual({
+      campaigns: 0,
+      emails: 0,
+      sync: { scraped: 1, failed: 0, remaining: 0 },
+      links: { error: "Firecrawl credits exhausted" },
+      seeded: null,
+    });
+    err.mockRestore();
   });
 });

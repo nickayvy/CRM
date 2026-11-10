@@ -12,10 +12,10 @@ import {
 import { businesses } from "@/db/schema";
 import { createTestDb } from "@/db/test-utils";
 import { DiscoveryUnavailable, createFirecrawl } from "@/lib/firecrawl/client";
+import { enrichBusinessLinks } from "@/lib/firecrawl/enrich";
 import { RateLimiter } from "@/lib/firecrawl/rate-limiter";
 import {
   computeVelocity,
-  enrichFromWebsite,
   scrapeTrustpilotBusiness,
   scrapeTrustpilotCategory,
   slugFromTrustpilotUrl,
@@ -234,7 +234,8 @@ describe("scrapeTrustpilotCategory", () => {
 
     const res = await scrapeTrustpilotCategory(db, fc, "sports", { max: 40 });
 
-    expect(res).toEqual({ inserted: 40, seen: 40 });
+    expect(res).toMatchObject({ inserted: 40, seen: 40 });
+    expect(res.insertedIds).toHaveLength(40);
     expect(fc.calls).toEqual([trustpilotCategoryUrl("sports"), `${trustpilotCategoryUrl("sports")}?page=2`]);
     const rows = await db.select().from(businesses);
     expect(rows).toHaveLength(40);
@@ -270,40 +271,65 @@ describe("scrapeTrustpilotCategory", () => {
     const fc = createFakeFirecrawl();
     fc.setCategoryPage("sports", 1, cards(1, 3));
     fc.setCategoryPage("sports", 2, []);
-    expect(await scrapeTrustpilotCategory(db, fc, "sports", { max: 60 })).toEqual({ inserted: 3, seen: 3 });
+    expect(await scrapeTrustpilotCategory(db, fc, "sports", { max: 60 })).toMatchObject({ inserted: 3, seen: 3 });
     expect(fc.calls).toHaveLength(2);
   });
 });
 
-describe("enrichFromWebsite", () => {
-  it("fills missing phone/email, merges social links, and stamps enrichedAt", async () => {
-    const { business } = await upsertBusinessByTrustpilotId(
-      db,
-      makeTrustpilotRow({ trustpilotId: "acme.com", website: "https://acme.com", phone: null, socialLinks: { facebook: "fb" } }),
-    );
-    const fc = createFakeFirecrawl({
-      "https://acme.com": { phone: "512-555-0199", email: "sales@acme.com", socialLinks: { linkedin: "li" } },
-    });
-    const b = await enrichFromWebsite(db, fc, business.id);
-    expect(b).toMatchObject({
-      phone: "512-555-0199",
-      phoneDigits: "5125550199",
-      email: "sales@acme.com",
-      socialLinks: { facebook: "fb", linkedin: "li" },
-    });
-    expect(b.enrichedAt).not.toBeNull();
+describe("WP-17 website at scrape time", () => {
+  it("AC-17.5 seeded rows get https://<slug> for domain-like slugs and the result lists insertedIds", async () => {
+    const { business: existing } = await upsertBusinessByTrustpilotId(db, makeTrustpilotRow({ trustpilotId: "old.com" }));
+    const fc = createFakeFirecrawl();
+    fc.setCategoryPage("sports", 1, [makeCategoryCard("acme.com"), makeCategoryCard("www.shop.co.uk"), makeCategoryCard("nodot"), makeCategoryCard("old.com")]);
+    fc.setCategoryPage("sports", 2, []);
+
+    const res = await scrapeTrustpilotCategory(db, fc, "sports", { max: 40 });
+
+    const acme = (await getBusinessByTrustpilotId(db, "acme.com"))!;
+    const shop = (await getBusinessByTrustpilotId(db, "www.shop.co.uk"))!;
+    const nodot = (await getBusinessByTrustpilotId(db, "nodot"))!;
+    expect(acme.website).toBe("https://acme.com");
+    expect(shop.website).toBe("https://www.shop.co.uk");
+    expect(nodot.website).toBeNull();
+    expect(res).toEqual({ inserted: 3, seen: 4, insertedIds: [acme.id, shop.id, nodot.id] });
+    expect(res.insertedIds).not.toContain(existing.id);
   });
 
-  it("never overwrites an existing phone and refuses rows without a website", async () => {
-    const { business } = await upsertBusinessByTrustpilotId(
-      db,
-      makeTrustpilotRow({ trustpilotId: "acme.com", website: "https://acme.com", phone: "111" }),
+  it("a profile scrape stores the website without Trustpilot tracking parameters", async () => {
+    const fc = createFakeFirecrawl();
+    fc.setProfile(
+      "acme.com",
+      makeTrustpilotProfile({
+        websiteUrl: "http://www.acme.com/?utm_medium=company_profile&utm_source=trustpilot&utm_campaign=domain_click#top",
+      }),
     );
-    const fc = createFakeFirecrawl({ "https://acme.com": { phone: "222" } });
-    expect((await enrichFromWebsite(db, fc, business.id)).phone).toBe("111");
+    expect((await scrapeTrustpilotBusiness(db, fc, url("acme.com"))).website).toBe("http://www.acme.com");
+  });
 
-    const { business: bare } = await upsertBusinessByTrustpilotId(db, makeTrustpilotRow({ trustpilotId: "bare.com", website: null }));
-    await expect(enrichFromWebsite(db, fc, bare.id)).rejects.toThrow(/no website/);
+  it("falls back to https://<slug> when the profile has no website, but keeps a stored one", async () => {
+    const fc = createFakeFirecrawl();
+    fc.setProfile("bare.com", makeTrustpilotProfile({ websiteUrl: undefined }));
+    expect((await scrapeTrustpilotBusiness(db, fc, url("bare.com"))).website).toBe("https://bare.com");
+
+    await upsertBusinessByTrustpilotId(db, makeTrustpilotRow({ trustpilotId: "kept.com", website: "https://shop.kept.com" }));
+    fc.setProfile("kept.com", makeTrustpilotProfile({ websiteUrl: "" }));
+    expect((await scrapeTrustpilotBusiness(db, fc, url("kept.com"))).website).toBe("https://shop.kept.com");
+  });
+
+  it("keeps only valid profile social links from the extract, X under twitter", async () => {
+    const fc = createFakeFirecrawl();
+    fc.setProfile(
+      "acme.com",
+      makeTrustpilotProfile({
+        socialLinks: {
+          facebook: "https://www.facebook.com/sharer/sharer.php?u=x",
+          twitter: "https://x.com/acme",
+          linkedin: "javascript:alert(1)",
+          instagram: "https://instagram.com.evil.test/acme",
+        },
+      }),
+    );
+    expect((await scrapeTrustpilotBusiness(db, fc, url("acme.com"))).socialLinks).toEqual({ twitter: "https://x.com/acme" });
   });
 });
 
@@ -395,7 +421,8 @@ describe("DiscoveryUnavailable", () => {
     await expect(scrapeTrustpilotBusiness(db, fc, url("acme.com"))).rejects.toBeInstanceOf(DiscoveryUnavailable);
     await expect(scrapeTrustpilotCategory(db, fc, "sports", { max: 20 })).rejects.toBeInstanceOf(DiscoveryUnavailable);
     const { business } = await upsertBusinessByTrustpilotId(db, makeTrustpilotRow({ trustpilotId: "acme.com" }));
-    await expect(enrichFromWebsite(db, fc, business.id)).rejects.toBeInstanceOf(DiscoveryUnavailable);
+    await expect(enrichBusinessLinks(db, fc, business.id)).rejects.toBeInstanceOf(DiscoveryUnavailable);
+    await expect(fc.scrapePage("https://acme.com")).rejects.toBeInstanceOf(DiscoveryUnavailable);
     await expect(syncStale(db, fc, { limit: 5, budgetMs: 1000 })).rejects.toBeInstanceOf(DiscoveryUnavailable);
     const [{ n }] = await db.select({ n: count() }).from(businesses).where(eq(businesses.source, "trustpilot"));
     expect(n).toBe(1);
