@@ -73,8 +73,11 @@
   drains them.
 - The backfill did not re-run qualification for rows that gained a phone; the
   daily Trustpilot sync re-qualifies them as it reaches them.
-- 45 uncommitted files on the main checkout (lookup, calling, leads, loading
-  skeletons) are not part of this push.
+- The uncommitted lookup, calling and leads work that kept the UI off limits
+  was committed and pushed separately as `16a803e` (another session) right
+  after this merge. Main with both: typecheck clean, 1051 tests passed,
+  production READY on `09332eb`. The dossier follow-ups above (extra social
+  tiles, refresh on open) are no longer blocked.
 
 ## Cost
 
