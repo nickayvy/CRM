@@ -1,6 +1,6 @@
 // Every app route server-renders on PGlite with a mocked signed-in user: no throw, a
 // route-specific heading, no placeholder copy and none of the pre-restyle card classes.
-import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
+import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 import { sql } from "drizzle-orm";
 import { createElement, type ReactNode } from "react";
 import { prerender } from "react-dom/static";
@@ -207,6 +207,61 @@ describe("route server render", () => {
     state.requireUserCalls = 0;
     await html(await DesignPage());
     expect(state.requireUserCalls).toBe(0);
+  });
+
+  describe("WP-20 Google Maps pages", () => {
+    const sp = (source?: string) => ({ searchParams: Promise.resolve(source ? { source } : {}) });
+    afterEach(() => vi.unstubAllEnvs());
+
+    it("AC-20.1 /searches/new shows the not-configured notice for Google without the key", async () => {
+      vi.stubEnv("GOOGLE_PLACES_API_KEY", "");
+      const out = await html(await NewSearchPage(sp("google")));
+      expect(out).toContain("Google Maps search is not configured: set GOOGLE_PLACES_API_KEY");
+      expect(out).not.toContain("Start Google search");
+      expectClean(out);
+    });
+
+    it("/searches/new defaults to the Google form when the key is set; ?source=yelp keeps the Yelp form", async () => {
+      vi.stubEnv("GOOGLE_PLACES_API_KEY", "test-key");
+      vi.stubEnv("YELP_API_KEY", "yelp-key");
+      const g = await html(await NewSearchPage(sp()));
+      expect(g).toContain("Start Google search");
+      expect(g).toContain("Pages per search");
+      expect(g).toContain('aria-current="page"');
+      const y = await html(await NewSearchPage(sp("yelp")));
+      expect(y).toContain("Start search");
+      expect(y).toContain("Yelp category aliases");
+      expect(y).not.toContain("Start Google search");
+      expectClean(g);
+      expectClean(y);
+    });
+
+    it("/searches/[id] renders a Google job with searches done of total; /searches lists it with its source", async () => {
+      const { createGoogleJob } = await import("@/db/repo/google");
+      const { planGoogleSearch } = await import("@/lib/google-places/plan");
+      const g = await createGoogleJob(db, await planGoogleSearch({ nicheId: "roofing", area: "75201, 75202" }));
+      const out = await html(await SearchPage(idParams(g.id)));
+      expect(out).toContain("Roofing in 2 zips, TX");
+      expect(out).toContain("0 of 6 searches");
+      expect(out).toContain("Continue");
+      expect(out).toContain("/lookup?source=google");
+      expectClean(out);
+      const list = await html(await SearchesPage());
+      expect(list).toContain("Google Maps");
+      expect(list).toContain("0/6");
+    });
+
+    it("/settings shows whether Google is configured and this month's requests against the cap", async () => {
+      vi.stubEnv("GOOGLE_PLACES_API_KEY", "test-key");
+      vi.stubEnv("GOOGLE_PLACES_MONTHLY_REQUEST_CAP", "250");
+      const { reserveUsage, GOOGLE_PLACES_PROVIDER } = await import("@/db/repo/google");
+      await db.execute(sql`TRUNCATE TABLE api_usage`);
+      for (let i = 0; i < 7; i++) await reserveUsage(db, GOOGLE_PLACES_PROVIDER, 250);
+      const out = await html(await SettingsPage());
+      expect(out).toContain("Google Maps search");
+      expect(out).toContain("GOOGLE_PLACES_API_KEY");
+      expect(out).toContain("7 of 250 requests used");
+    });
   });
 
   it("pages reject when signed out", async () => {
