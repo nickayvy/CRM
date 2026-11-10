@@ -4,8 +4,10 @@
 
 ## State in one line
 Built, reviewed, merged and pushed. `main` is at `2335e0b` (fast-forward from
-`4448acf`) and Vercel is deploying it to production; the production database
-was migrated beforehand. No Google request has been made yet: the two API
+`4448acf`) and live in production: Vercel deployment
+`dpl_6umVyjowbDJ5AqYme7hgwVxuAPks` is READY, `/login` answers 200 and there are
+no runtime errors in the hour after the deploy. The production database was
+migrated beforehand. No Google request has been made yet: the two API
 keys reached the session masked, and `GOOGLE_PLACES_API_KEY` is not in Vercel,
 so production shows "Google Maps search is not configured" until it is added.
 

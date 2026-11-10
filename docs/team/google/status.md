@@ -45,3 +45,6 @@
 - 2026-11-10 The user restored the GitHub App's access. Branch pushed; `main`
   fast-forwarded `4448acf..2335e0b`; Vercel production deployment
   `dpl_6umVyjowbDJ5AqYme7hgwVxuAPks` started from that commit.
+- 2026-11-10 Production deployment READY on `2335e0b`. `/login` returns 200;
+  no runtime errors in the following hour. Google search stays "not
+  configured" until `GOOGLE_PLACES_API_KEY` is added in Vercel.
