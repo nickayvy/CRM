@@ -16,6 +16,8 @@ export type Env = {
   YELP_API_KEY?: string;
   /** Absent → Trustpilot discovery is disabled. */
   FIRECRAWL_API_KEY?: string;
+  /** Firecrawl request starts allowed per rolling 60 s (plan limit); default 10, minimum 1. */
+  FIRECRAWL_REQUESTS_PER_MINUTE: number;
   RESEND_API_KEY?: string;
   EMAIL_FROM: string;
   CRON_SECRET?: string;
@@ -43,6 +45,10 @@ export const env: Env = {
   },
   get FIRECRAWL_API_KEY() {
     return str("FIRECRAWL_API_KEY");
+  },
+  get FIRECRAWL_REQUESTS_PER_MINUTE() {
+    const n = Number(str("FIRECRAWL_REQUESTS_PER_MINUTE") ?? 10);
+    return Number.isFinite(n) ? Math.max(1, Math.floor(n)) : 10;
   },
   get RESEND_API_KEY() {
     return str("RESEND_API_KEY");

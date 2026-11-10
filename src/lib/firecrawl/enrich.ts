@@ -9,7 +9,13 @@ import { countPendingLinks, listPendingLinkIds } from "@/db/repo/discovery";
 import { type Business, type NewBusiness, businesses } from "@/db/schema";
 import { qualifyOne } from "@/features/ingest/run";
 import { phoneDigits } from "@/lib/format";
-import { DiscoveryUnavailable, type FirecrawlLike, PAGE_TIMEOUT_MS, WEBSITE_CONCURRENCY } from "./client";
+import {
+  DiscoveryUnavailable,
+  type FirecrawlLike,
+  FirecrawlRateLimited,
+  PAGE_TIMEOUT_MS,
+  WEBSITE_CONCURRENCY,
+} from "./client";
 import { type ExternalLinks, cleanWebsiteUrl, extractExternalLinks, websiteFromSlug } from "./external-links";
 
 export type EnrichStatus = "enriched" | "empty" | "skipped" | "failed";
@@ -20,7 +26,14 @@ export const ENRICH_ROW_TIMEOUT_MS = 45_000;
 const MIN_PAGE_MS = 5_000;
 /** The last row a drain starts still gets at least this long. */
 const MIN_ROW_MS = 10_000;
+/** A drain only waits out a rate limit when this much budget is left beyond the wait. */
+export const RATE_LIMIT_MARGIN_MS = 10_000;
 
+/**
+ * Our own time cap ran out (queue wait included) before the row reached a
+ * verdict. Not the site's fault: nothing is written and the row stays pending.
+ * A site that is slow to answer fails through the seam's per-request timeout.
+ */
 export class EnrichTimeout extends Error {
   constructor(ms: number) {
     super(`link enrichment timed out after ${ms} ms`);
@@ -45,8 +58,10 @@ function startUrl(target: { website: string | null; slug: string | null }): stri
 /**
  * Network only. Scrapes the homepage, then at most ONE same-host contact page
  * when email or phone is still missing. Null = no usable website. Rejects when
- * the homepage scrape fails or times out; a failing contact page only loses
- * what it would have added.
+ * the homepage scrape fails (site errors and the seam's per-request timeout),
+ * with FirecrawlRateLimited / DiscoveryUnavailable from the seam, and with
+ * EnrichTimeout when `timeoutMs` (default 45 s, queue wait included) runs out.
+ * A failing or rate-limited contact page only loses what it would have added.
  */
 export async function resolveExternalLinks(
   fc: FirecrawlLike,
@@ -56,20 +71,20 @@ export async function resolveExternalLinks(
   const start = startUrl(target);
   if (!start) return null;
   const total = opts.timeoutMs ?? ENRICH_ROW_TIMEOUT_MS;
-  const deadline = Date.now() + total;
-  const left = () => deadline - Date.now();
+  return withTimeout(resolveFrom(fc, start, Date.now() + total), total);
+}
 
-  const homeMs = Math.max(1, Math.min(PAGE_TIMEOUT_MS, left()));
-  const home = await withTimeout(fc.scrapePage(start, { timeoutMs: homeMs }), homeMs);
+async function resolveFrom(fc: FirecrawlLike, start: string, deadline: number): Promise<ExternalLinks> {
+  const left = () => deadline - Date.now();
+  const home = await fc.scrapePage(start, { timeoutMs: PAGE_TIMEOUT_MS });
   const fallbackSite = new URL(start).origin;
   if (!home) return { website: fallbackSite, socialLinks: {}, email: null, phone: null };
 
   const found = extractExternalLinks(home);
   let { socialLinks, email, phone } = found;
   if ((!email || !phone) && found.contactUrl && left() >= MIN_PAGE_MS) {
-    const pageMs = Math.min(PAGE_TIMEOUT_MS, left());
     try {
-      const contact = await withTimeout(fc.scrapePage(found.contactUrl, { timeoutMs: pageMs }), pageMs);
+      const contact = await fc.scrapePage(found.contactUrl, { timeoutMs: Math.min(PAGE_TIMEOUT_MS, left()) });
       if (contact) {
         const more = extractExternalLinks(contact);
         email ??= more.email;
@@ -78,11 +93,16 @@ export async function resolveExternalLinks(
       }
     } catch (err) {
       if (err instanceof DiscoveryUnavailable) throw err;
+      // Includes FirecrawlRateLimited: the homepage already gave a verdict.
       console.warn(`[discovery] contact page ${found.contactUrl} failed:`, err instanceof Error ? err.message : err);
     }
   }
   return { website: found.website ?? fallbackSite, socialLinks, email, phone };
 }
+
+/** Errors that say nothing about the site: they propagate and nothing is written. */
+const notTheSite = (err: unknown) =>
+  err instanceof DiscoveryUnavailable || err instanceof FirecrawlRateLimited || err instanceof EnrichTimeout;
 
 const blank = (v: string | null | undefined) => !v || v.trim() === "";
 
@@ -92,7 +112,9 @@ const blank = (v: string | null | undefined) => !v || v.trim() === "";
  * `https://<slug>`), an existing website only replaced by its cleaned form;
  * phone and email only when empty; social links merged; `enrichedAt` stamped
  * on enriched, empty and failed. CRM and scrape columns are never written.
- * Never throws for a per-site failure ("failed"); DiscoveryUnavailable propagates.
+ * Never throws for a per-site failure ("failed"). DiscoveryUnavailable,
+ * FirecrawlRateLimited and EnrichTimeout (the `timeoutMs` cap ran out) propagate
+ * and write nothing, so the row stays pending.
  * "skipped" = no website and no domain-like slug (nothing is written).
  */
 export async function enrichBusinessLinks(
@@ -112,11 +134,10 @@ export async function enrichBusinessLinks(
     if (blank(b.website)) return { status: "skipped", business: b };
     status = "failed";
   } else {
-    const timeoutMs = opts.timeoutMs ?? ENRICH_ROW_TIMEOUT_MS;
     try {
-      links = await withTimeout(resolveExternalLinks(fc, b, { timeoutMs }), timeoutMs);
+      links = await resolveExternalLinks(fc, b, { timeoutMs: opts.timeoutMs ?? ENRICH_ROW_TIMEOUT_MS });
     } catch (err) {
-      if (err instanceof DiscoveryUnavailable) throw err;
+      if (notTheSite(err)) throw err;
       console.warn(`[discovery] links ${b.website ?? b.slug} failed:`, err instanceof Error ? err.message : err);
     }
     const foundSomething =
@@ -152,16 +173,30 @@ export async function enrichBusinessLinks(
  * Drains rows pending link enrichment: `ids` first (those still pending, in
  * the given order), then never-enriched rows (oldest first), then stale-empty
  * rows, up to `limit`, `concurrency` (default 2) at a time. No new row starts
- * once `budgetMs` has elapsed on the `now` clock. DiscoveryUnavailable stops
- * the drain and propagates. `remaining` = rows still pending afterwards.
+ * once `budgetMs` has elapsed on the `now` clock. On FirecrawlRateLimited the
+ * drain waits `retryAfterMs` (via `sleep`) and retries that row when the wait
+ * plus 10 s still fits the budget, else it stops starting rows; rate-limited
+ * rows are not counted and stay pending (`rateLimited: true`). A row that hits
+ * its own time cap is not counted either and stays pending.
+ * DiscoveryUnavailable stops the drain and propagates. `remaining` = rows
+ * still pending afterwards.
  */
 export async function enrichPendingLinks(
   db: Db,
   fc: FirecrawlLike,
-  opts: { limit: number; budgetMs: number; ids?: string[]; concurrency?: number; now?: () => number },
-): Promise<{ enriched: number; empty: number; failed: number; remaining: number }> {
+  opts: {
+    limit: number;
+    budgetMs: number;
+    ids?: string[];
+    concurrency?: number;
+    now?: () => number;
+    sleep?: (ms: number) => Promise<void>;
+  },
+): Promise<{ enriched: number; empty: number; failed: number; remaining: number; rateLimited: boolean }> {
   const clock = opts.now ?? Date.now;
+  const sleep = opts.sleep ?? ((ms: number) => new Promise<void>((r) => setTimeout(r, ms)));
   const started = clock();
+  const left = () => opts.budgetMs - (clock() - started);
   const limit = Math.max(0, Math.floor(opts.limit));
   const concurrency = Math.max(1, Math.floor(opts.concurrency ?? WEBSITE_CONCURRENCY));
 
@@ -178,14 +213,18 @@ export async function enrichPendingLinks(
   }
 
   const counts = { enriched: 0, empty: 0, failed: 0 };
+  let rateLimited = false;
+  let stopped = false;
   let fatal: unknown = null;
+  /** One shared wait after a 429, so no worker starts a row while it runs. */
+  let pause: Promise<void> | null = null;
   const worker = async () => {
-    while (fatal === null) {
-      const elapsed = clock() - started;
-      if (elapsed >= opts.budgetMs) return;
+    while (fatal === null && !stopped) {
+      if (pause) await pause;
+      if (left() <= 0) return;
       const id = queue.shift();
       if (id === undefined) return;
-      const timeoutMs = Math.min(ENRICH_ROW_TIMEOUT_MS, Math.max(MIN_ROW_MS, opts.budgetMs - elapsed));
+      const timeoutMs = Math.min(ENRICH_ROW_TIMEOUT_MS, Math.max(MIN_ROW_MS, left()));
       try {
         const { status } = await enrichBusinessLinks(db, fc, id, { timeoutMs });
         if (status !== "skipped") counts[status]++;
@@ -193,6 +232,24 @@ export async function enrichPendingLinks(
         if (err instanceof DiscoveryUnavailable) {
           fatal = err;
           return;
+        }
+        if (err instanceof FirecrawlRateLimited) {
+          rateLimited = true;
+          if (err.retryAfterMs + RATE_LIMIT_MARGIN_MS <= left()) {
+            console.warn(`[discovery] rate limited; waiting ${err.retryAfterMs} ms`);
+            queue.unshift(id);
+            pause ??= sleep(err.retryAfterMs).finally(() => {
+              pause = null;
+            });
+          } else {
+            console.warn(`[discovery] rate limited; stopping the drain (${queue.length + 1} rows left in this run)`);
+            stopped = true;
+          }
+          continue;
+        }
+        if (err instanceof EnrichTimeout) {
+          console.warn(`[discovery] enrich ${id} ran out of time; left pending`);
+          continue;
         }
         // A DB error on one row: count it and carry on.
         counts.failed++;
@@ -203,5 +260,5 @@ export async function enrichPendingLinks(
   await Promise.all(Array.from({ length: Math.min(concurrency, Math.max(queue.length, 1)) }, worker));
   if (fatal !== null) throw fatal;
 
-  return { ...counts, remaining: await countPendingLinks(db) };
+  return { ...counts, remaining: await countPendingLinks(db), rateLimited };
 }

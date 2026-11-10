@@ -19,7 +19,7 @@ import type { Business, NewBusiness, ReviewSnapshot } from "@/db/schema";
 import { qualifyOne } from "@/features/ingest/run";
 import { normalizeName, phoneDigits } from "@/lib/format";
 import { TRUSTPILOT_CATEGORIES, trustpilotCategoryUrl, trustpilotReviewUrl } from "@/lib/trustpilot-categories";
-import { DiscoveryUnavailable, type FirecrawlLike } from "./client";
+import { DiscoveryUnavailable, type FirecrawlLike, FirecrawlRateLimited } from "./client";
 import { cleanWebsiteUrl, socialProfile, websiteFromSlug } from "./external-links";
 import type { RateLimiter } from "./rate-limiter";
 
@@ -394,7 +394,9 @@ export async function scrapeTrustpilotCategory(
  * Re-scrapes up to `limit` stale Trustpilot rows (order and back-off in
  * `listStaleBusinesses`). No new scrape starts once `budgetMs` has elapsed.
  * A per-row failure is counted and recorded (`scrapeFailedAt`, attempts + 1),
- * not thrown; a success resets both. DiscoveryUnavailable propagates.
+ * not thrown; a success resets both. DiscoveryUnavailable propagates. A
+ * Firecrawl rate limit (429) is not the row's fault: the sync stops there,
+ * records nothing against that row, and returns what it did so far.
  * `remaining` = stale Trustpilot rows still eligible afterwards (rows inside
  * their back-off window excluded).
  */
@@ -421,6 +423,10 @@ export async function syncStale(
       scraped++;
     } catch (err) {
       if (err instanceof DiscoveryUnavailable) throw err;
+      if (err instanceof FirecrawlRateLimited) {
+        console.warn(`[discovery] sync stopped at ${b.trustpilotId}: ${err.message}`);
+        break;
+      }
       failed++;
       await markScrapeFailed(db, b.id, now);
       console.warn(`[discovery] sync ${b.trustpilotId} failed:`, err);

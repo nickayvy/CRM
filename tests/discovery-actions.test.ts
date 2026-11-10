@@ -3,9 +3,9 @@ import { sql } from "drizzle-orm";
 import type { Db } from "@/db/client";
 import { getBusinessByTrustpilotId, upsertBusinessByTrustpilotId } from "@/db/repo/discovery";
 import { createTestDb } from "@/db/test-utils";
-import { TRUSTPILOT_CATEGORIES, trustpilotReviewUrl } from "@/lib/trustpilot-categories";
+import { TRUSTPILOT_CATEGORIES, trustpilotCategoryUrl, trustpilotReviewUrl } from "@/lib/trustpilot-categories";
 import { makeTrustpilotProfile, makeTrustpilotRow } from "./helpers/builders";
-import { DiscoveryUnavailable } from "@/lib/firecrawl/client";
+import { DiscoveryUnavailable, FirecrawlRateLimited } from "@/lib/firecrawl/client";
 import { type FakeFirecrawl, createFakeFirecrawl, makeCategoryCard, makeSitePage } from "./helpers/fake-firecrawl";
 
 let fake: FakeFirecrawl = createFakeFirecrawl();
@@ -24,6 +24,19 @@ async function drainAfter() {
 vi.mock("@/lib/firecrawl/client", async (importOriginal) => {
   const real = await importOriginal<typeof import("@/lib/firecrawl/client")>();
   return { ...real, createFirecrawl: (key?: string) => (key ? fake : real.createFirecrawl(key)) };
+});
+
+// Pass-through spy so tests can see the budget each caller hands the drain.
+const drainSpy = vi.hoisted(() => ({ calls: [] as { limit: number; budgetMs: number }[] }));
+vi.mock("@/lib/firecrawl/enrich", async (importOriginal) => {
+  const real = await importOriginal<typeof import("@/lib/firecrawl/enrich")>();
+  return {
+    ...real,
+    enrichPendingLinks: (...args: Parameters<typeof real.enrichPendingLinks>) => {
+      drainSpy.calls.push({ limit: args[2].limit, budgetMs: args[2].budgetMs });
+      return real.enrichPendingLinks(...args);
+    },
+  };
 });
 
 const { discoveryConfigured, enrichTrustpilotAction, scrapeUrlAction, seedCategoryAction } = await import(
@@ -47,6 +60,7 @@ afterAll(async () => {
 beforeEach(async () => {
   await db.execute(sql`TRUNCATE TABLE businesses RESTART IDENTITY CASCADE`);
   fake = createFakeFirecrawl();
+  drainSpy.calls.length = 0;
   vi.stubEnv("FIRECRAWL_API_KEY", "fc-test");
   vi.stubEnv("CRON_SECRET", "");
 });
@@ -248,7 +262,7 @@ describe("GET /api/cron/daily", () => {
       campaigns: 0,
       emails: 0,
       sync: { scraped: 1, failed: 0, remaining: 0 },
-      links: { enriched: 1, empty: 0, failed: 0, remaining: 0 },
+      links: { enriched: 1, empty: 0, failed: 0, remaining: 0, rateLimited: false },
       seeded: null,
     });
     expect(fake.calls).toEqual([trustpilotReviewUrl("stale.com")]);
@@ -297,7 +311,7 @@ describe("GET /api/cron/daily", () => {
     }
     const body = await (await call()).json();
     expect(body.sync).toEqual({ scraped: 0, failed: 0, remaining: 0 });
-    expect(body.links).toEqual({ enriched: 0, empty: 40, failed: 0, remaining: 5 });
+    expect(body.links).toEqual({ enriched: 0, empty: 40, failed: 0, remaining: 5, rateLimited: false });
     expect(fake.pageCalls).toHaveLength(40);
   });
 
@@ -320,5 +334,77 @@ describe("GET /api/cron/daily", () => {
       seeded: null,
     });
     err.mockRestore();
+  });
+});
+
+describe("WP-17 round 1: rate limits in the actions and the cron", () => {
+  const call = () => GET(new Request("http://localhost:3300/api/cron/daily"));
+
+  it("AC-17.17 a rate-limited profile scrape fails with a rate-limit message", async () => {
+    fake.setProfile("acme.com", new FirecrawlRateLimited(50_000));
+    const res = await scrapeUrlAction("https://www.trustpilot.com/review/acme.com");
+    expect(res).toEqual({ ok: false, message: "Scrape failed: Firecrawl rate limit reached, try again in 50 s" });
+    expect(res.ok === false && res.message).toMatch(/rate limit/);
+    expect(await getBusinessByTrustpilotId(db, "acme.com")).toBeNull();
+  });
+
+  it("AC-17.17 a rate-limited link step still returns ok and leaves the row unstamped (pending)", async () => {
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+    fake.setProfile("acme.com", makeTrustpilotProfile({ displayName: "Acme", websiteUrl: "https://acme.com" }));
+    fake.setSite("https://acme.com", new FirecrawlRateLimited(60_000));
+
+    const res = await scrapeUrlAction("https://www.trustpilot.com/review/acme.com");
+
+    const stored = (await getBusinessByTrustpilotId(db, "acme.com"))!;
+    expect(res).toEqual({ ok: true, data: { businessId: stored.id, name: "Acme" } });
+    expect(stored.enrichedAt).toBeNull();
+    expect(stored.website).toBe("https://acme.com");
+    warn.mockRestore();
+  });
+
+  it("AC-17.17 the seed's after() task survives rate limits on a category page and in the drain", async () => {
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+    fake.setCategoryPage("sports", 1, [makeCategoryCard("a.com")]);
+    fake.set(trustpilotCategoryUrl("sports", 2), new FirecrawlRateLimited(60_000));
+    // Longer than the whole 240 s budget: the drain stops instead of waiting.
+    fake.setSite("https://a.com", new FirecrawlRateLimited(300_000));
+
+    expect(await seedCategoryAction("sports")).toMatchObject({ ok: true });
+    await expect(drainAfter()).resolves.toBeUndefined();
+
+    const a = (await getBusinessByTrustpilotId(db, "a.com"))!;
+    expect(a.enrichedAt).toBeNull(); // still pending
+    expect(drainSpy.calls).toHaveLength(1);
+    expect(drainSpy.calls[0].limit).toBe(60);
+    expect(drainSpy.calls[0].budgetMs).toBeLessThanOrEqual(240_000);
+    warn.mockRestore();
+  });
+
+  it("AC-17.18 weekday: the links stage gets the remaining discovery budget capped at 180 s, and reports rateLimited", async () => {
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+    vi.useFakeTimers({ toFake: ["Date"] });
+    vi.setSystemTime(new Date("2026-11-09T13:00:00Z")); // Monday; Date stands still
+    await upsertBusinessByTrustpilotId(db, makeTrustpilotRow({ trustpilotId: "busy.com", lastScrapedAt: new Date(), enrichedAt: null }));
+    fake.setSite("https://busy.com", new FirecrawlRateLimited(300_000));
+
+    const body = await (await call()).json();
+
+    expect(drainSpy.calls).toEqual([{ limit: 40, budgetMs: 180_000 }]);
+    expect(body.links).toEqual({ enriched: 0, empty: 0, failed: 0, remaining: 1, rateLimited: true });
+    expect(body.campaigns).toBe(0);
+    expect(body.sync).toEqual({ scraped: 0, failed: 0, remaining: 0 });
+    warn.mockRestore();
+  });
+
+  it("AC-17.18 Sunday: the links stage is capped at 60 s so the seed keeps the rest", async () => {
+    vi.useFakeTimers({ toFake: ["Date"] });
+    vi.setSystemTime(new Date("2026-11-08T13:00:00Z")); // Sunday
+    for (const c of TRUSTPILOT_CATEGORIES) fake.setCategoryPage(c.slug, 1, []);
+
+    const body = await (await call()).json();
+
+    expect(drainSpy.calls).toEqual([{ limit: 40, budgetMs: 60_000 }]);
+    expect(body.links).toEqual({ enriched: 0, empty: 0, failed: 0, remaining: 0, rateLimited: false });
+    expect(body.seeded).toMatchObject({ categories: 22, errors: [] });
   });
 });

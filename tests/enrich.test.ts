@@ -5,8 +5,8 @@ import { getBusiness, updateBusinessCrm } from "@/db/repo/businesses";
 import { countPendingLinks, upsertBusinessByTrustpilotId } from "@/db/repo/discovery";
 import { type Business, businesses } from "@/db/schema";
 import { createTestDb } from "@/db/test-utils";
-import { DiscoveryUnavailable } from "@/lib/firecrawl/client";
-import { enrichBusinessLinks, enrichPendingLinks, resolveExternalLinks } from "@/lib/firecrawl/enrich";
+import { DiscoveryUnavailable, FirecrawlRateLimited } from "@/lib/firecrawl/client";
+import { EnrichTimeout, enrichBusinessLinks, enrichPendingLinks, resolveExternalLinks } from "@/lib/firecrawl/enrich";
 import { socialLink } from "@/features/lookup/links";
 import { toLookupBusiness } from "@/features/lookup/types";
 import { makeTrustpilotRow } from "./helpers/builders";
@@ -241,14 +241,14 @@ describe("AC-17.6 enrichPendingLinks", () => {
 
     // done.com is not pending, so its id is ignored.
     expect(fc.pageCalls).toEqual(["https://given.com", "https://older.com", "https://newer.com", "https://stale.com"]);
-    expect(res).toEqual({ enriched: 4, empty: 0, failed: 0, remaining: 0 });
+    expect(res).toEqual({ enriched: 4, empty: 0, failed: 0, remaining: 0, rateLimited: false });
   });
 
   it("respects limit and reports what is still pending", async () => {
     const { fc } = await seedBacklog();
     const res = await enrichPendingLinks(db, fc, { limit: 2, budgetMs: 60_000, concurrency: 1 });
     expect(fc.pageCalls).toEqual(["https://older.com", "https://newer.com"]);
-    expect(res).toEqual({ enriched: 2, empty: 0, failed: 0, remaining: 2 });
+    expect(res).toEqual({ enriched: 2, empty: 0, failed: 0, remaining: 2, rateLimited: false });
   });
 
   it("starts no scrape after budgetMs on the injected clock", async () => {
@@ -260,7 +260,7 @@ describe("AC-17.6 enrichPendingLinks", () => {
     const res = await enrichPendingLinks(db, fc, { limit: 10, budgetMs: 50_000, concurrency: 1, now: () => clock });
 
     expect(fc.pageCalls).toHaveLength(3); // starts at 0 s, 20 s, 40 s; 60 s is over budget
-    expect(res).toEqual({ enriched: 0, empty: 3, failed: 0, remaining: 2 });
+    expect(res).toEqual({ enriched: 0, empty: 3, failed: 0, remaining: 2, rateLimited: false });
   });
 
   it("counts failures with enriched and empty, and runs two at a time", async () => {
@@ -282,7 +282,7 @@ describe("AC-17.6 enrichPendingLinks", () => {
 
     const res = await enrichPendingLinks(db, fc, { limit: 10, budgetMs: 60_000 });
 
-    expect(res).toEqual({ enriched: 2, empty: 1, failed: 1, remaining: 0 });
+    expect(res).toEqual({ enriched: 2, empty: 1, failed: 1, remaining: 0, rateLimited: false });
     expect(maxActive).toBe(2);
   });
 
@@ -309,5 +309,141 @@ describe("AC-17.12 an enriched row resolves the dossier's social tiles", () => {
       expect(url).toMatch(/^https:\/\//);
     }
     expect(socialLink(links, "twitter", "x")).toBe("https://x.com/tiles");
+  });
+});
+
+describe("AC-17.15 a rate limit is not a site failure", () => {
+  it("resolve and enrichBusinessLinks propagate it and write nothing", async () => {
+    const b = await row("busy.com", { website: "https://busy.com", email: null });
+    const fc = createFakeFirecrawl();
+    fc.setSite("https://busy.com", new FirecrawlRateLimited(42_000));
+
+    await expect(resolveExternalLinks(fc, { website: "https://busy.com", slug: null })).rejects.toBeInstanceOf(FirecrawlRateLimited);
+    await expect(enrichBusinessLinks(db, fc, b.id)).rejects.toMatchObject({ retryAfterMs: 42_000 });
+
+    const after = (await getBusiness(db, b.id))!;
+    expect(after.enrichedAt).toBeNull();
+    expect(after.updatedAt.getTime()).toBe(b.updatedAt.getTime());
+    expect(await countPendingLinks(db)).toBe(1);
+  });
+
+  it("a 429 on the contact page keeps the homepage result and does not throw", async () => {
+    const b = await row("half.com", { website: "https://half.com", email: null, phone: null, phoneDigits: null });
+    const fc = createFakeFirecrawl();
+    fc.setSite("https://half.com", { links: ["https://half.com/contact", "https://www.facebook.com/half"] });
+    fc.setSite("https://half.com/contact", new FirecrawlRateLimited(60_000));
+
+    const { status, business } = await enrichBusinessLinks(db, fc, b.id);
+
+    expect(status).toBe("enriched");
+    expect(business.socialLinks).toEqual({ facebook: "https://www.facebook.com/half" });
+    expect(business.enrichedAt).toBeInstanceOf(Date);
+    expect(fc.pageCalls).toEqual(["https://half.com", "https://half.com/contact"]);
+  });
+
+  it("our own time cap (EnrichTimeout) is not stamped either", async () => {
+    const b = await row("slow.com", { website: "https://slow.com" });
+    const fc = createFakeFirecrawl({}, { onPage: () => new Promise(() => {}) });
+    await expect(enrichBusinessLinks(db, fc, b.id, { timeoutMs: 20 })).rejects.toBeInstanceOf(EnrichTimeout);
+    expect((await getBusiness(db, b.id))!.enrichedAt).toBeNull();
+  });
+});
+
+describe("AC-17.16 the drain waits or stops on a rate limit", () => {
+  async function three() {
+    for (const s of ["r1.com", "r2.com", "r3.com"]) {
+      const b = await row(s);
+      await stamp(b.id, { createdAt: new Date(Date.now() - (10 - Number(s[1])) * DAY) });
+    }
+  }
+
+  it("waits retryAfterMs and retries the row when the wait plus 10 s fits the budget", async () => {
+    await three();
+    let clock = 0;
+    const sleeps: number[] = [];
+    const sleep = async (ms: number) => {
+      sleeps.push(ms);
+      clock += ms;
+    };
+    const fc = createFakeFirecrawl();
+    for (const s of ["r1.com", "r2.com", "r3.com"]) fc.setSite(`https://${s}`, makeSitePage(`https://${s}`));
+    let limitedOnce = false;
+    const real = fc.scrapePage.bind(fc);
+    vi.spyOn(fc, "scrapePage").mockImplementation(async (u, o) => {
+      if (u === "https://r2.com" && !limitedOnce) {
+        limitedOnce = true;
+        throw new FirecrawlRateLimited(30_000);
+      }
+      return real(u, o);
+    });
+
+    const res = await enrichPendingLinks(db, fc, { limit: 10, budgetMs: 60_000, concurrency: 1, now: () => clock, sleep });
+
+    expect(sleeps).toEqual([30_000]);
+    // r2 was asked twice: the 429, then the retry after the wait.
+    expect(vi.mocked(fc.scrapePage).mock.calls.map(([u]) => u)).toEqual([
+      "https://r1.com",
+      "https://r2.com",
+      "https://r2.com",
+      "https://r3.com",
+    ]);
+    expect(res).toEqual({ enriched: 3, empty: 0, failed: 0, remaining: 0, rateLimited: true });
+  });
+
+  it("stops starting rows when the wait does not fit; rate-limited rows stay pending and uncounted", async () => {
+    await three();
+    const clock = 0;
+    const sleep = vi.fn(async () => {});
+    const fc = createFakeFirecrawl();
+    fc.setSite("https://r1.com", makeSitePage("https://r1.com"));
+    fc.setSite("https://r2.com", new FirecrawlRateLimited(55_000));
+    fc.setSite("https://r3.com", makeSitePage("https://r3.com"));
+
+    // 55 s + 10 s margin > 60 s budget: stop.
+    const res = await enrichPendingLinks(db, fc, { limit: 10, budgetMs: 60_000, concurrency: 1, now: () => clock, sleep });
+
+    expect(sleep).not.toHaveBeenCalled();
+    expect(fc.pageCalls).toEqual(["https://r1.com", "https://r2.com"]);
+    expect(res).toEqual({ enriched: 1, empty: 0, failed: 0, remaining: 2, rateLimited: true });
+    const r2 = (await db.select().from(businesses).where(eq(businesses.trustpilotId, "r2.com")))[0];
+    expect(r2.enrichedAt).toBeNull();
+  });
+
+  it("with two workers, one shared wait holds both before any new row starts", async () => {
+    await three();
+    let clock = 0;
+    let release!: () => void;
+    const sleeps: number[] = [];
+    const sleep = (ms: number) => {
+      sleeps.push(ms);
+      return new Promise<void>((r) => {
+        release = () => {
+          clock += ms;
+          r();
+        };
+      });
+    };
+    const fc = createFakeFirecrawl();
+    for (const s of ["r1.com", "r2.com", "r3.com"]) fc.setSite(`https://${s}`, { links: [], markdown: "x" });
+    let limited = 0;
+    const real = fc.scrapePage.bind(fc);
+    vi.spyOn(fc, "scrapePage").mockImplementation(async (u, o) => {
+      if (limited < 1) {
+        limited++;
+        throw new FirecrawlRateLimited(20_000);
+      }
+      return real(u, o);
+    });
+
+    const done = enrichPendingLinks(db, fc, { limit: 10, budgetMs: 120_000, now: () => clock, sleep });
+    await new Promise((r) => setTimeout(r, 30));
+    const startedDuringWait = fc.pageCalls.length;
+    release();
+    const res = await done;
+
+    expect(sleeps).toEqual([20_000]);
+    // Before the wait: the rate-limited attempt and at most the other worker's in-flight row.
+    expect(startedDuringWait).toBeLessThanOrEqual(1);
+    expect(res).toMatchObject({ empty: 3, failed: 0, remaining: 0, rateLimited: true });
   });
 });

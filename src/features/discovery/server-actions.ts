@@ -10,7 +10,12 @@ import type { Business } from "@/db/schema";
 import { getDb } from "@/db/client";
 import { type ActionResult, fail, ok } from "@/lib/action-result";
 import { env } from "@/lib/env";
-import { DISCOVERY_NOT_CONFIGURED, DiscoveryUnavailable, createFirecrawl } from "@/lib/firecrawl/client";
+import {
+  DISCOVERY_NOT_CONFIGURED,
+  DiscoveryUnavailable,
+  FirecrawlRateLimited,
+  createFirecrawl,
+} from "@/lib/firecrawl/client";
 import { enrichBusinessLinks, enrichPendingLinks } from "@/lib/firecrawl/enrich";
 import { scrapeTrustpilotBusiness, scrapeTrustpilotCategory, slugFromTrustpilotUrl } from "@/lib/firecrawl/trustpilot";
 import { TRUSTPILOT_CATEGORIES } from "@/lib/trustpilot-categories";
@@ -25,6 +30,10 @@ const SEED_ENRICH_LIMIT = 60;
 
 function errorResult(prefix: string, err: unknown) {
   if (err instanceof DiscoveryUnavailable) return fail(DISCOVERY_NOT_CONFIGURED);
+  if (err instanceof FirecrawlRateLimited) {
+    const secs = Math.max(1, Math.ceil(err.retryAfterMs / 1000));
+    return fail(`${prefix}: Firecrawl rate limit reached, try again in ${secs} s`);
+  }
   console.error(`[discovery] ${prefix}`, err);
   return fail(`${prefix}: ${err instanceof Error ? err.message : "unknown error"}`);
 }
@@ -32,7 +41,9 @@ function errorResult(prefix: string, err: unknown) {
 /**
  * Scrapes one Trustpilot profile (`https://www.trustpilot.com/review/<slug>`)
  * into the CRM, then pulls the business's external links from its own website
- * (capped at 45 s). A failed link step is logged; the add still succeeds.
+ * (capped at 45 s). A failed link step is logged; the add still succeeds. If
+ * the link step is rate limited or runs out of time, the row is left unstamped
+ * and stays pending for the next drain.
  */
 export async function scrapeUrlAction(url: string): Promise<ActionResult<{ businessId: string; name: string }>> {
   if (!env.FIRECRAWL_API_KEY) return fail(DISCOVERY_NOT_CONFIGURED);
