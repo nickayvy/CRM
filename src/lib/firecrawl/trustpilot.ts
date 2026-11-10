@@ -1,8 +1,8 @@
 // Trustpilot discovery over Firecrawl, ported from gtm lib/firecrawl/* onto the
 // Drizzle repos: profile scrape (upsert, snapshot, velocity, relations,
-// qualification), category seed (basic rows), website enrichment, and the
-// time-boxed stale sync. See docs/team/v2/architecture.md §Discovery.
-import { eq } from "drizzle-orm";
+// qualification), category seed (basic rows), and the time-boxed stale sync.
+// See docs/team/v2/architecture.md §Discovery. Website link enrichment lives in
+// ./enrich (docs/team/links/architecture.md).
 import type { Db } from "@/db/client";
 import { getBusiness } from "@/db/repo/businesses";
 import {
@@ -15,11 +15,12 @@ import {
   markScrapeFailed,
   upsertBusinessByTrustpilotId,
 } from "@/db/repo/discovery";
-import { type Business, type NewBusiness, type ReviewSnapshot, businesses } from "@/db/schema";
+import type { Business, NewBusiness, ReviewSnapshot } from "@/db/schema";
 import { qualifyOne } from "@/features/ingest/run";
 import { normalizeName, phoneDigits } from "@/lib/format";
 import { TRUSTPILOT_CATEGORIES, trustpilotCategoryUrl, trustpilotReviewUrl } from "@/lib/trustpilot-categories";
-import { DiscoveryUnavailable, type FirecrawlLike } from "./client";
+import { DiscoveryUnavailable, type FirecrawlLike, FirecrawlRateLimited } from "./client";
+import { cleanWebsiteUrl, socialProfile, websiteFromSlug } from "./external-links";
 import type { RateLimiter } from "./rate-limiter";
 
 const HOUR_MS = 3_600_000;
@@ -103,26 +104,6 @@ export const CATEGORY_SCHEMA = {
           numberOfReviews: { type: "number" },
           location: { type: "string" },
         },
-      },
-    },
-  },
-} as const;
-
-export const WEBSITE_SCHEMA = {
-  type: "object",
-  description:
-    "Extract contact information from this business website: the main phone number, the main contact email address, and social " +
-    "media profile links (facebook, twitter, linkedin, instagram).",
-  properties: {
-    phone: { type: "string" },
-    email: { type: "string" },
-    socialLinks: {
-      type: "object",
-      properties: {
-        facebook: { type: "string" },
-        twitter: { type: "string" },
-        linkedin: { type: "string" },
-        instagram: { type: "string" },
       },
     },
   },
@@ -228,12 +209,13 @@ const num = (v: unknown): number | undefined => {
 };
 const inRange = (v: number | undefined, lo: number, hi: number) => (v !== undefined && v >= lo && v <= hi ? v : undefined);
 
+/** Extracted social links, kept only when they pass the R7 profile-URL rules (X lands under `twitter`). */
 function links(v: unknown): Record<string, string> {
   const out: Record<string, string> = {};
   if (v && typeof v === "object" && !Array.isArray(v)) {
-    for (const [k, val] of Object.entries(v)) {
-      const s = str(val);
-      if (s) out[k] = s;
+    for (const val of Object.values(v)) {
+      const profile = socialProfile(str(val));
+      if (profile && !out[profile.key]) out[profile.key] = profile.url;
     }
   }
   return out;
@@ -303,7 +285,8 @@ export async function scrapeTrustpilotBusiness(
     // Absent → undefined → the stored value is kept on rescrape.
     phone: p.phone,
     phoneDigits: p.phone ? phoneDigits(p.phone) : undefined,
-    website: p.websiteUrl,
+    // Tracking parameters dropped; no website on the page → https://<slug> for a new row.
+    website: cleanWebsiteUrl(p.websiteUrl) ?? (existing?.website ? undefined : (websiteFromSlug(slug) ?? undefined)),
     email: p.email,
     city: p.locationCity,
     country: p.locationCountry,
@@ -342,9 +325,10 @@ type CategoryCard = { name?: unknown; slug?: unknown; starRating?: unknown; numb
 
 /**
  * Pages a Trustpilot category (`?page=N`, 20 per page) and inserts a basic row
- * (name, slug, rating, reviews, country, logo; `lastScrapedAt` null so the
- * sync picks it up first) for each new slug, up to `max` (default 50).
- * Existing slugs are left untouched. `seen` = distinct slugs considered.
+ * (name, slug, rating, reviews, country, logo, `website = https://<slug>` for a
+ * domain-like slug; `lastScrapedAt` null so the sync picks it up first) for
+ * each new slug, up to `max` (default 50). Existing slugs are left untouched.
+ * `seen` = distinct slugs considered; `insertedIds` = ids of the new rows.
  * Stops paging at the first empty or failed page; DiscoveryUnavailable propagates.
  */
 export async function scrapeTrustpilotCategory(
@@ -352,7 +336,7 @@ export async function scrapeTrustpilotCategory(
   fc: FirecrawlLike,
   categorySlug: string,
   opts: { max?: number; limiter?: RateLimiter } = {},
-): Promise<{ inserted: number; seen: number }> {
+): Promise<{ inserted: number; seen: number; insertedIds: string[] }> {
   const max = Math.max(0, Math.floor(opts.max ?? 50));
   const pages = Math.ceil(max / CATEGORY_PAGE_SIZE);
   const label = TRUSTPILOT_CATEGORIES.find((c) => c.slug === categorySlug)?.label ?? categorySlug;
@@ -377,13 +361,13 @@ export async function scrapeTrustpilotCategory(
     }
   }
 
-  let inserted = 0;
+  const insertedIds: string[] = [];
   for (const [slug, card] of cards) {
     if (await getBusinessByTrustpilotId(db, slug)) continue;
     const name = str(card.name) ?? slug;
     const stars = inRange(num(card.starRating), 0, 5);
     const reviews = num(card.numberOfReviews);
-    const { created } = await upsertBusinessByTrustpilotId(db, {
+    const { business, created } = await upsertBusinessByTrustpilotId(db, {
       trustpilotId: slug,
       source: "trustpilot",
       slug,
@@ -395,44 +379,13 @@ export async function scrapeTrustpilotCategory(
       primaryCategory: categorySlug,
       categories: [{ alias: categorySlug, title: label }],
       logoUrl: logoUrlForSlug(slug),
+      website: websiteFromSlug(slug),
       raw: { ...card, categorySlug },
       lastScrapedAt: null,
     });
-    if (created) inserted++;
+    if (created) insertedIds.push(business.id);
   }
-  return { inserted, seen: cards.size };
-}
-
-// ------------------------------------------------------------ website enrichment
-
-/**
- * Scrapes the business's own website for contact details. Fills phone/email
- * only when missing, merges social links, stamps `enrichedAt`, re-qualifies.
- */
-export async function enrichFromWebsite(db: Db, fc: FirecrawlLike, businessId: string): Promise<Business> {
-  const b = await getBusiness(db, businessId);
-  if (!b) throw new Error(`Business not found: ${businessId}`);
-  if (!b.website) throw new Error(`${b.name} has no website to enrich from`);
-
-  const raw = await fc.scrapeJson<Record<string, unknown>>(b.website, WEBSITE_SCHEMA);
-  const r = raw ?? {};
-  const phone = str(r.phone);
-  const email = str(r.email);
-  const social = links(r.socialLinks ?? r.social_links);
-
-  const now = new Date();
-  const patch: Partial<NewBusiness> = { enrichedAt: now, updatedAt: now };
-  if (!b.phone && phone) {
-    patch.phone = phone;
-    patch.phoneDigits = phoneDigits(phone);
-  }
-  if (!b.email && email) patch.email = email;
-  if (Object.keys(social).length > 0) patch.socialLinks = { ...b.socialLinks, ...social };
-  await db.update(businesses).set(patch).where(eq(businesses.id, businessId));
-
-  const updated = (await getBusiness(db, businessId))!;
-  await qualifyOne(db, updated);
-  return (await getBusiness(db, businessId))!;
+  return { inserted: insertedIds.length, seen: cards.size, insertedIds };
 }
 
 // ------------------------------------------------------------ stale sync
@@ -441,7 +394,9 @@ export async function enrichFromWebsite(db: Db, fc: FirecrawlLike, businessId: s
  * Re-scrapes up to `limit` stale Trustpilot rows (order and back-off in
  * `listStaleBusinesses`). No new scrape starts once `budgetMs` has elapsed.
  * A per-row failure is counted and recorded (`scrapeFailedAt`, attempts + 1),
- * not thrown; a success resets both. DiscoveryUnavailable propagates.
+ * not thrown; a success resets both. DiscoveryUnavailable propagates. A
+ * Firecrawl rate limit (429) is not the row's fault: the sync stops there,
+ * records nothing against that row, and returns what it did so far.
  * `remaining` = stale Trustpilot rows still eligible afterwards (rows inside
  * their back-off window excluded).
  */
@@ -468,6 +423,10 @@ export async function syncStale(
       scraped++;
     } catch (err) {
       if (err instanceof DiscoveryUnavailable) throw err;
+      if (err instanceof FirecrawlRateLimited) {
+        console.warn(`[discovery] sync stopped at ${b.trustpilotId}: ${err.message}`);
+        break;
+      }
       failed++;
       await markScrapeFailed(db, b.id, now);
       console.warn(`[discovery] sync ${b.trustpilotId} failed:`, err);

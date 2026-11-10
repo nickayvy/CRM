@@ -11,11 +11,20 @@ import {
 } from "@/db/repo/discovery";
 import { businesses } from "@/db/schema";
 import { createTestDb } from "@/db/test-utils";
-import { DiscoveryUnavailable, createFirecrawl } from "@/lib/firecrawl/client";
-import { RateLimiter } from "@/lib/firecrawl/rate-limiter";
+import { SdkError } from "@mendable/firecrawl-js";
+import {
+  DEFAULT_RETRY_AFTER_MS,
+  DiscoveryUnavailable,
+  FirecrawlRateLimited,
+  createFirecrawl,
+  rateLimitFrom,
+  requestPacer,
+  resetRequestPacer,
+} from "@/lib/firecrawl/client";
+import { enrichBusinessLinks } from "@/lib/firecrawl/enrich";
+import { RateLimiter, WindowLimiter } from "@/lib/firecrawl/rate-limiter";
 import {
   computeVelocity,
-  enrichFromWebsite,
   scrapeTrustpilotBusiness,
   scrapeTrustpilotCategory,
   slugFromTrustpilotUrl,
@@ -24,6 +33,16 @@ import {
 import { TRUSTPILOT_CATEGORIES, trustpilotCategoryUrl, trustpilotReviewUrl } from "@/lib/trustpilot-categories";
 import { makeTrustpilotProfile, makeTrustpilotRow } from "./helpers/builders";
 import { createFakeFirecrawl, makeCategoryCard } from "./helpers/fake-firecrawl";
+
+// The real client is exercised against a stubbed SDK (never the network).
+const sdkScrape = vi.hoisted(() => vi.fn());
+vi.mock("@mendable/firecrawl-js", async (importOriginal) => {
+  const real = await importOriginal<typeof import("@mendable/firecrawl-js")>();
+  class FakeSdk {
+    scrape = sdkScrape;
+  }
+  return { ...real, default: FakeSdk, Firecrawl: FakeSdk };
+});
 
 let db: Db;
 let close: () => Promise<void>;
@@ -39,6 +58,10 @@ beforeEach(async () => {
 });
 afterEach(() => {
   vi.restoreAllMocks();
+  vi.useRealTimers();
+  vi.unstubAllEnvs();
+  sdkScrape.mockReset();
+  resetRequestPacer();
 });
 
 const HOUR = 3_600_000;
@@ -234,7 +257,8 @@ describe("scrapeTrustpilotCategory", () => {
 
     const res = await scrapeTrustpilotCategory(db, fc, "sports", { max: 40 });
 
-    expect(res).toEqual({ inserted: 40, seen: 40 });
+    expect(res).toMatchObject({ inserted: 40, seen: 40 });
+    expect(res.insertedIds).toHaveLength(40);
     expect(fc.calls).toEqual([trustpilotCategoryUrl("sports"), `${trustpilotCategoryUrl("sports")}?page=2`]);
     const rows = await db.select().from(businesses);
     expect(rows).toHaveLength(40);
@@ -270,40 +294,65 @@ describe("scrapeTrustpilotCategory", () => {
     const fc = createFakeFirecrawl();
     fc.setCategoryPage("sports", 1, cards(1, 3));
     fc.setCategoryPage("sports", 2, []);
-    expect(await scrapeTrustpilotCategory(db, fc, "sports", { max: 60 })).toEqual({ inserted: 3, seen: 3 });
+    expect(await scrapeTrustpilotCategory(db, fc, "sports", { max: 60 })).toMatchObject({ inserted: 3, seen: 3 });
     expect(fc.calls).toHaveLength(2);
   });
 });
 
-describe("enrichFromWebsite", () => {
-  it("fills missing phone/email, merges social links, and stamps enrichedAt", async () => {
-    const { business } = await upsertBusinessByTrustpilotId(
-      db,
-      makeTrustpilotRow({ trustpilotId: "acme.com", website: "https://acme.com", phone: null, socialLinks: { facebook: "fb" } }),
-    );
-    const fc = createFakeFirecrawl({
-      "https://acme.com": { phone: "512-555-0199", email: "sales@acme.com", socialLinks: { linkedin: "li" } },
-    });
-    const b = await enrichFromWebsite(db, fc, business.id);
-    expect(b).toMatchObject({
-      phone: "512-555-0199",
-      phoneDigits: "5125550199",
-      email: "sales@acme.com",
-      socialLinks: { facebook: "fb", linkedin: "li" },
-    });
-    expect(b.enrichedAt).not.toBeNull();
+describe("WP-17 website at scrape time", () => {
+  it("AC-17.5 seeded rows get https://<slug> for domain-like slugs and the result lists insertedIds", async () => {
+    const { business: existing } = await upsertBusinessByTrustpilotId(db, makeTrustpilotRow({ trustpilotId: "old.com" }));
+    const fc = createFakeFirecrawl();
+    fc.setCategoryPage("sports", 1, [makeCategoryCard("acme.com"), makeCategoryCard("www.shop.co.uk"), makeCategoryCard("nodot"), makeCategoryCard("old.com")]);
+    fc.setCategoryPage("sports", 2, []);
+
+    const res = await scrapeTrustpilotCategory(db, fc, "sports", { max: 40 });
+
+    const acme = (await getBusinessByTrustpilotId(db, "acme.com"))!;
+    const shop = (await getBusinessByTrustpilotId(db, "www.shop.co.uk"))!;
+    const nodot = (await getBusinessByTrustpilotId(db, "nodot"))!;
+    expect(acme.website).toBe("https://acme.com");
+    expect(shop.website).toBe("https://www.shop.co.uk");
+    expect(nodot.website).toBeNull();
+    expect(res).toEqual({ inserted: 3, seen: 4, insertedIds: [acme.id, shop.id, nodot.id] });
+    expect(res.insertedIds).not.toContain(existing.id);
   });
 
-  it("never overwrites an existing phone and refuses rows without a website", async () => {
-    const { business } = await upsertBusinessByTrustpilotId(
-      db,
-      makeTrustpilotRow({ trustpilotId: "acme.com", website: "https://acme.com", phone: "111" }),
+  it("a profile scrape stores the website without Trustpilot tracking parameters", async () => {
+    const fc = createFakeFirecrawl();
+    fc.setProfile(
+      "acme.com",
+      makeTrustpilotProfile({
+        websiteUrl: "http://www.acme.com/?utm_medium=company_profile&utm_source=trustpilot&utm_campaign=domain_click#top",
+      }),
     );
-    const fc = createFakeFirecrawl({ "https://acme.com": { phone: "222" } });
-    expect((await enrichFromWebsite(db, fc, business.id)).phone).toBe("111");
+    expect((await scrapeTrustpilotBusiness(db, fc, url("acme.com"))).website).toBe("http://www.acme.com");
+  });
 
-    const { business: bare } = await upsertBusinessByTrustpilotId(db, makeTrustpilotRow({ trustpilotId: "bare.com", website: null }));
-    await expect(enrichFromWebsite(db, fc, bare.id)).rejects.toThrow(/no website/);
+  it("falls back to https://<slug> when the profile has no website, but keeps a stored one", async () => {
+    const fc = createFakeFirecrawl();
+    fc.setProfile("bare.com", makeTrustpilotProfile({ websiteUrl: undefined }));
+    expect((await scrapeTrustpilotBusiness(db, fc, url("bare.com"))).website).toBe("https://bare.com");
+
+    await upsertBusinessByTrustpilotId(db, makeTrustpilotRow({ trustpilotId: "kept.com", website: "https://shop.kept.com" }));
+    fc.setProfile("kept.com", makeTrustpilotProfile({ websiteUrl: "" }));
+    expect((await scrapeTrustpilotBusiness(db, fc, url("kept.com"))).website).toBe("https://shop.kept.com");
+  });
+
+  it("keeps only valid profile social links from the extract, X under twitter", async () => {
+    const fc = createFakeFirecrawl();
+    fc.setProfile(
+      "acme.com",
+      makeTrustpilotProfile({
+        socialLinks: {
+          facebook: "https://www.facebook.com/sharer/sharer.php?u=x",
+          twitter: "https://x.com/acme",
+          linkedin: "javascript:alert(1)",
+          instagram: "https://instagram.com.evil.test/acme",
+        },
+      }),
+    );
+    expect((await scrapeTrustpilotBusiness(db, fc, url("acme.com"))).socialLinks).toEqual({ twitter: "https://x.com/acme" });
   });
 });
 
@@ -395,7 +444,8 @@ describe("DiscoveryUnavailable", () => {
     await expect(scrapeTrustpilotBusiness(db, fc, url("acme.com"))).rejects.toBeInstanceOf(DiscoveryUnavailable);
     await expect(scrapeTrustpilotCategory(db, fc, "sports", { max: 20 })).rejects.toBeInstanceOf(DiscoveryUnavailable);
     const { business } = await upsertBusinessByTrustpilotId(db, makeTrustpilotRow({ trustpilotId: "acme.com" }));
-    await expect(enrichFromWebsite(db, fc, business.id)).rejects.toBeInstanceOf(DiscoveryUnavailable);
+    await expect(enrichBusinessLinks(db, fc, business.id)).rejects.toBeInstanceOf(DiscoveryUnavailable);
+    await expect(fc.scrapePage("https://acme.com")).rejects.toBeInstanceOf(DiscoveryUnavailable);
     await expect(syncStale(db, fc, { limit: 5, budgetMs: 1000 })).rejects.toBeInstanceOf(DiscoveryUnavailable);
     const [{ n }] = await db.select({ n: count() }).from(businesses).where(eq(businesses.source, "trustpilot"));
     expect(n).toBe(1);
@@ -439,5 +489,156 @@ describe("velocity over stored snapshots", () => {
     const { business } = await upsertBusinessByTrustpilotId(db, makeTrustpilotRow({ trustpilotId: "acme.com" }));
     await addSnapshot(db, business.id, 100, new Date(Date.now() - 31 * DAY));
     expect((await scrapeTrustpilotBusiness(db, fc, url("acme.com"))).reviewsLast30d).toBe(30);
+  });
+});
+
+// ------------------------------------------------------------ WP-17 round 1: rate limit
+
+/** A manual clock whose timers fire when time is advanced past them. */
+function manualClock(start = 0) {
+  let t = start;
+  const timers: { at: number; fn: () => void }[] = [];
+  return {
+    now: () => t,
+    setTimer: (fn: () => void, ms: number) => void timers.push({ at: t + ms, fn }),
+    advance(ms: number) {
+      t += ms;
+      for (const timer of timers.filter((x) => x.at <= t)) {
+        timers.splice(timers.indexOf(timer), 1);
+        timer.fn();
+      }
+    },
+    pendingTimers: () => timers.length,
+  };
+}
+
+const flush = () => new Promise<void>((r) => setImmediate(r));
+
+describe("AC-17.13 WindowLimiter: request starts per rolling 60 s", () => {
+  it("lets 10 starts through at once and makes the 11th wait for the window", async () => {
+    const clock = manualClock(1_000);
+    const limiter = new WindowLimiter(10, 60_000, clock);
+    const started: number[] = [];
+    for (let i = 0; i < 12; i++) void limiter.acquire().then(() => started.push(i));
+    await flush();
+    expect(started).toEqual([0, 1, 2, 3, 4, 5, 6, 7, 8, 9]);
+
+    clock.advance(59_999);
+    await flush();
+    expect(started).toHaveLength(10); // still inside the window
+
+    clock.advance(1); // the first start leaves the window
+    await flush();
+    expect(started).toEqual([0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11]);
+    expect(limiter.inWindow()).toBe(2);
+  });
+
+  it("is rolling, not fixed: starts spread over the minute free up one by one", async () => {
+    const clock = manualClock(0);
+    const limiter = new WindowLimiter(2, 60_000, clock);
+    await limiter.acquire(); // t=0
+    clock.advance(30_000);
+    await limiter.acquire(); // t=30 s
+    let third = false;
+    void limiter.acquire().then(() => (third = true));
+    await flush();
+    expect(third).toBe(false);
+    clock.advance(30_000); // t=60 s: the t=0 start has left
+    await flush();
+    expect(third).toBe(true);
+    expect(clock.pendingTimers()).toBe(0);
+  });
+
+  it("rejects bad settings", () => {
+    expect(() => new WindowLimiter(0, 60_000)).toThrow(RangeError);
+    expect(() => new WindowLimiter(1, 0)).toThrow(RangeError);
+  });
+
+  it("FIRECRAWL_REQUESTS_PER_MINUTE defaults to 10, floors at 1", async () => {
+    const { env } = await import("@/lib/env");
+    expect(env.FIRECRAWL_REQUESTS_PER_MINUTE).toBe(10);
+    vi.stubEnv("FIRECRAWL_REQUESTS_PER_MINUTE", "25");
+    expect(env.FIRECRAWL_REQUESTS_PER_MINUTE).toBe(25);
+    vi.stubEnv("FIRECRAWL_REQUESTS_PER_MINUTE", "0");
+    expect(env.FIRECRAWL_REQUESTS_PER_MINUTE).toBe(1);
+    vi.stubEnv("FIRECRAWL_REQUESTS_PER_MINUTE", "lots");
+    expect(env.FIRECRAWL_REQUESTS_PER_MINUTE).toBe(10);
+  });
+
+  it("the real client paces scrapePage and scrapeJson through one shared window", async () => {
+    vi.useFakeTimers();
+    const pacer = requestPacer();
+    expect(pacer.maxStarts).toBe(10);
+    expect(pacer.windowMs).toBe(60_000);
+    // Fill the window with 9 starts so the 10th request of the test is the last allowed.
+    for (let i = 0; i < 9; i++) await pacer.acquire();
+    sdkScrape.mockResolvedValue({ links: ["https://www.facebook.com/acme"], metadata: { statusCode: 200 } });
+    const fc = createFirecrawl("fc-test");
+
+    const first = fc.scrapePage("https://acme.com");
+    const second = fc.scrapeJson("https://www.trustpilot.com/review/acme.com", {});
+    await vi.advanceTimersByTimeAsync(0);
+    expect(sdkScrape).toHaveBeenCalledTimes(1); // 10th start went through; the 11th waits
+    expect(await first).toMatchObject({ links: ["https://www.facebook.com/acme"] });
+
+    await vi.advanceTimersByTimeAsync(60_000);
+    expect(sdkScrape).toHaveBeenCalledTimes(2);
+    await second;
+    // Let the Trustpilot limiter's 1.5 s gap elapse so its slot is free for later tests.
+    await vi.advanceTimersByTimeAsync(2_000);
+  });
+});
+
+describe("AC-17.14 HTTP 429 maps to FirecrawlRateLimited", () => {
+  const LIVE_MESSAGE =
+    "Rate limit exceeded. Consumed (req/min): 11, Remaining (req/min): 0. Upgrade your plan at https://firecrawl.dev/pricing for increased rate limits or please retry after 50s, resets at Tue Nov 10 2026 02:14:32 GMT+0000 (Coordinated Universal Time)";
+
+  it("reads retry_after_seconds from the SdkError body (shape observed live on 2026-11-09)", () => {
+    const err = new SdkError(LIVE_MESSAGE, 429, "ERR_BAD_REQUEST", { success: false, error: LIVE_MESSAGE, retry_after_seconds: 50 });
+    const mapped = rateLimitFrom(err);
+    expect(mapped).toBeInstanceOf(FirecrawlRateLimited);
+    expect(mapped?.retryAfterMs).toBe(50_000);
+    expect(mapped?.message).toBe("Rate limit exceeded. Consumed (req/min): 11, Remaining (req/min): 0");
+  });
+
+  it("prefers a Retry-After header, else 60 s; the status decides, not the text", () => {
+    expect(rateLimitFrom({ status: 429, response: { status: 429, headers: { "retry-after": "58" } } })?.retryAfterMs).toBe(58_000);
+    expect(rateLimitFrom(new SdkError("Too many", 429))?.retryAfterMs).toBe(DEFAULT_RETRY_AFTER_MS);
+    expect(rateLimitFrom(new SdkError(LIVE_MESSAGE, 500))).toBeNull();
+    expect(rateLimitFrom(new SdkError("Payment required", 402))).toBeNull();
+    // No status at all: the text is the only signal.
+    expect(rateLimitFrom(new Error("Rate limit exceeded. please retry after 7s"))?.retryAfterMs).toBe(7_000);
+    expect(rateLimitFrom(new Error("boom"))).toBeNull();
+    expect(rateLimitFrom(new DiscoveryUnavailable())).toBeNull();
+    expect(rateLimitFrom(null)).toBeNull();
+  });
+
+  it("both seam methods reject with FirecrawlRateLimited on a 429", async () => {
+    sdkScrape.mockRejectedValue(new SdkError(LIVE_MESSAGE, 429, "ERR_BAD_REQUEST", { retry_after_seconds: 12 }));
+    const fc = createFirecrawl("fc-test");
+    await expect(fc.scrapePage("https://ratelimited-a.com")).rejects.toMatchObject({ name: "FirecrawlRateLimited", retryAfterMs: 12_000 });
+    await expect(fc.scrapeJson("https://www.trustpilot.com/review/x.com", {})).rejects.toBeInstanceOf(FirecrawlRateLimited);
+    sdkScrape.mockRejectedValue(new SdkError("Bad gateway", 502));
+    await expect(fc.scrapePage("https://ratelimited-b.com")).rejects.not.toBeInstanceOf(FirecrawlRateLimited);
+  });
+});
+
+describe("AC-17.17 syncStale stops on a rate limit", () => {
+  it("stops at the rate-limited row without recording a failure against it", async () => {
+    for (const s of ["a.com", "b.com", "c.com"]) {
+      await upsertBusinessByTrustpilotId(db, makeTrustpilotRow({ trustpilotId: s, lastScrapedAt: null }));
+    }
+    vi.spyOn(console, "warn").mockImplementation(() => {});
+    const fc = createFakeFirecrawl();
+    fc.setProfile("a.com", makeTrustpilotProfile());
+    fc.setProfile("b.com", new FirecrawlRateLimited(30_000));
+    fc.setProfile("c.com", makeTrustpilotProfile());
+
+    const res = await syncStale(db, fc, { limit: 12, budgetMs: 60_000 });
+
+    expect(fc.calls).toEqual([url("a.com"), url("b.com")]);
+    expect(res).toEqual({ scraped: 1, failed: 0, remaining: 2 });
+    const b = await getBusinessByTrustpilotId(db, "b.com");
+    expect(b).toMatchObject({ scrapeAttempts: 0, scrapeFailedAt: null, lastScrapedAt: null });
   });
 });
