@@ -5,6 +5,7 @@ import { PageHeader, PageShell } from "@/components/primitives";
 import { Button } from "@/components/ui/button";
 import { getDb } from "@/db/client";
 import { listSearchJobs } from "@/db/repo/search-jobs";
+import { googleConfigured } from "@/features/google/actions";
 import { SearchesTable } from "@/features/searches/components/searches-table";
 import { toJobJson } from "@/features/searches/format";
 import { env } from "@/lib/env";
@@ -18,12 +19,14 @@ export const metadata: Metadata = { title: "Searches" };
 export default async function Page() {
   await requireUser();
   const jobs = await listSearchJobs(getDb(), 200);
-  const configured = !!env.YELP_API_KEY;
+  const yelp = !!env.YELP_API_KEY;
+  const google = googleConfigured();
+  const configured = yelp || google;
   return (
     <PageShell width="full">
       <PageHeader
         title="Searches"
-        description="Yelp search jobs and what each one brought in. Trustpilot discovery lives in Lookup."
+        description="Google Maps and Yelp search jobs and what each one brought in. Trustpilot discovery lives in Lookup."
         actions={
           configured ? (
             <Button asChild size="sm">

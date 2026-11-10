@@ -11,6 +11,7 @@ import { JOB_STATUS_LABELS } from "@/lib/labels";
 import { type SearchJobJson, jobDuration } from "../format";
 
 const col = dataTableColumnHelper<SearchJobJson>();
+const SOURCE_LABELS: Record<string, string> = { google: "Google Maps", yelp: "Yelp", trustpilot: "Trustpilot" };
 const num = { align: "right" as const };
 
 const columns = col.columns([
@@ -22,12 +23,43 @@ const columns = col.columns([
       </Link>
     ),
   }),
-  col.accessor("categoryAliases", {
-    header: "Categories",
-    enableSorting: false,
-    cell: (c) => <span className="text-muted-foreground">{c.getValue().join(", ")}</span>,
+  col.accessor("source", {
+    header: "Source",
+    cell: (c) => <span className="whitespace-nowrap">{SOURCE_LABELS[c.getValue()] ?? c.getValue()}</span>,
   }),
-  col.accessor("status", { header: "Status", cell: (c) => <StatusBadge label={JOB_STATUS_LABELS[c.getValue()]} /> }),
+  col.accessor("categoryAliases", {
+    header: "Categories / terms",
+    enableSorting: false,
+    cell: (c) => {
+      const j = c.row.original;
+      const text = j.source === "google" ? (j.plan?.terms.join(", ") ?? j.term ?? "") : c.getValue().join(", ");
+      return <span className="text-muted-foreground">{text}</span>;
+    },
+  }),
+  col.accessor("status", {
+    header: "Status",
+    cell: (c) => {
+      const j = c.row.original;
+      // A running Google job with an error is paused (cap reached, rate limited).
+      const paused = j.source === "google" && j.status === "running" && !!j.error;
+      return <StatusBadge label={paused ? { label: "Paused", tone: "warning" } : JOB_STATUS_LABELS[c.getValue()]} />;
+    },
+  }),
+  col.display({
+    id: "searches",
+    header: "Searches",
+    meta: num,
+    cell: (c) => {
+      const j = c.row.original;
+      return j.source === "google" ? (
+        <span className="whitespace-nowrap tabular-nums" title="Searches done of total">
+          {j.queriesDone}/{j.queriesTotal}
+        </span>
+      ) : (
+        <span className="text-muted-foreground">—</span>
+      );
+    },
+  }),
   col.accessor("fetchedCount", { header: "Fetched", meta: num }),
   col.accessor("qualifiedCount", { header: "Qualified", meta: num }),
   col.accessor("reviewCount", { header: "Review", meta: num }),
@@ -68,7 +100,7 @@ export function SearchesTable({ jobs }: { jobs: SearchJobJson[] }) {
           size="compact"
           icon={<SearchIcon />}
           title="No searches yet"
-          description="Run a Yelp search to pull in businesses."
+          description="Run a Google Maps or Yelp search to pull in businesses."
           action={
             <Button asChild size="sm">
               <Link href="/searches/new">New search</Link>

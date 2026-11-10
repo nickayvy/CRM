@@ -1,18 +1,23 @@
 import type { SearchJob } from "@/db/schema";
 
 /** Serializable job (dates as ISO strings), the shape `GET /api/searches/[id]` returns. */
-export type SearchJobJson = Omit<SearchJob, "startedAt" | "finishedAt" | "createdAt"> & {
+export type SearchJobJson = Omit<SearchJob, "startedAt" | "finishedAt" | "createdAt" | "leaseExpiresAt"> & {
   startedAt: string | null;
   finishedAt: string | null;
   createdAt: string;
+  /** Google jobs: when the running slice's lease ends; null when no slice holds it. */
+  leaseExpiresAt: string | null;
 };
+
+const iso = (d: Date | string | null | undefined) => (d ? new Date(d).toISOString() : null);
 
 export function toJobJson(job: SearchJob): SearchJobJson {
   return {
     ...job,
-    startedAt: job.startedAt ? new Date(job.startedAt).toISOString() : null,
-    finishedAt: job.finishedAt ? new Date(job.finishedAt).toISOString() : null,
+    startedAt: iso(job.startedAt),
+    finishedAt: iso(job.finishedAt),
     createdAt: new Date(job.createdAt).toISOString(),
+    leaseExpiresAt: iso(job.leaseExpiresAt),
   };
 }
 
