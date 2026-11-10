@@ -168,6 +168,28 @@ otherwise. Emails must look like an address and not be an asset name
 The Trustpilot limiter (1 in flight, 1.5 s apart) stays for Trustpilot URLs.
 Website scrapes target distinct hosts and must not queue behind that 1.5 s gap.
 
+### Rate limit (added in review round 1)
+
+Measured on 2026-11-09: the Firecrawl plan rejects the 11th scrape request of a
+minute with HTTP 429 and `retry-after`. So:
+
+- **Pacing.** One process-wide limiter shared by `scrapeJson` and `scrapePage`
+  starts at most `FIRECRAWL_REQUESTS_PER_MINUTE` requests (optional env var,
+  default 10) in any rolling 60 s, on top of the concurrency rules above.
+- **Typed error.** `FirecrawlRateLimited extends Error { retryAfterMs: number }`
+  (`client.ts`), thrown by both seam methods on a 429 from the Firecrawl API.
+- **Not a site failure.** `resolveExternalLinks` and `enrichBusinessLinks`
+  propagate it and write nothing. `enrichPendingLinks` waits and retries the
+  row when `retryAfterMs + 10 s` fits the remaining budget, otherwise stops;
+  its result gains `rateLimited: boolean`; it accepts
+  `sleep?: (ms: number) => Promise<void>`. `syncStale` stops without
+  `markScrapeFailed`.
+- **Cron `links` budget.** Remaining discovery budget capped at 180 s on
+  non-Sundays, 60 s on Sundays; limit 40.
+
+At 10 requests a minute a 240 s seed enriches roughly 20 to 35 of its rows;
+the rest stay pending for the cron (about 25 rows a day).
+
 ## Files
 
 **Owned by WP-17 (may edit or create):**

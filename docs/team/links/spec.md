@@ -70,6 +70,12 @@ R6. **Safe writes.** Enrichment fills `phone` and `email` only when empty,
 R7. **Safe values.** Only `http(s)` URLs on the platform's own hosts are stored
     as social links; share/intent URLs and non-URL strings are rejected.
 
+R8. **Paced requests.** All Firecrawl requests stay under the plan's
+    requests-per-minute limit (10, measured 2026-11-09; configurable).
+R9. **A rate limit is not a failure.** A 429 from Firecrawl never stamps
+    `enriched_at` or scrape back-off on a row; drains wait or stop and leave
+    the rows pending.
+
 ## Acceptance criteria
 
 AC1. Given the link list of a real homepage (fixture), `extractExternalLinks`
@@ -111,6 +117,9 @@ AC12. An enriched row mapped through `toLookupBusiness` resolves the dossier's
       three social tiles (`socialLink(links, "facebook")`,
       `socialLink(links, "twitter", "x")`, `socialLink(links, "linkedin")`) to
       non-null `https://` URLs. Proof: unit test.
+
+AC13–AC18 (added in review round 1, rate limit): see
+`reviews/WP-17.md` §Required changes, items 1 to 6.
 
 ## Decisions made by the PM
 
