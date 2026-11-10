@@ -1,7 +1,8 @@
 "use client";
 
 import { useState, useTransition } from "react";
-import { Globe, Loader2 } from "lucide-react";
+import Link from "next/link";
+import { Globe, Loader2, MapPin } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -23,6 +24,8 @@ type Props = {
  * Top strip of the grid panel (gtm manual-scrape-input.tsx): paste a
  * Trustpilot review URL → `scrapeUrlAction`; pick one of the 22 categories →
  * `seedCategoryAction`. Both are disabled with a notice without a key.
+ * The "Google Maps" button opens the Google search form and "Search history"
+ * the list of Google and Yelp searches; both work without the Firecrawl key.
  */
 export function ManualScrapeInput({ enabled, onSuccess, onSeeded }: Props) {
   const [url, setUrl] = useState("");
@@ -107,6 +110,20 @@ export function ManualScrapeInput({ enabled, onSuccess, onSeeded }: Props) {
             ))}
           </SelectContent>
         </Select>
+        <div className="flex items-center gap-2">
+          <Button asChild size="sm" variant="outline" className="h-8 flex-1 text-xs sm:flex-none">
+            <Link href="/searches/new?source=google" title="Search Google Maps for a niche across the zip codes of an area">
+              <MapPin className="h-3.5 w-3.5" aria-hidden />
+              Google Maps
+            </Link>
+          </Button>
+          <Link
+            href="/searches"
+            className="shrink-0 text-xs whitespace-nowrap text-muted-foreground underline-offset-2 transition-colors hover:text-foreground hover:underline"
+          >
+            Search history
+          </Link>
+        </div>
       </div>
       {!enabled && (
         <p className="text-[11px] text-muted-foreground" data-testid="discovery-disabled">

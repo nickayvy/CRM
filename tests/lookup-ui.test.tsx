@@ -17,7 +17,7 @@ vi.mock("next/navigation", () => ({
 const toasts = vi.hoisted(() => ({ success: vi.fn(), error: vi.fn(), info: vi.fn() }));
 vi.mock("sonner", () => ({ toast: toasts }));
 
-const discovery = vi.hoisted(() => ({ scrapeUrlAction: vi.fn(), seedCategoryAction: vi.fn() }));
+const discovery = vi.hoisted(() => ({ scrapeUrlAction: vi.fn(), seedCategoryAction: vi.fn(), enrichTrustpilotAction: vi.fn() }));
 vi.mock("@/features/discovery/actions", () => ({ ...discovery, discoveryConfigured: () => true }));
 
 const lookupActions = vi.hoisted(() => ({
@@ -91,6 +91,8 @@ function biz(overrides: Partial<LookupBusiness> = {}): LookupBusiness {
     aiSummary: null,
     hasMetaAds: false,
     yelpUrl: null,
+    googleMapsUrl: null,
+    address: null,
     qualification: "qualified",
     rejectionReasons: [],
     lastSyncedAt: new Date(Date.now() - 3 * 3_600_000).toISOString(),
@@ -335,7 +337,8 @@ describe("DossierModal", () => {
 
     const tiles = within(dialog).getAllByTestId("link-tile");
     const byLabel = Object.fromEntries(tiles.map((t) => [t.querySelector("p")!.textContent, t]));
-    expect(Object.keys(byLabel)).toEqual(["WEBSITE", "FACEBOOK", "META ADS", "X / TWITTER", "FOUNDER", "EMAIL", "PHONE"]);
+    expect(Object.keys(byLabel)).toEqual(["WEBSITE", "FACEBOOK", "META ADS", "X / TWITTER", "FOUNDER", "EMAIL", "PHONE", "GOOGLE MAPS"]);
+    expect(byLabel["GOOGLE MAPS"].textContent).toContain("NO DATA");
     expect(byLabel.WEBSITE.textContent).toContain("www.acmegadgets.com");
     expect(byLabel.FACEBOOK.querySelector("a")!.getAttribute("href")).toBe("https://facebook.com/acmegadgets");
     expect(byLabel["META ADS"].querySelector("a")!.getAttribute("href")).toContain("q=acmegadgets.com");

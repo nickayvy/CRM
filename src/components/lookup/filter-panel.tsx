@@ -159,6 +159,7 @@ export function FilterPanel({ categories, titles, onNavigate }: Props) {
           </SelectTrigger>
           <SelectContent>
             <SelectItem value={ALL}>All sources</SelectItem>
+            <SelectItem value="google">Google</SelectItem>
             <SelectItem value="trustpilot">Trustpilot</SelectItem>
             <SelectItem value="yelp">Yelp</SelectItem>
           </SelectContent>

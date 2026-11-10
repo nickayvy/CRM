@@ -43,6 +43,8 @@ function makeBusiness(overrides: Partial<LookupBusiness> = {}): LookupBusiness {
     aiSummary: null,
     hasMetaAds: false,
     yelpUrl: null,
+    googleMapsUrl: null,
+    address: null,
     qualification: "qualified",
     rejectionReasons: [],
     lastSyncedAt: "2026-10-01T12:00:00.000Z",

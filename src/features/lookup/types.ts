@@ -27,6 +27,10 @@ export type LookupBusiness = {
   aiSummary: string | null;
   hasMetaAds: boolean;
   yelpUrl: string | null;
+  /** Google Maps listing (Google rows and rows matched to a Google place). */
+  googleMapsUrl: string | null;
+  /** "street, city, state zip" from whichever parts the row has; null when it has none. */
+  address: string | null;
   qualification: Qualification;
   rejectionReasons: string[];
   /** ISO timestamp of the last scrape, else of the last update. */
@@ -34,6 +38,14 @@ export type LookupBusiness = {
 };
 
 export type GraphLink = { source: string; target: string };
+
+/** "1 Elm St, Dallas, TX 75201" from the parts present; null when there are none. */
+export function formatAddress(b: Pick<Business, "address1" | "city" | "state" | "zip">): string | null {
+  const clean = (s: string | null | undefined) => (s ?? "").trim();
+  const stateZip = [clean(b.state), clean(b.zip)].filter(Boolean).join(" ");
+  const parts = [clean(b.address1), clean(b.city), stateZip].filter(Boolean);
+  return parts.length ? parts.join(", ") : null;
+}
 
 export function toLookupBusiness(b: Business): LookupBusiness {
   const category = b.primaryCategory ?? b.categories[0]?.alias ?? null;
@@ -63,6 +75,8 @@ export function toLookupBusiness(b: Business): LookupBusiness {
     aiSummary: b.aiSummary,
     hasMetaAds: b.hasMetaAds,
     yelpUrl: b.yelpUrl,
+    googleMapsUrl: b.googleMapsUrl,
+    address: formatAddress(b),
     qualification: b.qualification,
     rejectionReasons: b.rejectionReasons,
     lastSyncedAt: new Date(synced).toISOString(),

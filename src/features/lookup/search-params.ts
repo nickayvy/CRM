@@ -13,7 +13,7 @@ export type RawSearchParams = Record<string, string | string[] | undefined>;
 
 export type LookupQuery = { filter: BusinessFilter; offset: number };
 
-const SOURCES: readonly BusinessSource[] = ["yelp", "trustpilot"];
+const SOURCES: readonly BusinessSource[] = ["yelp", "trustpilot", "google"];
 
 function first(v: string | string[] | null | undefined): string | undefined {
   const s = Array.isArray(v) ? v[0] : v;
