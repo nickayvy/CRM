@@ -125,7 +125,7 @@ async function main() {
     emailable.map((b, i) => ({ campaignId: ec.id, businessId: b.id, state: (i % 8 === 0 ? "replied" : i % 11 === 0 ? "bounced" : "active") as s.EnrollmentState, currentStep: 1, nextSendAt: new Date(Date.now() + 86_400_000 * 2), lastSentAt: hoursAgo(2 + i) })),
   ).returning();
   await db.insert(s.emailMessages).values(
-    enr.slice(0, 14).map((e, i) => ({ enrollmentId: e.id, stepId: steps[0].id, businessId: e.businessId, toEmail: "x@example.test", subject: "A quick question", bodyRendered: "Hi", status: "dry_run" as const, createdAt: hoursAgo(0.3 + i * 0.3) })),
+    enr.slice(0, 14).map((e, i) => ({ enrollmentId: e.id, stepId: steps[0].id, businessId: e.businessId, toEmail: "x@example.test", subject: "A quick question", bodyRendered: "Hi", status: "dry_run" as const, createdAt: hoursAgo(0.3 + i * 0.3), sentAt: hoursAgo(0.3 + i * 0.3) })),
   );
   console.log({ businesses: biz.length, qualified: qualified.length, queue: queue.length, activities: acts.length, enrollments: enr.length, draft: draft.id });
 }

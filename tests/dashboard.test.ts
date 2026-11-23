@@ -176,10 +176,10 @@ describe("getDashboardStats on built data", () => {
     expect([interested, total]).toEqual([2, 9]);
   });
 
-  it("emailsSentToday counts sent + dry_run messages created today (local)", async () => {
+  it("emailsSentToday counts sent + dry_run messages that went out today (local, by sent_at, as the Email page does)", async () => {
     const expected = await one(sql`
       SELECT count(*) AS n FROM email_messages
-      WHERE status IN ('sent', 'dry_run') AND ${localDate("created_at")} = ${todayLocal}`);
+      WHERE status IN ('sent', 'dry_run') AND sent_at IS NOT NULL AND ${localDate("sent_at")} = ${todayLocal}`);
     expect(expected).toBe(2);
     expect(stats.emailsSentToday).toBe(expected);
   });

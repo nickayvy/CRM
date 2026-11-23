@@ -113,9 +113,11 @@ export async function getDashboardStats(db: Db, now: Date = new Date()): Promise
         .from(emailMessages)
         .where(
           and(
+            // Same definition as the Email page (statsFor / countEmailsSent): went out today, by sentAt.
             inArray(emailMessages.status, ["sent", "dry_run"]),
-            gte(emailMessages.createdAt, today.start),
-            lt(emailMessages.createdAt, today.end),
+            isNotNull(emailMessages.sentAt),
+            gte(emailMessages.sentAt, today.start),
+            lt(emailMessages.sentAt, today.end),
           ),
         ),
       db.select({ n: count() }).from(callCampaigns).where(eq(callCampaigns.status, "running")),
