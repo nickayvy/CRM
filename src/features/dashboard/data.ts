@@ -1,12 +1,14 @@
 // Overview tiles added in v2 (WP-16), next to the v1 DashboardStats. Every
 // count is recomputed with hand-written SQL in tests/dashboard.test.ts.
-import { count } from "drizzle-orm";
+import { and, count, eq, notExists } from "drizzle-orm";
 import type { Db } from "@/db/client";
 import {
   type BusinessSource,
   type LeadStatus,
   businessSourceEnum,
   businesses,
+  callQueueItems,
+  emailEnrollments,
   leadStatusEnum,
   leads,
 } from "@/db/schema";
@@ -52,4 +54,27 @@ export async function getOverviewTiles(db: Db): Promise<OverviewTiles> {
   const s = new Map(byStatus.map((r) => [r.status, Number(r.n)]));
   const leadsByStatus = leadStatusEnum.enumValues.map((status) => ({ status, count: s.get(status) ?? 0 }));
   return { leadsByStatus, leadsTotal: leadsByStatus.reduce((n, r) => n + r.count, 0), businessesBySource };
+}
+
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+/**
+ * The user's queued leads whose business is in no call queue and no email
+ * sequence: the ones nothing is set up to reach. A queued lead that already
+ * sits in a campaign is waiting its turn, not waiting on the user.
+ */
+export async function countUnassignedLeads(db: Db, userId: string): Promise<number> {
+  if (!UUID_RE.test(userId)) return 0;
+  const [row] = await db
+    .select({ n: count() })
+    .from(leads)
+    .where(
+      and(
+        eq(leads.userId, userId),
+        eq(leads.status, "queued"),
+        notExists(db.select({ id: callQueueItems.id }).from(callQueueItems).where(eq(callQueueItems.businessId, leads.businessId))),
+        notExists(db.select({ id: emailEnrollments.id }).from(emailEnrollments).where(eq(emailEnrollments.businessId, leads.businessId))),
+      ),
+    );
+  return Number(row?.n ?? 0);
 }

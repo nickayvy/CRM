@@ -84,6 +84,8 @@ export function outcomeRows(
 export type PipelineStage = {
   key: "discovered" | "qualified" | "leads" | "contacted" | "won";
   label: string;
+  /** How the next stage refers to this one, e.g. "of qualified". */
+  asBase: string;
   count: number;
   /** What the count means, in a few words. */
   hint: string;
@@ -92,23 +94,28 @@ export type PipelineStage = {
   shareOfPrevious: number | null;
 };
 
-/** Lead statuses that mean the business has been reached out to at least once. */
-const CONTACTED: LeadStatus[] = ["contacted", "callback", "success", "failed"];
+/** Lead statuses that mean the business has been called or emailed at least once. */
+const REACHED: LeadStatus[] = ["contacted", "callback", "success", "failed"];
 
 /**
- * The path from a discovered business to a won lead, as five counts. Each
- * stage also carries its share of the stage before it, so a drop-off is
+ * The path from a discovered business to a successful lead, as five counts.
+ * Each stage also carries its share of the stage before it, so a drop-off is
  * readable whatever the absolute sizes are.
+ *
+ * The fourth stage is cumulative (every lead reached at least once, whatever
+ * its status is now), so it is not called "Contacted": that is one lead
+ * status, with its own smaller count. The last stage uses the Leads page's
+ * word for it, "Success".
  */
 export function pipelineStages(stats: DashboardStats, tiles: OverviewTiles): PipelineStage[] {
   const by = new Map(tiles.leadsByStatus.map((r) => [r.status, r.count]));
-  const contacted = CONTACTED.reduce((n, s) => n + (by.get(s) ?? 0), 0);
+  const reached = REACHED.reduce((n, s) => n + (by.get(s) ?? 0), 0);
   const stages: Omit<PipelineStage, "shareOfPrevious">[] = [
-    { key: "discovered", label: "Discovered", count: stats.businessesTotal, hint: "Businesses found", href: "/businesses" },
-    { key: "qualified", label: "Qualified", count: stats.businessesQualified, hint: "Passed your rules", href: "/businesses?qualification=qualified" },
-    { key: "leads", label: "Leads", count: tiles.leadsTotal, hint: "On a lead list", href: "/leads" },
-    { key: "contacted", label: "Contacted", count: contacted, hint: "Reached out to", href: "/leads" },
-    { key: "won", label: "Won", count: by.get("success") ?? 0, hint: "Marked a success", href: "/leads" },
+    { key: "discovered", label: "Discovered", asBase: "discovered", count: stats.businessesTotal, hint: "Businesses found", href: "/businesses" },
+    { key: "qualified", label: "Qualified", asBase: "qualified", count: stats.businessesQualified, hint: "Passed your rules", href: "/businesses?qualification=qualified" },
+    { key: "leads", label: "Leads", asBase: "leads", count: tiles.leadsTotal, hint: "On a lead list", href: "/leads" },
+    { key: "contacted", label: "Reached out", asBase: "those reached", count: reached, hint: "Called or emailed", href: "/leads" },
+    { key: "won", label: "Success", asBase: "successes", count: by.get("success") ?? 0, hint: "Marked a success", href: "/leads?status=success" },
   ];
   return stages.map((s, i) => {
     const prev = i > 0 ? stages[i - 1].count : 0;

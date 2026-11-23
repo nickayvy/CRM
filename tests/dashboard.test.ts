@@ -12,7 +12,7 @@ import { createTestDb } from "@/db/test-utils";
 import { env } from "@/lib/env";
 import { addLeads, updateLead, listLeads } from "@/db/repo/leads";
 import { upsertBusinessByTrustpilotId } from "@/db/repo/discovery";
-import { getOverviewTiles } from "@/features/dashboard/data";
+import { countUnassignedLeads, getOverviewTiles } from "@/features/dashboard/data";
 import { insertBusiness, makeTrustpilotRow } from "./helpers/builders";
 
 const TZ = env.APP_TIMEZONE;
@@ -151,12 +151,17 @@ describe("getDashboardStats on built data", () => {
     expect(stats.callsToday).toBe(expected);
   });
 
-  it("callsYesterday counts call activities on the previous local date", async () => {
-    const expected = await one(
+  it("callsYesterday counts yesterday's calls up to the same time of day as now", async () => {
+    // Yesterday had two calls: 08:00 local and 23:59 local. Now is 12:30 local, so only the first is comparable.
+    const wholeDay = await one(
       sql`SELECT count(*) AS n FROM activities WHERE type = 'call' AND ${localDate("occurred_at")} = ${todayLocal} - 1`,
     );
-    expect(expected).toBeGreaterThan(0);
-    expect(stats.callsYesterday).toBe(expected);
+    const byNow = await one(sql`
+      SELECT count(*) AS n FROM activities
+      WHERE type = 'call' AND ${localDate("occurred_at")} = ${todayLocal} - 1
+        AND occurred_at < ${nowSql} - interval '24 hours'`);
+    expect([wholeDay, byNow]).toEqual([2, 1]);
+    expect(stats.callsYesterday).toBe(byNow);
   });
 
   it("interestRate7d = interested / all call outcomes over today and the 6 previous local days", async () => {
@@ -288,5 +293,49 @@ describe("overview tiles (WP-16, AC-16.5)", () => {
     expect(tiles.businessesBySource.map((r) => r.source)).toEqual(["trustpilot", "yelp", "google"]);
     for (const r of tiles.businessesBySource) expect(r.count, r.source).toBe(expSource[r.source] ?? 0);
     expect(Object.fromEntries(tiles.businessesBySource.map((r) => [r.source, r.count]))).toEqual({ trustpilot: 2, yelp: 9, google: 0 });
+  });
+
+  it("unassigned leads = the user's queued leads whose business is in no call queue and no email sequence", async () => {
+    const expected = (userId: string) =>
+      one(sql`
+        SELECT count(*) AS n FROM leads l
+        WHERE l.user_id = ${userId} AND l.status = 'queued'
+          AND NOT EXISTS (SELECT 1 FROM call_queue_items c WHERE c.business_id = l.business_id)
+          AND NOT EXISTS (SELECT 1 FROM email_enrollments e WHERE e.business_id = l.business_id)`);
+    const queued = (userId: string) => one(sql`SELECT count(*) AS n FROM leads WHERE user_id = ${userId} AND status = 'queued'`);
+
+    const [ann, annQueued] = [await expected(ANN), await queued(ANN)];
+    expect(ann).toBeGreaterThan(0);
+    expect(await countUnassignedLeads(db, ANN)).toBe(ann);
+    // Scoped to the user, and safe for an id that is not a uuid.
+    expect(await countUnassignedLeads(db, BEN)).toBe(await expected(BEN));
+    expect(await countUnassignedLeads(db, "not-a-uuid")).toBe(0);
+
+    // Putting one of those businesses in an email sequence takes it off the list.
+    const [free] = await q<{ business_id: string }>(sql`
+      SELECT l.business_id FROM leads l
+      WHERE l.user_id = ${ANN} AND l.status = 'queued'
+        AND NOT EXISTS (SELECT 1 FROM call_queue_items c WHERE c.business_id = l.business_id)
+        AND NOT EXISTS (SELECT 1 FROM email_enrollments e WHERE e.business_id = l.business_id)
+      LIMIT 1`);
+    const [campaign] = await q<{ id: string }>(sql`SELECT id FROM email_campaigns LIMIT 1`);
+    await db.insert(emailEnrollments).values({ campaignId: campaign.id, businessId: free.business_id });
+    expect(await countUnassignedLeads(db, ANN)).toBe(ann - 1);
+    // That lead is still queued: it is the campaign, not the status, that takes it off the list.
+    expect(await queued(ANN)).toBe(annQueued);
+    expect(await countUnassignedLeads(db, ANN)).toBeLessThan(annQueued);
+
+    // The same for a call queue.
+    const [free2] = await q<{ business_id: string }>(sql`
+      SELECT l.business_id FROM leads l
+      WHERE l.user_id = ${ANN} AND l.status = 'queued'
+        AND NOT EXISTS (SELECT 1 FROM call_queue_items c WHERE c.business_id = l.business_id)
+        AND NOT EXISTS (SELECT 1 FROM email_enrollments e WHERE e.business_id = l.business_id)
+      LIMIT 1`);
+    expect(free2, "Ann needs a second queued lead outside every campaign").toBeTruthy();
+    const [callCampaign] = await q<{ id: string }>(sql`SELECT id FROM call_campaigns LIMIT 1`);
+    // Inserted directly: the repo's add refuses rejected businesses, and which lead comes back here is not fixed.
+    await db.insert(callQueueItems).values({ campaignId: callCampaign.id, businessId: free2.business_id, position: 999 });
+    expect(await countUnassignedLeads(db, ANN)).toBe(ann - 2);
   });
 });

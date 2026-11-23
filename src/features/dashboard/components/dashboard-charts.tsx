@@ -37,7 +37,9 @@ export function OutcomesByDayChart({
   }
   const config = Object.fromEntries(outcomes.map((o) => [o.key, { label: o.label, color: o.color }])) satisfies ChartConfig;
   return (
-    <>
+    // `relative` keeps the visually hidden table inside this box. Without a positioned ancestor it is laid out
+    // against the document, outside the app's scroll area, and makes the whole page scroll past the shell.
+    <div className="relative size-full">
       <ChartContainer config={config} className="aspect-auto size-full" data-testid="chart-outcomes" aria-hidden>
         <BarChart data={data} margin={{ left: -16, right: 4, top: 4, bottom: 0 }}>
           <CartesianGrid vertical={false} />
@@ -86,6 +88,6 @@ export function OutcomesByDayChart({
           </tbody>
         </table>
       </div>
-    </>
+    </div>
   );
 }

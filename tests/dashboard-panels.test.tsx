@@ -13,6 +13,7 @@ import {
   PipelinePanel,
   UpNextPanel,
 } from "@/features/dashboard/components/dashboard-panels";
+import { OutcomesByDayChart } from "@/features/dashboard/components/dashboard-charts";
 import type { Business, CallQueueItem } from "@/db/schema";
 
 afterEach(cleanup);
@@ -80,6 +81,29 @@ describe("DueCallbacksPanel", () => {
     expect(dialers.map((l) => l.getAttribute("href"))).toEqual(["/calling/camp-1/dial", "/calling/camp-1/dial"]);
   });
 
+  it("only offers the dialer when the callback's campaign can dial right now", () => {
+    const at = new Date("2026-11-07T15:30:00Z");
+    const row = (id: string, campaignId: string) => ({ ...callback(id, at), campaignId });
+    render(
+      <DueCallbacksPanel
+        items={[row("human", "running-dialer"), row("ai", "ai-campaign"), row("paused", "paused-dialer")]}
+        overdueTotal={3}
+        campaigns={{
+          "running-dialer": { mode: "human", status: "running" },
+          "ai-campaign": { mode: "ai", status: "running" },
+          "paused-dialer": { mode: "human", status: "paused" },
+        }}
+        now={NOW}
+        tz="America/Chicago"
+      />,
+    );
+    const panel = within(screen.getByTestId("due-callbacks"));
+    expect(panel.getByRole("link", { name: "Open the dialer for Houston roofers" }).getAttribute("href")).toBe("/calling/running-dialer/dial");
+    // An AI campaign has no dialer and a paused one refuses to dial: both open the campaign page instead.
+    expect(panel.getByRole("link", { name: "Open Houston roofers (called by the AI agent)" }).getAttribute("href")).toBe("/calling/ai-campaign");
+    expect(panel.getByRole("link", { name: "Open Houston roofers (not running)" }).getAttribute("href")).toBe("/calling/paused-dialer");
+  });
+
   it("has no overdue badge and an empty state when nothing is due", () => {
     render(<DueCallbacksPanel items={[]} overdueTotal={0} now={NOW} tz="America/Chicago" />);
     expect(screen.queryByTestId("overdue-count")).toBeNull();
@@ -91,6 +115,7 @@ describe("PipelinePanel", () => {
   const stage = (key: PipelineStage["key"], label: string, count: number, shareOfPrevious: number | null): PipelineStage => ({
     key,
     label,
+    asBase: label === "Reached out" ? "those reached" : label.toLowerCase(),
     count,
     hint: `${label} hint`,
     href: `/${key}`,
@@ -100,7 +125,13 @@ describe("PipelinePanel", () => {
   it("captions each stage with its share of the stage before, or its hint when there is none", () => {
     render(
       <PipelinePanel
-        stages={[stage("discovered", "Discovered", 1200, null), stage("qualified", "Qualified", 300, 0.25), stage("leads", "Leads", 400, null)]}
+        stages={[
+          stage("discovered", "Discovered", 1200, null),
+          stage("qualified", "Qualified", 300, 0.25),
+          stage("leads", "Leads", 400, null),
+          stage("contacted", "Reached out", 100, 0.25),
+          stage("won", "Success", 20, 0.2),
+        ]}
       />,
     );
     const text = (key: string) => document.querySelector(`[data-stage="${key}"]`)?.textContent ?? "";
@@ -108,6 +139,8 @@ describe("PipelinePanel", () => {
     expect(text("discovered")).toContain("Discovered hint");
     expect(text("qualified")).toContain("25% of discovered");
     expect(text("leads")).toContain("Leads hint");
+    // The share names the previous stage in words that read as a sentence.
+    expect(text("won")).toContain("20% of those reached");
     expect(document.querySelector('[data-stage="qualified"] a')?.getAttribute("href")).toBe("/qualified");
   });
 });
@@ -153,13 +186,46 @@ describe("BarList and DiscoveryPanel", () => {
 });
 
 describe("GettingStartedPanel", () => {
-  it("lists the three steps in order with one filled button", () => {
-    render(<GettingStartedPanel />);
-    const links = within(screen.getByTestId("getting-started")).getAllByRole("link");
-    expect(links.map((l) => [l.textContent, l.getAttribute("href"), l.getAttribute("data-variant")])).toEqual([
-      ["Open Lookup", "/lookup", "default"],
-      ["Open leads", "/leads", "outline"],
-      ["New call campaign", "/calling/new", "outline"],
-    ]);
+  it("offers only the step that can be done now", () => {
+    render(<GettingStartedPanel discoveryConfigured />);
+    const panel = within(screen.getByTestId("getting-started"));
+    for (const title of ["Find businesses", "Build your lead list", "Call and email them"]) expect(panel.getByText(title)).toBeTruthy();
+    expect(panel.getAllByRole("link").map((l) => [l.textContent, l.getAttribute("href")])).toEqual([["Open Lookup", "/lookup"]]);
+    expect(screen.queryByTestId("no-sources")).toBeNull();
+  });
+
+  it("points at Settings when Lookup has no source to search", () => {
+    render(<GettingStartedPanel discoveryConfigured={false} />);
+    const panel = within(screen.getByTestId("getting-started"));
+    expect(screen.getByTestId("no-sources").textContent).toContain("No source is connected yet");
+    expect(panel.getAllByRole("link").map((l) => l.getAttribute("href"))).toEqual(["/settings"]);
+  });
+});
+
+describe("OutcomesByDayChart", () => {
+  it("keeps its screen-reader table inside a positioned box, so it cannot stretch the page", () => {
+    render(
+      <OutcomesByDayChart
+        data={[{ day: "2026-11-07", label: "Sat 7", interested: 2, no_contact: 4 }]}
+        outcomes={[
+          { key: "interested", label: "Interested", color: "var(--series-1)" },
+          { key: "no_contact", label: "No contact", color: "var(--series-3)" },
+        ]}
+      />,
+    );
+    const table = screen.getByTestId("chart-outcomes-table");
+    // sr-only is position:absolute. With no positioned ancestor it is placed against the document, outside
+    // the app's scroll area, and the whole page (top bar included) becomes scrollable.
+    const hidden = table.parentElement!;
+    expect(hidden.className).toContain("sr-only");
+    expect(hidden.parentElement!.className).toContain("relative");
+    expect([...table.querySelectorAll("tbody tr")].map((r) => r.textContent)).toEqual(["Sat 724"]);
+    expect([...table.querySelectorAll("thead th")].map((c) => c.textContent)).toEqual(["Day", "Interested", "No contact"]);
+  });
+
+  it("explains an empty week instead of drawing empty axes", () => {
+    render(<OutcomesByDayChart data={[]} outcomes={[]} />);
+    expect(screen.getByText("No calls in the last 7 days")).toBeTruthy();
+    expect(screen.queryByTestId("chart-outcomes-table")).toBeNull();
   });
 });

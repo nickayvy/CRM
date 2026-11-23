@@ -18,6 +18,8 @@ export type ChartCardProps = {
   /** The chart. */
   children?: React.ReactNode;
   className?: string;
+  /** Anchor target, e.g. for a stat card that links to this chart. */
+  id?: string;
 };
 
 /**
@@ -25,9 +27,9 @@ export type ChartCardProps = {
  * footer. Chart colors: use `var(--chart-1)` … `var(--chart-5)` (the
  * LAR blue ramp).
  */
-export function ChartCard({ title, description, actions, height = 240, loading, footer, children, className }: ChartCardProps) {
+export function ChartCard({ title, description, actions, height = 240, loading, footer, children, className, id }: ChartCardProps) {
   return (
-    <figure data-slot="chart-card" className={cn("flex min-w-0 flex-col gap-4 rounded-lg bg-surface p-5 text-card-foreground shadow-[var(--shadow-elevated)]", className)}>
+    <figure id={id} data-slot="chart-card" className={cn("flex min-w-0 flex-col gap-4 rounded-lg bg-surface p-5 text-card-foreground shadow-[var(--shadow-elevated)]", className)}>
       <figcaption className="flex items-start justify-between gap-2">
         <div className="flex min-w-0 flex-col gap-0.5">
           <span className="text-xs font-medium tracking-wider uppercase">{title}</span>

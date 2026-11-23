@@ -28,7 +28,10 @@ export type DashboardStats = {
   businessesReview: number;
   businessesRejected: number;
   callsToday: number;
-  /** Call activities on the previous local day (the comparison for `callsToday`). */
+  /**
+   * Call activities on the previous local day up to the same time of day as
+   * now: the fair comparison for `callsToday`, which is a day still in progress.
+   */
   callsYesterday: number;
   /** Call outcomes over the 7-day window (the denominator of `interestRate7d`). */
   calls7d: number;
@@ -79,6 +82,8 @@ export async function getDashboardStats(db: Db, now: Date = new Date()): Promise
   const week = sevenDayWindow(now, tz);
   // Noon avoids DST edges when stepping back a whole day.
   const yesterday = localDayBounds(addDays(new Date(today.start.getTime() + 12 * 3_600_000), -1), tz);
+  // As far into yesterday as now is into today (capped at the end of that day across a DST change).
+  const yesterdayNow = new Date(Math.min(yesterday.end.getTime(), yesterday.start.getTime() + Math.max(0, now.getTime() - today.start.getTime())));
   const hard = new Set<string>(HARD_REASONS);
 
   const [qual, reasons, statuses, callsToday, callsYesterday, weekCalls, emailsToday, runningCall, runningEmail, overdue] =
@@ -94,7 +99,7 @@ export async function getDashboardStats(db: Db, now: Date = new Date()): Promise
         .select({ n: count() })
         .from(activities)
         .where(
-          and(eq(activities.type, "call"), gte(activities.occurredAt, yesterday.start), lt(activities.occurredAt, yesterday.end)),
+          and(eq(activities.type, "call"), gte(activities.occurredAt, yesterday.start), lt(activities.occurredAt, yesterdayNow)),
         ),
       // Window ends at `now`: future-dated activities never count.
       db

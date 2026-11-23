@@ -14,6 +14,7 @@ import {
   PhoneIcon,
   SearchIcon,
   SettingsIcon,
+  SlidersHorizontalIcon,
   type LucideIcon,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -35,7 +36,10 @@ export const PAGES: { href: string; label: string; icon: LucideIcon }[] = [
   { href: "/leads", label: "Leads", icon: GitBranchIcon },
   { href: "/calling", label: "Calling", icon: PhoneIcon },
   { href: "/email", label: "Email", icon: MailIcon },
+  { href: "/businesses", label: "All businesses", icon: BuildingIcon },
+  { href: "/searches", label: "Searches", icon: SearchIcon },
   { href: "/settings", label: "Settings", icon: SettingsIcon },
+  { href: "/settings/rules", label: "Qualification rules", icon: SlidersHorizontalIcon },
   { href: "/design", label: "Design", icon: PaletteIcon },
 ];
 

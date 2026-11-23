@@ -185,8 +185,18 @@ describe("AC-16.4 Yelp not-configured state", () => {
 });
 
 describe("command palette pages", () => {
-  it("lists Overview, Lookup, Leads, Calling, Email, Settings, Design in order", () => {
-    expect(PAGES.map((p) => p.label)).toEqual(["Overview", "Lookup", "Leads", "Calling", "Email", "Settings", "Design"]);
-    expect(PAGES.map((p) => p.href)).toEqual(["/overview", "/lookup", "/leads", "/calling", "/email", "/settings", "/design"]);
+  it("lists every page a user can open, home first, including the ones outside the top bar", () => {
+    expect(PAGES.map((p) => [p.label, p.href])).toEqual([
+      ["Overview", "/overview"],
+      ["Lookup", "/lookup"],
+      ["Leads", "/leads"],
+      ["Calling", "/calling"],
+      ["Email", "/email"],
+      ["All businesses", "/businesses"],
+      ["Searches", "/searches"],
+      ["Settings", "/settings"],
+      ["Qualification rules", "/settings/rules"],
+      ["Design", "/design"],
+    ]);
   });
 });

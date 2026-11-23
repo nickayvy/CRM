@@ -735,6 +735,16 @@ describe("LeadsPanel", () => {
     return { promise, resolve };
   }
 
+  it("opens on the tab named by initialTab, so other pages can link to a slice of the pipeline", () => {
+    renderPanel({ initialTab: "success" });
+    const ids = () => [...document.querySelectorAll<HTMLElement>("[data-lead-id]")].map((r) => r.dataset.leadId);
+    expect(ids()).toEqual([ID_D]);
+    expect(screen.getByRole("tab", { name: "Success" }).getAttribute("aria-selected")).toBe("true");
+    cleanup();
+    renderPanel();
+    expect(ids()).toHaveLength(LEADS.length);
+  });
+
   beforeEach(() => {
     vi.mocked(actions.updateLeadAction).mockResolvedValue({ ok: true, data: { id: ID_A, status: "queued", notes: null } });
     vi.mocked(actions.removeLeadAction).mockResolvedValue({ ok: true, data: null });

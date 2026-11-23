@@ -179,14 +179,24 @@ describe("route server render", () => {
     });
   }
 
+  it("/leads?status= opens the pipeline on that tab and ignores unknown values", async () => {
+    const el = (await LeadsPage({ searchParams: Promise.resolve({ status: "success" }) })) as { props: { children: { props: Record<string, unknown> }[] } };
+    expect(el.props.children[1].props.initialTab).toBe("success");
+    const fallback = (await LeadsPage({ searchParams: Promise.resolve({ status: "nonsense" }) })) as typeof el;
+    expect(fallback.props.children[1].props.initialTab).toBe("all");
+  });
+
   it("/overview lists what needs the user first, each with where to handle it", async () => {
     const out = await html(await OverviewPage());
     // The running dialer campaign with a business in its queue, then the two drafts.
     expect(out).toContain("Continue Houston dialers");
     expect(out).toContain(`href="/calling/${runningCampaign.id}/dial"`);
-    expect(out).toContain("Houston plumbers is still a draft");
-    expect(out).toContain("Intro sequence is still a draft");
-    expect(out.indexOf("Continue Houston dialers")).toBeLessThan(out.indexOf("Houston plumbers is still a draft"));
+    // No leads yet in this workspace: building the list comes before the two drafts, which share a row.
+    expect(out).toContain("Build your lead list");
+    expect(out).toContain("2 campaigns are still drafts");
+    expect(out).toContain("Houston plumbers and Intro sequence. Finish setup to start them.");
+    const rows = ["Continue Houston dialers", "Build your lead list", "2 campaigns are still drafts"].map((t) => out.indexOf(t));
+    expect([...rows].sort((a, b) => a - b)).toEqual(rows);
     // Up next comes before the numbers, the numbers before the pipeline.
     const order = ['data-testid="up-next"', 'data-testid="dashboard-stats"', 'data-testid="pipeline"'].map((m) => out.indexOf(m));
     expect(order.every((n) => n >= 0)).toBe(true);

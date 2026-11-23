@@ -32,7 +32,7 @@ export type StatCardProps = {
   icon?: React.ReactNode;
   /** Muted one-liner at the bottom, e.g. "Updated 3 min ago". */
   hint?: React.ReactNode;
-  /** Makes the whole card a link with hover state. */
+  /** Makes the whole card a link with hover state. `#id` scrolls to that element on the same page. */
   href?: string;
   /** Shows skeletons instead of value/delta. */
   loading?: boolean;
@@ -100,6 +100,14 @@ export function StatCard({ label, value, format, delta, icon, hint, href, loadin
     href && "card-glow",
     className,
   );
+  if (href?.startsWith("#")) {
+    // Same-page anchor (e.g. to the chart that explains the number): a plain link, so the browser scrolls to it.
+    return (
+      <a href={href} data-slot="stat-card" className={classes}>
+        {body}
+      </a>
+    );
+  }
   if (href) {
     return (
       <Link href={href} data-slot="stat-card" className={classes}>

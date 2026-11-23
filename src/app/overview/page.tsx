@@ -7,7 +7,6 @@ import { listRecentActivities } from "@/db/repo/activities";
 import { evaluateAllCampaigns, listCallCampaigns, listDueCallbacks } from "@/db/repo/call-campaigns";
 import { getDashboardStats, sevenDayWindow } from "@/db/repo/dashboard";
 import { listEmailCampaigns } from "@/db/repo/email-campaigns";
-import { countLeadsByStatus } from "@/db/repo/leads";
 import { localDayBounds } from "@/features/calling/time";
 import { buildAttention } from "@/features/dashboard/attention";
 import { outcomeRows, pipelineStages, rejectionRows } from "@/features/dashboard/chart-data";
@@ -22,7 +21,7 @@ import {
   RunningCampaignsPanel,
   UpNextPanel,
 } from "@/features/dashboard/components/dashboard-panels";
-import { LEAD_STATUS_LABELS, SOURCE_LABELS, getOverviewTiles } from "@/features/dashboard/data";
+import { LEAD_STATUS_LABELS, SOURCE_LABELS, countUnassignedLeads, getOverviewTiles } from "@/features/dashboard/data";
 import { env } from "@/lib/env";
 import { AnimatedItem, AnimatedList } from "@/lib/motion";
 import { requireUser } from "@/lib/supabase/server";
@@ -43,10 +42,10 @@ export default async function OverviewPage() {
   const tz = env.APP_TIMEZONE;
   // Bring auto-pause/resume up to date so "running" means running right now.
   await evaluateAllCampaigns(db, now);
-  const [stats, tiles, myLeads, callCampaigns, emailCampaigns, callbacks, recent] = await Promise.all([
+  const [stats, tiles, unassignedLeads, callCampaigns, emailCampaigns, callbacks, recent] = await Promise.all([
     getDashboardStats(db, now),
     getOverviewTiles(db),
-    countLeadsByStatus(db, user.id),
+    countUnassignedLeads(db, user.id),
     listCallCampaigns(db, now),
     listEmailCampaigns(db, now),
     listDueCallbacks(db, localDayBounds(now, tz).end, { limit: 6 }),
@@ -56,14 +55,18 @@ export default async function OverviewPage() {
   const runningEmails = emailCampaigns.filter((c) => c.status === "running");
   const outcomes = outcomeRows(stats, sevenDayWindow(now, tz).days, tz);
   const running = stats.runningCallCampaigns + stats.runningEmailCampaigns;
+  // Lookup can only find businesses once one of its sources has a key.
+  const discoveryConfigured = Boolean(env.GOOGLE_PLACES_API_KEY || env.FIRECRAWL_API_KEY || env.YELP_API_KEY);
   const attention = buildAttention({
     callCampaigns,
     emailCampaigns,
-    queuedLeads: myLeads.queued,
+    unassignedLeads,
     leadsTotal: tiles.leadsTotal,
     businessesTotal: stats.businessesTotal,
     businessesReview: stats.businessesReview,
+    discoveryConfigured,
   });
+  const callbackCampaigns = Object.fromEntries(callCampaigns.map((c) => [c.id, { mode: c.mode, status: c.status }]));
 
   const cards = [
     {
@@ -74,7 +77,7 @@ export default async function OverviewPage() {
       href: "/calling",
       // A comparison of nothing with nothing is noise.
       ...(stats.callsToday || stats.callsYesterday
-        ? { delta: { value: stats.callsToday - stats.callsYesterday, label: "vs yesterday" } }
+        ? { delta: { value: stats.callsToday - stats.callsYesterday, label: "vs this time yesterday" } }
         : { hint: "No calls yet today" }),
     },
     {
@@ -83,6 +86,7 @@ export default async function OverviewPage() {
       value: stats.interestRate7d,
       format: "percent" as const,
       icon: <PercentIcon />,
+      href: "#calls-by-outcome",
       hint: stats.calls7d ? `${stats.interested7d} interested of ${stats.calls7d} calls` : "No calls in the last 7 days",
     },
     {
@@ -98,7 +102,7 @@ export default async function OverviewPage() {
       label: "Running campaigns",
       value: running,
       icon: <PlayIcon />,
-      href: "/calling",
+      href: "#running-campaigns",
       hint: `${stats.runningCallCampaigns} call · ${stats.runningEmailCampaigns} email`,
     },
   ];
@@ -110,7 +114,7 @@ export default async function OverviewPage() {
     return (
       <PageShell>
         <PageHeader title="Overview" description={`${today} · your workspace is empty. Here is how to fill it.`} />
-        <GettingStartedPanel />
+        <GettingStartedPanel discoveryConfigured={discoveryConfigured} />
       </PageShell>
     );
   }
@@ -121,7 +125,15 @@ export default async function OverviewPage() {
 
       <div className="grid min-w-0 grid-cols-1 gap-4 lg:grid-cols-3">
         <UpNextPanel items={attention} className="lg:col-span-2" />
-        <DueCallbacksPanel items={callbacks} overdueTotal={stats.overdueCallbacks} now={now} tz={tz} />
+        {/* On a phone an overdue callback outranks the list: it goes first. */}
+        <DueCallbacksPanel
+          items={callbacks}
+          overdueTotal={stats.overdueCallbacks}
+          campaigns={callbackCampaigns}
+          now={now}
+          tz={tz}
+          className={stats.overdueCallbacks > 0 ? "max-lg:order-first" : undefined}
+        />
       </div>
 
       <AnimatedList className="grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-4" data-slot="stat-grid" data-testid="dashboard-stats">
@@ -136,6 +148,7 @@ export default async function OverviewPage() {
         <div className="flex min-w-0 flex-col gap-4 lg:col-span-2">
           <PipelinePanel stages={pipelineStages(stats, tiles)} />
           <ChartCard
+            id="calls-by-outcome"
             title="Calls by outcome"
             description={stats.calls7d ? `${stats.calls7d} calls in the last 7 days` : "Last 7 days"}
             height={outcomes.outcomes.length ? 260 : 120}

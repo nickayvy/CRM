@@ -86,7 +86,7 @@ export function UpNextPanel({ items, className }: { items: AttentionItem[]; clas
                   <span className="text-sm font-medium text-pretty">{item.title}</span>
                   <span className="text-xs text-pretty text-muted-foreground">{item.detail}</span>
                 </div>
-                <Button asChild size="sm" variant={i === 0 ? "default" : "outline"} className="ml-11 sm:ml-0">
+                <Button asChild size="sm" variant={i === 0 ? "default" : "outline"} className="ml-11 max-sm:h-9 max-sm:px-3 sm:ml-0">
                   <Link href={item.href}>{item.cta}</Link>
                 </Button>
               </AnimatedItem>
@@ -104,29 +104,25 @@ const FIRST_STEPS = [
   {
     title: "Find businesses",
     body: "Search Google Maps by niche and area, or paste a Trustpilot link. Your rules sort what comes back into qualified, review and rejected.",
-    href: "/lookup",
-    cta: "Open Lookup",
   },
   {
     title: "Build your lead list",
     body: "Open a business to see its reviews, contacts and links, then add the good ones to your leads.",
-    href: "/leads",
-    cta: "Open leads",
   },
   {
     title: "Call and email them",
     body: "Put leads in a call queue (you dial, or the AI agent does) or an email sequence. Results land back here.",
-    href: "/calling/new",
-    cta: "New call campaign",
   },
 ] as const;
 
 /**
  * Shown instead of the empty panels while the workspace has no businesses,
- * leads or campaigns: the three steps of the product, with the first one as
- * the only filled button.
+ * leads or campaigns: the three steps of the product. Only the first step
+ * has a button, because it is the only one that can be done yet. When no
+ * discovery source has a key, that button leads to Settings instead of a
+ * Lookup page that could not find anything.
  */
-export function GettingStartedPanel() {
+export function GettingStartedPanel({ discoveryConfigured }: { discoveryConfigured: boolean }) {
   return (
     <Panel title="Getting started" description="Three steps from an empty workspace to your first conversation" data-testid="getting-started">
       <ol className="grid grid-cols-1 gap-3 md:grid-cols-3">
@@ -144,10 +140,19 @@ export function GettingStartedPanel() {
             <div className="flex flex-1 flex-col gap-1">
               <h3 className="font-serif text-lg leading-tight tracking-tight">{step.title}</h3>
               <p className="text-sm text-pretty text-muted-foreground">{step.body}</p>
+              {i === 0 && !discoveryConfigured ? (
+                <p className="text-sm text-pretty text-tone-warning" data-testid="no-sources">
+                  No source is connected yet: add a Google Maps, Trustpilot or Yelp key first.
+                </p>
+              ) : null}
             </div>
-            <Button asChild size="sm" variant={i === 0 ? "default" : "outline"} className="self-start">
-              <Link href={step.href}>{step.cta}</Link>
-            </Button>
+            {i === 0 ? (
+              <Button asChild size="sm" className="self-start max-sm:h-9 max-sm:px-3">
+                {discoveryConfigured ? <Link href="/lookup">Open Lookup</Link> : <Link href="/settings">See which sources are connected</Link>}
+              </Button>
+            ) : (
+              <span className="text-xs text-muted-foreground">{i === 1 ? "After step 1" : "After step 2"}</span>
+            )}
           </li>
         ))}
       </ol>
@@ -159,6 +164,9 @@ export function GettingStartedPanel() {
 
 type DueCallback = CallQueueItem & { business: Business; campaignName: string };
 
+/** What a callback's campaign allows right now; decides where its button goes. */
+export type CallbackCampaign = Pick<CallCampaign, "mode" | "status">;
+
 /**
  * Callbacks that are overdue or fall later today, overdue first. Times read
  * the way they are acted on: "3 h ago" for a missed one, the clock time for
@@ -167,6 +175,7 @@ type DueCallback = CallQueueItem & { business: Business; campaignName: string };
 export function DueCallbacksPanel({
   items,
   overdueTotal,
+  campaigns = {},
   now,
   tz,
   className,
@@ -174,6 +183,12 @@ export function DueCallbacksPanel({
   items: DueCallback[];
   /** Every overdue callback, which can be more than the rows shown. */
   overdueTotal: number;
+  /**
+   * Campaigns by id. Only a running dialer campaign can take the call right
+   * away; an AI campaign has no dialer and a paused one refuses to dial, so
+   * their rows open the campaign page instead.
+   */
+  campaigns?: Record<string, CallbackCampaign>;
   now: Date;
   tz: string;
   className?: string;
@@ -203,6 +218,8 @@ export function DueCallbacksPanel({
         <AnimatedList as="ul" className="flex flex-col divide-y divide-white/5">
           {items.map((i) => {
             const overdue = i.callbackAt !== null && i.callbackAt < now;
+            const campaign = campaigns[i.campaignId];
+            const dialable = !campaign || (campaign.mode === "human" && campaign.status === "running");
             return (
               <AnimatedItem as="li" key={i.id} className="flex items-center justify-between gap-3 py-2.5 first:pt-0 last:pb-0">
                 <div className="flex min-w-0 flex-col">
@@ -225,10 +242,20 @@ export function DueCallbacksPanel({
                   <span className={cn("text-xs tabular-nums", overdue ? "text-tone-danger" : "text-muted-foreground")}>
                     {i.callbackAt ? (overdue ? formatRelative(i.callbackAt, now) : formatInTimeZone(i.callbackAt, tz, "h:mm a")) : ""}
                   </span>
-                  <Button asChild size="icon-sm" variant="outline">
-                    <Link href={`/calling/${i.campaignId}/dial`} aria-label={`Open the dialer for ${i.campaignName}`} title="Open dialer">
-                      <PhoneIcon />
-                    </Link>
+                  <Button asChild size="icon-sm" variant="outline" className="max-sm:size-9">
+                    {dialable ? (
+                      <Link href={`/calling/${i.campaignId}/dial`} aria-label={`Open the dialer for ${i.campaignName}`} title="Open dialer">
+                        <PhoneIcon />
+                      </Link>
+                    ) : (
+                      <Link
+                        href={`/calling/${i.campaignId}`}
+                        aria-label={`Open ${i.campaignName} (${campaign?.mode === "ai" ? "called by the AI agent" : "not running"})`}
+                        title={campaign?.mode === "ai" ? "Called by the AI agent: open the campaign" : "Campaign is not running: open it"}
+                      >
+                        {campaign?.mode === "ai" ? <BotIcon /> : <PauseIcon />}
+                      </Link>
+                    )}
                   </Button>
                 </div>
               </AnimatedItem>
@@ -249,11 +276,11 @@ export function DueCallbacksPanel({
  */
 export function PipelinePanel({ stages }: { stages: PipelineStage[] }) {
   return (
-    <Panel title="Pipeline" description="From a discovered business to a won lead" data-testid="pipeline">
+    <Panel title="Pipeline" description="From a discovered business to a successful lead" data-testid="pipeline">
       <ol className="grid grid-cols-1 gap-1 sm:grid-cols-5 sm:gap-0">
         {stages.map((s, i) => {
           const prev = i > 0 ? stages[i - 1] : null;
-          const caption = s.shareOfPrevious !== null && prev ? `${pct(s.shareOfPrevious)} of ${prev.label.toLowerCase()}` : s.hint;
+          const caption = s.shareOfPrevious !== null && prev ? `${pct(s.shareOfPrevious)} of ${prev.asBase}` : s.hint;
           return (
             <li key={s.key} data-stage={s.key} className="min-w-0 sm:border-l sm:border-white/5 sm:first:border-l-0">
               <Link
@@ -319,7 +346,7 @@ export function LeadsByStatusPanel({ rows, total }: { rows: CategoryDatum[]; tot
   return (
     <Panel
       title="Leads by status"
-      description={`${nf.format(total)} ${total === 1 ? "lead" : "leads"} across every user`}
+      description={`${nf.format(total)} ${total === 1 ? "lead" : "leads"} by current status`}
       actions={
         <Button asChild size="sm" variant="ghost">
           <Link href="/leads">Open leads</Link>
@@ -433,10 +460,16 @@ export function RunningCampaignsPanel({ calls, emails }: { calls: RunningCall[];
       title="Running campaigns"
       description="Queue progress and today's work"
       actions={
-        <Button asChild size="sm" variant="ghost">
-          <Link href="/calling">All campaigns</Link>
-        </Button>
+        <>
+          <Button asChild size="sm" variant="ghost">
+            <Link href="/calling">Call campaigns</Link>
+          </Button>
+          <Button asChild size="sm" variant="ghost">
+            <Link href="/email">Email campaigns</Link>
+          </Button>
+        </>
       }
+      id="running-campaigns"
       data-testid="running-campaigns"
     >
       {calls.length + emails.length === 0 ? (
@@ -549,8 +582,21 @@ const ACTIVITY_TITLES: Record<Activity["type"], string> = {
   system: "System",
 };
 
+/** Email activity outcomes as a person would say them; a dry run was recorded, not delivered. */
+const EMAIL_OUTCOMES: Record<string, string> = {
+  sent: "sent",
+  dry_run: "dry run, not delivered",
+  failed: "failed to send",
+  replied: "replied",
+};
+
 function activityTitle(a: Activity & { businessName: string }) {
-  const outcome = a.type === "call" && a.outcome ? OUTCOME_LABELS[a.outcome as CallOutcome]?.label : null;
+  const outcome =
+    a.type === "call" && a.outcome
+      ? OUTCOME_LABELS[a.outcome as CallOutcome]?.label
+      : a.type === "email" && a.outcome
+        ? EMAIL_OUTCOMES[a.outcome]
+        : null;
   return (
     <>
       <Link href={`/businesses/${a.businessId}`} className="hover:underline">

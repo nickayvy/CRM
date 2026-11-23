@@ -39,6 +39,8 @@ export type LeadQueueTableProps = {
   onCreateCallCampaign?: (name: string) => Promise<string | null>;
   /** Defaults to a browser CSV download of the visible rows. */
   onExport?: (rows: LeadRow[]) => void;
+  /** Status tab selected on first render. Default "all". */
+  initialTab?: LeadTab;
 };
 
 /**
@@ -56,8 +58,9 @@ export function LeadQueueTable({
   onAddToCampaign,
   onCreateCallCampaign,
   onExport,
+  initialTab = "all",
 }: LeadQueueTableProps) {
-  const [tab, setTab] = React.useState<LeadTab>("all");
+  const [tab, setTab] = React.useState<LeadTab>(initialTab);
   const [search, setSearch] = React.useState("");
   const [category, setCategory] = React.useState<string>(ALL_CATEGORIES);
   const [selected, setSelected] = React.useState<Set<string>>(() => new Set());

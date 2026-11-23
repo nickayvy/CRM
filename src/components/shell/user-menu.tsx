@@ -23,10 +23,20 @@ export function UserMenu({ email }: { email: string | null }) {
 
   async function signOut() {
     setBusy(true);
+    // supabase-js reports most failures by returning `error`, not by throwing.
+    // When the auth server cannot be reached the session is still there, so
+    // say so and leave the menu usable instead of bouncing off /login.
+    let failure: string | null = null;
     try {
-      await createClient().auth.signOut();
+      const { error } = await createClient().auth.signOut();
+      if (error) failure = error.message;
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Sign out failed");
+      failure = err instanceof Error ? err.message : "unknown error";
+    }
+    if (failure) {
+      toast.error("Could not sign out. Check your connection and try again.", { description: failure });
+      setBusy(false);
+      return;
     }
     router.replace("/login");
     router.refresh();

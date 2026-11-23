@@ -15,7 +15,7 @@ import {
   removeLeadAction,
   updateLeadAction,
 } from "@/features/leads/actions";
-import type { CallHistoryRow, CampaignTarget, LeadMetricsData, LeadRow } from "@/features/leads/types";
+import type { CallHistoryRow, CampaignTarget, LeadMetricsData, LeadRow, LeadTab } from "@/features/leads/types";
 import type { CampaignKind } from "./add-to-campaign-dialog";
 import { CallHistoryTable } from "./call-history-table";
 import { LeadMetrics } from "./lead-metrics";
@@ -26,6 +26,8 @@ export type LeadsPanelProps = {
   metrics: LeadMetricsData;
   history: CallHistoryRow[];
   campaigns: { call: CampaignTarget[]; email: CampaignTarget[] };
+  /** Status tab the pipeline opens on (from `/leads?status=`). Default "all". */
+  initialTab?: LeadTab;
 };
 
 type Override = Partial<Pick<LeadRow, "status" | "notes">> | "removed";
@@ -35,7 +37,7 @@ type Override = Partial<Pick<LeadRow, "status" | "notes">> | "removed";
  * optimistically on top of the server rows, roll back on failure, and
  * `router.refresh()` pulls the persisted state afterwards.
  */
-export function LeadsPanel({ leads: serverLeads, metrics, history, campaigns }: LeadsPanelProps) {
+export function LeadsPanel({ leads: serverLeads, metrics, history, campaigns, initialTab }: LeadsPanelProps) {
   const router = useRouter();
   const { confirm, dialog } = useConfirm();
   const [overrides, setOverrides] = React.useState<Map<string, Override>>(() => new Map());
@@ -182,6 +184,7 @@ export function LeadsPanel({ leads: serverLeads, metrics, history, campaigns }: 
               onBulkRemove={bulkRemove}
               onAddToCampaign={addToCampaign}
               onCreateCallCampaign={createCallCampaign}
+              initialTab={initialTab}
             />
           ) : (
             <div className="flex flex-col items-center justify-center rounded-lg bg-surface py-16" data-testid="pipeline-empty">

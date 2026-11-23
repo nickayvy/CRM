@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { DashboardStats } from "@/db/repo/dashboard";
-import { ATTENTION_LIMIT, buildAttention, type AttentionInput } from "@/features/dashboard/attention";
+import { DIAL_ROWS, buildAttention, type AttentionInput } from "@/features/dashboard/attention";
 import { OUTCOME_GROUPS, outcomeRows, pipelineStages, rejectionRows } from "@/features/dashboard/chart-data";
 import type { OverviewTiles } from "@/features/dashboard/data";
 import { callOutcomeEnum } from "@/db/schema";
@@ -75,7 +75,7 @@ describe("dashboard chart rows", () => {
 });
 
 describe("pipeline stages", () => {
-  it("counts discovered, qualified, leads, contacted and won with each stage's share of the one before", () => {
+  it("counts discovered, qualified, leads, reached and successes with each stage's share of the one before", () => {
     const stages = pipelineStages(
       { ...base, businessesTotal: 200, businessesQualified: 50 },
       tiles({ queued: 10, contacted: 4, callback: 2, success: 3, failed: 1, skipped: 5 }),
@@ -89,6 +89,15 @@ describe("pipeline stages", () => {
       ["won", 3],
     ]);
     expect(stages.map((s) => s.shareOfPrevious)).toEqual([null, 0.25, 0.5, 0.4, 0.3]);
+  });
+
+  it("does not reuse a lead status name for the cumulative stage, and names the last stage as the Leads page does", () => {
+    const stages = pipelineStages(base, tiles({ contacted: 2, success: 1 }));
+    const labels = stages.map((s) => s.label);
+    expect(labels).toEqual(["Discovered", "Qualified", "Leads", "Reached out", "Success"]);
+    // "Contacted" is one lead status with its own, smaller count: the stage must not borrow the word.
+    expect(labels).not.toContain("Contacted");
+    expect(stages.find((s) => s.key === "won")?.href).toBe("/leads?status=success");
   });
 
   it("has no share for an empty previous stage or a stage larger than the one before", () => {
@@ -112,15 +121,24 @@ describe("up next", () => {
     completedToday: 4,
     ...o,
   });
+  const email = (o: Partial<AttentionInput["emailCampaigns"][number]>): AttentionInput["emailCampaigns"][number] => ({
+    id: "e1",
+    name: "Winter check-in",
+    status: "draft",
+    pauseReason: null,
+    ...o,
+  });
   const input = (o: Partial<AttentionInput>): AttentionInput => ({
     callCampaigns: [],
     emailCampaigns: [],
-    queuedLeads: 0,
+    unassignedLeads: 0,
     leadsTotal: 5,
     businessesTotal: 10,
     businessesReview: 0,
+    discoveryConfigured: true,
     ...o,
   });
+  const keys = (o: Partial<AttentionInput>) => buildAttention(input(o)).map((i) => i.key);
 
   it("lists ready work first, then stuck campaigns, backlogs and drafts", () => {
     const items = buildAttention(
@@ -130,25 +148,25 @@ describe("up next", () => {
           call({ id: "paused", name: "Austin plumbers", status: "paused", pauseReason: "manual", pending: 6 }),
           call({ id: "run" }),
         ],
-        emailCampaigns: [{ id: "e1", name: "Winter check-in", status: "draft", pauseReason: null }],
-        queuedLeads: 16,
+        unassignedLeads: 16,
         businessesReview: 28,
       }),
     );
-    expect(items.map((i) => i.key)).toEqual(["dial-run", "paused-call-paused", "queued-leads", "review", "draft-call-draft", "draft-email-e1"]);
+    expect(items.map((i) => i.key)).toEqual(["dial-run", "paused-call-paused", "unassigned-leads", "review", "draft-call-draft"]);
     expect(items[0]).toMatchObject({
       title: "Continue Houston roofers",
       detail: "12 waiting in the queue · 4 of 40 calls done today",
       href: "/calling/run/dial",
       cta: "Open dialer",
     });
-    expect(items[2].title).toBe("16 leads not contacted yet");
+    // Says what is actually wrong (no campaign), and opens Leads on the queued tab.
+    expect(items[2]).toMatchObject({ title: "16 leads are not in any campaign", href: "/leads?status=queued" });
     expect(items[3]).toMatchObject({ title: "28 businesses need a decision", href: "/businesses?qualification=review" });
   });
 
   it("leaves out what needs nobody: AI campaigns, empty queues and pauses that lift on their own", () => {
-    const items = buildAttention(
-      input({
+    expect(
+      keys({
         callCampaigns: [
           call({ id: "ai", mode: "ai" }),
           call({ id: "empty", pending: 0 }),
@@ -156,24 +174,75 @@ describe("up next", () => {
           call({ id: "hours", status: "paused", pauseReason: "outside_hours" }),
         ],
       }),
-    );
-    expect(items).toEqual([]);
+    ).toEqual([]);
   });
 
   it("uses the singular for one", () => {
-    const items = buildAttention(input({ queuedLeads: 1, businessesReview: 1, callCampaigns: [call({ pending: 0 })] }));
-    expect(items.map((i) => i.title)).toEqual(["1 lead not contacted yet", "1 business needs a decision"]);
+    const items = buildAttention(input({ unassignedLeads: 1, businessesReview: 1, callCampaigns: [call({ pending: 0 })] }));
+    expect(items.map((i) => i.title)).toEqual(["1 lead is not in any campaign", "1 business needs a decision"]);
   });
 
-  it("suggests only the next missing setup step", () => {
-    expect(buildAttention(input({ businessesTotal: 0, leadsTotal: 0 })).map((i) => i.key)).toEqual(["setup-discover"]);
-    expect(buildAttention(input({ leadsTotal: 0 })).map((i) => i.key)).toEqual(["setup-leads"]);
-    expect(buildAttention(input({})).map((i) => i.key)).toEqual(["setup-campaign"]);
-    expect(buildAttention(input({ callCampaigns: [call({ pending: 0 })] }))).toEqual([]);
+  it("folds several campaigns of one kind into one row, naming them, so nothing is dropped", () => {
+    const items = buildAttention(
+      input({
+        callCampaigns: [
+          call({ id: "p1", name: "Austin plumbers", status: "paused", pauseReason: "manual" }),
+          call({ id: "d1", name: "San Antonio landscapers", status: "draft" }),
+        ],
+        emailCampaigns: [
+          email({ id: "p2", name: "Roofers invite", status: "paused", pauseReason: "manual" }),
+          email({ id: "p3", name: "Spring promo", status: "paused", pauseReason: "manual" }),
+          email({ id: "d2", name: "Winter check-in" }),
+          email({ id: "d3", name: "Fall follow-up" }),
+        ],
+      }),
+    );
+    expect(items.map((i) => i.key)).toEqual(["paused", "drafts"]);
+    expect(items[0]).toMatchObject({ title: "3 campaigns are paused", href: "/calling" });
+    expect(items[0].detail).toBe("Austin plumbers, Roofers invite and 1 more. Nothing goes out until they are resumed.");
+    expect(items[1]).toMatchObject({ title: "3 campaigns are still drafts", href: "/calling" });
+    // Only email campaigns of that kind: the row opens Email, not Calling.
+    expect(buildAttention(input({ emailCampaigns: [email({ id: "a" }), email({ id: "b", name: "Other" })] }))[0]).toMatchObject({
+      key: "drafts",
+      href: "/email",
+      cta: "Email campaigns",
+      detail: "Winter check-in and Other. Finish setup to start them.",
+    });
   });
 
-  it("never returns more rows than the limit", () => {
-    const many = Array.from({ length: 10 }, (_, i) => call({ id: `c${i}`, name: `Campaign ${i}` }));
-    expect(buildAttention(input({ callCampaigns: many }))).toHaveLength(ATTENTION_LIMIT);
+  it("shows a row per dialer queue up to the limit, then one row for the rest", () => {
+    const many = Array.from({ length: DIAL_ROWS + 2 }, (_, i) => call({ id: `c${i}`, name: `Campaign ${i}` }));
+    const items = buildAttention(input({ callCampaigns: many }));
+    expect(items.map((i) => i.key)).toEqual(["dial-c0", "dial-c1", "dial-c2", "dial-more"]);
+    expect(items[3]).toMatchObject({ title: "2 more queues are ready to dial", detail: "Campaign 3 and Campaign 4", href: "/calling" });
+  });
+
+  it("puts the missing setup step above everything that depends on it", () => {
+    // No businesses at all: a draft's "add businesses and start it" cannot be done yet.
+    expect(keys({ businessesTotal: 0, leadsTotal: 0, callCampaigns: [call({ id: "d", status: "draft" })] })).toEqual([
+      "setup-discover",
+      "draft-call-d",
+    ]);
+    // Businesses but no leads: build the list before sorting out paused and draft campaigns.
+    expect(
+      keys({
+        leadsTotal: 0,
+        callCampaigns: [call({ id: "d", status: "draft" })],
+        emailCampaigns: [email({ id: "p", status: "paused", pauseReason: "manual" })],
+      }),
+    ).toEqual(["setup-leads", "paused-email-p", "draft-call-d"]);
+    // A running queue is still the first thing to do.
+    expect(keys({ leadsTotal: 0, callCampaigns: [call({ id: "run" })] })).toEqual(["dial-run", "setup-leads"]);
+  });
+
+  it("sends the user to Settings when no discovery source is connected", () => {
+    const [item] = buildAttention(input({ businessesTotal: 0, leadsTotal: 0, discoveryConfigured: false }));
+    expect(item).toMatchObject({ key: "setup-sources", href: "/settings", cta: "Open Settings" });
+  });
+
+  it("suggests a first campaign only once there are businesses and leads but no campaign", () => {
+    expect(keys({})).toEqual(["setup-campaign"]);
+    expect(keys({ callCampaigns: [call({ pending: 0 })] })).toEqual([]);
+    expect(keys({ leadsTotal: 0 })).toEqual(["setup-leads"]);
   });
 });
