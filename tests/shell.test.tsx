@@ -16,13 +16,13 @@ import { updateSession } from "@/lib/supabase/middleware";
 afterEach(cleanup);
 
 describe("top-bar navigation", () => {
-  it("has the five LAR items in order", () => {
+  it("has the five LAR items in order, home first", () => {
     expect(NAV_ITEMS.map((i) => [i.label, i.href])).toEqual([
+      ["OVERVIEW", "/overview"],
       ["LOOKUP", "/lookup"],
       ["LEADS", "/leads"],
       ["CALLING", "/calling"],
       ["EMAIL", "/email"],
-      ["OVERVIEW", "/overview"],
     ]);
   });
 
@@ -84,10 +84,18 @@ describe("updateSession without Supabase env (signed out)", () => {
     expect(loc.searchParams.get("next")).toBe("/calling/abc?tab=queue");
   });
 
-  it("redirects /lookup to plain /login", async () => {
+  it("redirects the home page to plain /login (no next param: it is where sign-in lands anyway)", async () => {
+    expect(HOME_PATH).toBe("/overview");
+    for (const p of ["/", HOME_PATH]) {
+      const res = await updateSession(req(p));
+      expect(res.status, p).toBe(307);
+      expect(res.headers.get("location"), p).toBe("http://localhost:3100/login");
+    }
+  });
+
+  it("keeps /lookup as the next param now that it is not the home page", async () => {
     const res = await updateSession(req("/lookup"));
-    expect(res.status).toBe(307);
-    expect(res.headers.get("location")).toBe("http://localhost:3100/login");
+    expect(new URL(res.headers.get("location")!).searchParams.get("next")).toBe("/lookup");
   });
 
   it("answers protected API routes with 401 JSON", async () => {

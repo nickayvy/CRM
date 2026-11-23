@@ -166,7 +166,7 @@ const ROUTES: Route[] = [
   { path: "/email/[id]/settings", render: () => EmailSettingsPage(idParams(emailCampaign.id)), contains: () => ["Settings", "Intro sequence"] },
   { path: "/settings", render: () => SettingsPage(), contains: () => ["Settings", "Workspace", "Sources"] },
   { path: "/settings/rules", render: () => RulesPage(), contains: () => ["Qualification rules"] },
-  { path: "/overview", render: () => OverviewPage(), contains: () => ["Overview", "Businesses by source"] },
+  { path: "/overview", render: () => OverviewPage(), contains: () => ["Overview", "Up next", "Callbacks", "Pipeline", "Leads by status", "Discovery", "Running campaigns"] },
   { path: "/design", render: async () => DesignPage(), contains: () => ["LAR design system"] },
 ];
 
@@ -178,6 +178,37 @@ describe("route server render", () => {
       expectClean(out);
     });
   }
+
+  it("/overview lists what needs the user first, each with where to handle it", async () => {
+    const out = await html(await OverviewPage());
+    // The running dialer campaign with a business in its queue, then the two drafts.
+    expect(out).toContain("Continue Houston dialers");
+    expect(out).toContain(`href="/calling/${runningCampaign.id}/dial"`);
+    expect(out).toContain("Houston plumbers is still a draft");
+    expect(out).toContain("Intro sequence is still a draft");
+    expect(out.indexOf("Continue Houston dialers")).toBeLessThan(out.indexOf("Houston plumbers is still a draft"));
+    // Up next comes before the numbers, the numbers before the pipeline.
+    const order = ['data-testid="up-next"', 'data-testid="dashboard-stats"', 'data-testid="pipeline"'].map((m) => out.indexOf(m));
+    expect(order.every((n) => n >= 0)).toBe(true);
+    expect([...order].sort((a, b) => a - b)).toEqual(order);
+    expect(out).not.toContain("Getting started");
+  });
+
+  it("/overview on an empty workspace shows the three first steps instead of empty panels", async () => {
+    const seeded = globalThis.__db;
+    const empty = await createTestDb();
+    globalThis.__db = { db: empty.db, driver: "pglite", close: empty.close };
+    try {
+      await empty.db.execute(sql`TRUNCATE TABLE businesses, search_jobs RESTART IDENTITY CASCADE`);
+      const out = await html(await OverviewPage());
+      for (const text of ["Getting started", "Find businesses", "Build your lead list", "Call and email them"]) expect(out).toContain(text);
+      for (const text of ["Pipeline", "Up next", "Calls by outcome"]) expect(out).not.toContain(text);
+      expectClean(out);
+    } finally {
+      globalThis.__db = seeded;
+      await empty.close();
+    }
+  });
 
   it("/calling/[id]/dial renders the dialer when the agent cookie is set", async () => {
     state.agent = "ann";

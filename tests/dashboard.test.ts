@@ -151,6 +151,14 @@ describe("getDashboardStats on built data", () => {
     expect(stats.callsToday).toBe(expected);
   });
 
+  it("callsYesterday counts call activities on the previous local date", async () => {
+    const expected = await one(
+      sql`SELECT count(*) AS n FROM activities WHERE type = 'call' AND ${localDate("occurred_at")} = ${todayLocal} - 1`,
+    );
+    expect(expected).toBeGreaterThan(0);
+    expect(stats.callsYesterday).toBe(expected);
+  });
+
   it("interestRate7d = interested / all call outcomes over today and the 6 previous local days", async () => {
     const [r] = await q<{ interested: string | number; total: string | number }>(sql`
       SELECT count(*) FILTER (WHERE outcome = 'interested') AS interested, count(*) AS total
@@ -163,6 +171,7 @@ describe("getDashboardStats on built data", () => {
     expect(total).toBeGreaterThan(0);
     expect(interested).toBeGreaterThan(0);
     expect(stats.interestRate7d).toBeCloseTo(interested / total, 10);
+    expect([stats.interested7d, stats.calls7d]).toEqual([interested, total]);
     // 2 interested of 9 outcomes in the window (the Oct 31 and future calls are excluded).
     expect([interested, total]).toEqual([2, 9]);
   });
@@ -236,6 +245,7 @@ describe("edge cases", () => {
     expect(empty.interestRate7d).toBe(0);
     expect(empty.callsByOutcome7d).toEqual([]);
     expect(empty.callsToday).toBe(0);
+    expect([empty.callsYesterday, empty.calls7d, empty.interested7d]).toEqual([0, 0, 0]);
   });
 
   it("sevenDayWindow spans 7 local days across a DST change", () => {

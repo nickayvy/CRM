@@ -1,6 +1,6 @@
 import { redirect } from "next/navigation";
+import { HOME_PATH } from "@/lib/supabase/config";
 
-// The v1 dashboard moves to /overview in WP-16.
 export default function Page() {
-  redirect("/lookup");
+  redirect(HOME_PATH);
 }

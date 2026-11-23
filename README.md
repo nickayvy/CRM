@@ -79,7 +79,7 @@ Sign-in is email + password through Supabase Auth, using `@supabase/ssr`.
 redirects signed-out users to `/login` (API routes get a 401 instead).
 Exempt paths: `/login`, `/signup`, `/api/auth/*` and `/api/cron/*` (cron routes
 check `CRON_SECRET` themselves). Signed-in users who open `/login` or
-`/signup` are sent to `/lookup`.
+`/signup` are sent to `/overview`, the home page.
 
 Setup:
 
@@ -91,7 +91,7 @@ Setup:
    `http://localhost:3000/api/auth/callback` for local dev).
 3. Email confirmation: when "Confirm email" is on, sign-up sends a link that
    lands on `/api/auth/callback`, which exchanges the code for a session and
-   redirects to `/lookup`. When it is off, sign-up signs the user in
+   redirects to `/overview`. When it is off, sign-up signs the user in
    immediately.
 4. You can also create users in the dashboard: Authentication → Users → Add
    user, with "Auto Confirm" ticked.

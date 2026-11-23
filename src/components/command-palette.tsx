@@ -30,11 +30,11 @@ import { modKey, ShortcutsDialog } from "@/components/shell/shortcuts-dialog";
 import type { SearchHit, SearchResponse } from "@/app/api/search/route";
 
 export const PAGES: { href: string; label: string; icon: LucideIcon }[] = [
+  { href: "/overview", label: "Overview", icon: LayoutDashboardIcon },
   { href: "/lookup", label: "Lookup", icon: LayoutGridIcon },
   { href: "/leads", label: "Leads", icon: GitBranchIcon },
   { href: "/calling", label: "Calling", icon: PhoneIcon },
   { href: "/email", label: "Email", icon: MailIcon },
-  { href: "/overview", label: "Overview", icon: LayoutDashboardIcon },
   { href: "/settings", label: "Settings", icon: SettingsIcon },
   { href: "/design", label: "Design", icon: PaletteIcon },
 ];

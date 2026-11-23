@@ -10,55 +10,14 @@ import {
   ChartTooltipContent,
   type ChartConfig,
 } from "@/components/ui/chart";
+import type { OutcomeDayDatum } from "../chart-data";
 
-/** One row per category for the horizontal bar charts. */
-export type CategoryDatum = { key: string; label: string; count: number };
-
-/** One row per local day; outcome keys hold counts. */
-export type OutcomeDayDatum = { day: string; label: string } & Record<string, number | string>;
-
-function NoData({ text }: { text: string }) {
-  return <EmptyState size="compact" title={text} className="h-full" />;
-}
-
-/** Horizontal bars, one per category; long labels get a wide Y axis. */
-export function CategoryBarChart({
-  data,
-  color = "var(--chart-1)",
-  name,
-  emptyText,
-  testId,
-}: {
-  data: CategoryDatum[];
-  color?: string;
-  name: string;
-  emptyText: string;
-  testId: string;
-}) {
-  if (data.every((d) => d.count === 0)) return <NoData text={emptyText} />;
-  const config = { count: { label: name, color } } satisfies ChartConfig;
-  return (
-    <ChartContainer config={config} className="aspect-auto size-full" data-testid={testId}>
-      <BarChart data={data} layout="vertical" margin={{ left: 4, right: 12, top: 4, bottom: 4 }} accessibilityLayer>
-        <CartesianGrid horizontal={false} />
-        <XAxis type="number" dataKey="count" allowDecimals={false} tickLine={false} axisLine={false} />
-        <YAxis
-          type="category"
-          dataKey="label"
-          width={104}
-          tickLine={false}
-          axisLine={false}
-          interval={0}
-          tick={{ fontSize: 11 }}
-        />
-        <ChartTooltip cursor={false} content={<ChartTooltipContent hideIndicator />} />
-        <Bar dataKey="count" fill="var(--color-count)" radius={3} maxBarSize={18} />
-      </BarChart>
-    </ChartContainer>
-  );
-}
-
-/** Stacked bars per day, one segment per call outcome. */
+/**
+ * Stacked columns per day, one segment per outcome group. Segments are
+ * separated by a 2px gap in the surface colour (a stroke that matches the
+ * card), so neighbours read as distinct without an outline. A visually
+ * hidden table carries the same numbers for screen readers.
+ */
 export function OutcomesByDayChart({
   data,
   outcomes,
@@ -66,27 +25,67 @@ export function OutcomesByDayChart({
   data: OutcomeDayDatum[];
   outcomes: { key: string; label: string; color: string }[];
 }) {
-  if (outcomes.length === 0) return <NoData text="No calls in the last 7 days" />;
+  if (outcomes.length === 0) {
+    return (
+      <EmptyState
+        size="compact"
+        title="No calls in the last 7 days"
+        description="Outcomes show up here as soon as calls are logged."
+        className="h-full"
+      />
+    );
+  }
   const config = Object.fromEntries(outcomes.map((o) => [o.key, { label: o.label, color: o.color }])) satisfies ChartConfig;
   return (
-    <ChartContainer config={config} className="aspect-auto size-full" data-testid="chart-outcomes">
-      <BarChart data={data} margin={{ left: -16, right: 4, top: 4, bottom: 0 }} accessibilityLayer>
-        <CartesianGrid vertical={false} />
-        <XAxis dataKey="label" tickLine={false} axisLine={false} tickMargin={6} interval={0} tick={{ fontSize: 11 }} />
-        <YAxis allowDecimals={false} tickLine={false} axisLine={false} width={40} />
-        <ChartTooltip cursor={false} content={<ChartTooltipContent />} />
-        <ChartLegend content={<ChartLegendContent className="flex-wrap gap-x-3 gap-y-1" />} />
-        {outcomes.map((o, i) => (
-          <Bar
-            key={o.key}
-            dataKey={o.key}
-            stackId="calls"
-            fill={`var(--color-${o.key})`}
-            radius={i === outcomes.length - 1 ? [3, 3, 0, 0] : 0}
-            maxBarSize={32}
-          />
-        ))}
-      </BarChart>
-    </ChartContainer>
+    <>
+      <ChartContainer config={config} className="aspect-auto size-full" data-testid="chart-outcomes" aria-hidden>
+        <BarChart data={data} margin={{ left: -16, right: 4, top: 4, bottom: 0 }}>
+          <CartesianGrid vertical={false} />
+          <XAxis dataKey="label" tickLine={false} axisLine={false} tickMargin={6} interval={0} tick={{ fontSize: 11 }} />
+          <YAxis allowDecimals={false} tickLine={false} axisLine={false} width={40} />
+          <ChartTooltip cursor={{ fill: "var(--muted)", opacity: 0.5 }} content={<ChartTooltipContent className="min-w-56" />} />
+          <ChartLegend itemSorter={null} content={<ChartLegendContent className="flex-wrap gap-x-4 gap-y-1" />} />
+          {outcomes.map((o, i) => (
+            <Bar
+              key={o.key}
+              dataKey={o.key}
+              stackId="calls"
+              fill={`var(--color-${o.key})`}
+              stroke="var(--surface)"
+              strokeWidth={2}
+              radius={i === outcomes.length - 1 ? [4, 4, 0, 0] : 0}
+              maxBarSize={24}
+              isAnimationActive={false}
+            />
+          ))}
+        </BarChart>
+      </ChartContainer>
+      {/* The wrapper carries sr-only: a table ignores the 1px box and would widen the page. */}
+      <div className="sr-only">
+        <table data-testid="chart-outcomes-table">
+          <caption>Calls by outcome, last 7 days</caption>
+          <thead>
+            <tr>
+              <th scope="col">Day</th>
+              {outcomes.map((o) => (
+                <th key={o.key} scope="col">
+                  {o.label}
+                </th>
+              ))}
+            </tr>
+          </thead>
+          <tbody>
+            {data.map((d) => (
+              <tr key={d.day}>
+                <th scope="row">{d.label}</th>
+                {outcomes.map((o) => (
+                  <td key={o.key}>{d[o.key]}</td>
+                ))}
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </>
   );
 }

@@ -6,7 +6,7 @@ export const dynamic = "force-dynamic";
 
 /**
  * Supabase email-confirmation / magic-link landing: exchanges `?code=` for a
- * session cookie, then redirects to `?next=` (same-site only, default /lookup).
+ * session cookie, then redirects to `?next=` (same-site only, default /overview).
  */
 export async function GET(request: NextRequest) {
   const { searchParams } = request.nextUrl;

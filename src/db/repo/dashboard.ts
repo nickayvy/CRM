@@ -28,6 +28,12 @@ export type DashboardStats = {
   businessesReview: number;
   businessesRejected: number;
   callsToday: number;
+  /** Call activities on the previous local day (the comparison for `callsToday`). */
+  callsYesterday: number;
+  /** Call outcomes over the 7-day window (the denominator of `interestRate7d`). */
+  calls7d: number;
+  /** "interested" outcomes over the 7-day window (the numerator of `interestRate7d`). */
+  interested7d: number;
   /** interested / all call outcomes over the 7-day window, 0..1 (0 when there are none). */
   interestRate7d: number;
   emailsSentToday: number;
@@ -71,9 +77,11 @@ export async function getDashboardStats(db: Db, now: Date = new Date()): Promise
   const tz = env.APP_TIMEZONE;
   const today = localDayBounds(now, tz);
   const week = sevenDayWindow(now, tz);
+  // Noon avoids DST edges when stepping back a whole day.
+  const yesterday = localDayBounds(addDays(new Date(today.start.getTime() + 12 * 3_600_000), -1), tz);
   const hard = new Set<string>(HARD_REASONS);
 
-  const [qual, reasons, statuses, callsToday, weekCalls, emailsToday, runningCall, runningEmail, overdue] =
+  const [qual, reasons, statuses, callsToday, callsYesterday, weekCalls, emailsToday, runningCall, runningEmail, overdue] =
     await Promise.all([
       countByQualification(db),
       countByReason(db),
@@ -82,6 +90,12 @@ export async function getDashboardStats(db: Db, now: Date = new Date()): Promise
         .select({ n: count() })
         .from(activities)
         .where(and(eq(activities.type, "call"), gte(activities.occurredAt, today.start), lt(activities.occurredAt, today.end))),
+      db
+        .select({ n: count() })
+        .from(activities)
+        .where(
+          and(eq(activities.type, "call"), gte(activities.occurredAt, yesterday.start), lt(activities.occurredAt, yesterday.end)),
+        ),
       // Window ends at `now`: future-dated activities never count.
       db
         .select({ outcome: activities.outcome, occurredAt: activities.occurredAt })
@@ -135,6 +149,9 @@ export async function getDashboardStats(db: Db, now: Date = new Date()): Promise
     businessesReview: qual.review,
     businessesRejected: qual.rejected,
     callsToday: Number(callsToday[0]?.n ?? 0),
+    callsYesterday: Number(callsYesterday[0]?.n ?? 0),
+    calls7d: weekCalls.length,
+    interested7d: interested,
     interestRate7d: weekCalls.length ? interested / weekCalls.length : 0,
     emailsSentToday: Number(emailsToday[0]?.n ?? 0),
     runningCallCampaigns: Number(runningCall[0]?.n ?? 0),

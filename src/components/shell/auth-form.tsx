@@ -9,6 +9,7 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { createClient } from "@/lib/supabase/client";
+import { HOME_PATH } from "@/lib/supabase/config";
 
 type Mode = "login" | "signup";
 
@@ -37,7 +38,7 @@ const COPY: Record<
 };
 
 /** LAR email + password card (ported from gtm's login/signup forms). */
-export function AuthForm({ mode, next = "/lookup", notice }: { mode: Mode; next?: string; notice?: string }) {
+export function AuthForm({ mode, next = HOME_PATH, notice }: { mode: Mode; next?: string; notice?: string }) {
   const copy = COPY[mode];
   const router = useRouter();
   const [email, setEmail] = useState("");
@@ -64,7 +65,7 @@ export function AuthForm({ mode, next = "/lookup", notice }: { mode: Mode; next?
       if (error) throw error;
       if (data.session) {
         // Email confirmation disabled in the project: already signed in.
-        router.replace("/lookup");
+        router.replace(HOME_PATH);
         router.refresh();
         return;
       }

@@ -66,7 +66,7 @@ is enforced in server code (`requireUser()`), not by RLS.
    "Confirm email"):
    - On (recommended): sign-up shows "Check your email to confirm your
      account"; the link lands on `/api/auth/callback`, which exchanges the code
-     for a session and redirects to `/lookup`.
+     for a session and redirects to `/overview`.
    - Off: sign-up signs the user in immediately.
 4. Users can sign up at `/signup`, or be created in Authentication → Users →
    Add user (tick "Auto Confirm").
@@ -193,13 +193,13 @@ Apply `0005` before the first Google search.
 Replace `<app>` with your deployment URL.
 
 - [ ] `https://<app>/` while signed out redirects to `/login`; the LAR sign-in card renders.
-- [ ] Sign up at `/signup` (confirm the email if confirmation is on), then sign in: you land on `/lookup` with the top bar (LOOKUP · LEADS · CALLING · EMAIL · OVERVIEW) and your email in the user menu.
+- [ ] Sign up at `/signup` (confirm the email if confirmation is on), then sign in: you land on `/overview` with the top bar (OVERVIEW · LOOKUP · LEADS · CALLING · EMAIL) and your email in the user menu. On an empty database it shows the three "Getting started" steps.
 - [ ] `/lookup` on an empty database shows "No businesses yet". With `FIRECRAWL_API_KEY` set, paste `https://www.trustpilot.com/review/<domain>`: the business appears in the grid and graph; open its dossier and **Add to Lead List**.
 - [ ] Seed a category from Lookup: "Seeding started" toast; rows appear within a minute.
 - [ ] `/leads` shows the lead; change its status, add a note, export CSV.
 - [ ] Create a call campaign, add the lead from `/leads`, open the dialer, set your agent name, record an outcome.
 - [ ] Email campaign: start it, then **Process now** records a dry-run message (without `RESEND_API_KEY`).
-- [ ] `/overview` renders its tiles (leads by status, businesses by source) and charts.
+- [ ] `/overview` lists what needs you under "Up next" (each row's button opens where it is handled), then today's four numbers, the pipeline, calls by outcome, leads by status and discovery.
 - [ ] `/searches/new` without `YELP_API_KEY` shows "Yelp search is not configured" on the Yelp tab.
 - [ ] `/searches/new` without `GOOGLE_PLACES_API_KEY` shows "Google Maps search is not configured: set GOOGLE_PLACES_API_KEY". With it: pick Roofing, type `75201` and set pages to 1; the plan line reads "3 terms × 1 zip = 3 searches · up to 3 requests · …"; start it and the job page counts searches to 3 of 3; `/lookup?source=google` lists the businesses with a Google Maps link; `/settings` shows the requests used.
 - [ ] `curl -H "Authorization: Bearer $CRON_SECRET" https://<app>/api/cron/daily` returns 200 with JSON; without the header it returns 401.

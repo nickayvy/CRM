@@ -1,4 +1,5 @@
 import { CommandPalette } from "@/components/command-palette";
+import { HOME_PATH } from "@/lib/supabase/config";
 import { getUser } from "@/lib/supabase/server";
 import { Brand } from "./brand";
 import { MobileNav } from "./mobile-nav";
@@ -22,7 +23,7 @@ async function Chrome({ children }: { children: React.ReactNode }) {
     <div className="flex h-svh flex-col overflow-hidden" data-slot="app-shell">
       <header className={`${TOPBAR_CLASS} relative z-30`} data-testid="topbar">
         <div className="flex min-w-0 flex-1 items-center">
-          <Brand href="/lookup" />
+          <Brand href={HOME_PATH} />
         </div>
         <TopNav />
         <div className="flex min-w-0 flex-1 items-center justify-end gap-2">

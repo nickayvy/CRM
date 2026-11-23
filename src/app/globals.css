@@ -26,6 +26,10 @@
   --color-chart-3: var(--chart-3);
   --color-chart-2: var(--chart-2);
   --color-chart-1: var(--chart-1);
+  --color-series-1: var(--series-1);
+  --color-series-2: var(--series-2);
+  --color-series-3: var(--series-3);
+  --color-series-4: var(--series-4);
   --color-ring: var(--ring);
   --color-input: var(--input);
   --color-border: var(--border);
@@ -105,6 +109,16 @@
   --chart-4: #2a5c96;
   --chart-5: #1a4b85;
 
+  /*
+   * Categorical series (identity, not magnitude): four hues that stay apart
+   * on the dark surface for colour-blind readers too. Assigned in this fixed
+   * order; the blue ramp above is for single-series and ordered marks.
+   */
+  --series-1: #199e70;
+  --series-2: #5a8fc9;
+  --series-3: #c98500;
+  --series-4: #d55181;
+
   --sidebar: #0f0f0f;
   --sidebar-foreground: #f5f5f5;
   --sidebar-primary: #5a8fc9;
@@ -171,6 +185,16 @@
   --chart-3: #3a6da7;
   --chart-4: #2a5c96;
   --chart-5: #1a4b85;
+
+  /*
+   * Categorical series (identity, not magnitude): four hues that stay apart
+   * on the dark surface for colour-blind readers too. Assigned in this fixed
+   * order; the blue ramp above is for single-series and ordered marks.
+   */
+  --series-1: #199e70;
+  --series-2: #5a8fc9;
+  --series-3: #c98500;
+  --series-4: #d55181;
 
   --sidebar: #0f0f0f;
   --sidebar-foreground: #f5f5f5;
